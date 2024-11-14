@@ -5,32 +5,33 @@ import {
   DashboardPageHeaderTitle,
   DashboardPageMain,
 } from '@/components/dashboard/page'
-import { TodoDataTable } from './_components/todo-data-table'
-import { TodoUpsertSheet } from './_components/todo-upsert-sheet'
+import { AIConfigDataTable } from './_components/ai-config-data-table'
+import { AIConfigUpsertDialog } from './_components/ai-config-upsert-dialog'
 import { Button } from '@/components/ui/button'
 import { PlusIcon } from '@radix-ui/react-icons'
-import { getUserTodos } from './actions'
+import { getUserAIConfigs } from './actions'
+
 
 export default async function Page() {
-  const todos = await getUserTodos()
+  const aiConfigs = await getUserAIConfigs()
 
   return (
     <DashboardPage>
       <DashboardPageHeader>
-        <DashboardPageHeaderTitle>Tarefas</DashboardPageHeaderTitle>
+        <DashboardPageHeaderTitle>Inteligência Artificial</DashboardPageHeaderTitle>
         <DashboardPageHeaderNav>
           <DashboardPageHeaderNav>
-            <TodoUpsertSheet>
+            <AIConfigUpsertDialog>
               <Button variant="outline" size="sm">
                 <PlusIcon className="w-4 h-4 mr-3" />
-                Add todo
+                Nova Configuração
               </Button>
-            </TodoUpsertSheet>
+            </AIConfigUpsertDialog>
           </DashboardPageHeaderNav>
         </DashboardPageHeaderNav>
       </DashboardPageHeader>
       <DashboardPageMain>
-        <TodoDataTable data={todos} />
+        <AIConfigDataTable data={aiConfigs} />
       </DashboardPageMain>
     </DashboardPage>
   )

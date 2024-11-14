@@ -3,12 +3,12 @@
 import { auth } from '@/services/auth'
 import { prisma } from '@/services/database'
 import { z } from 'zod'
-import { deleteTodoSchema, upsertTodoSchema } from './schema'
+import { deleteAIConfigSchema, upsertAIConfigSchema } from './schema'
 
-export async function getUserTodos() {
+export async function getUserAIConfigs() {
   const session = await auth()
 
-  const todos = await prisma.todo.findMany({
+  const aiConfigs = await prisma.AIConfig.findMany({
     where: {
       userId: session?.user?.id,
     },
@@ -17,82 +17,94 @@ export async function getUserTodos() {
     },
   })
 
-  return todos
+  return aiConfigs
 }
 
-export async function upsertTodo(input: z.infer<typeof upsertTodoSchema>) {
+export async function upsertAIConfig(input: z.infer<typeof upsertAIConfigSchema>) {
+  console.log('upsertAIConfig chamado com input:', input);
   const session = await auth()
 
   if (!session?.user?.id) {
+    console.log('Usuário não autenticado');
     return {
-      error: 'Not authorized',
+      error: 'Não autorizado',
       data: null,
     }
   }
 
-  if (input.id) {
-    const todo = await prisma.todo.findUnique({
-      where: {
-        id: input.id,
-        userId: session?.user?.id,
-      },
-      select: {
-        id: true,
-      },
-    })
+  const { linksPagamento, ...restInput } = input;
 
-    if (!todo) {
+  const data = {
+    ...restInput,
+    condicoesAtendimento: restInput.condicoesAtendimento || '',
+  };
+
+  try {
+    if (input.id) {
+      console.log('Atualizando AIConfig existente com ID:', input.id);
+      const updatedAIConfig = await prisma.AIConfig.update({
+        where: {
+          id: input.id,
+          userId: session?.user?.id,
+        },
+        data: {
+          ...data,
+          linksPagamento: {
+            deleteMany: {},
+            create: linksPagamento,
+          },
+        },
+        include: {
+          linksPagamento: true,
+        },
+      })
+
+      console.log('AIConfig atualizado com sucesso:', updatedAIConfig);
       return {
-        error: 'Not found',
-        data: null,
+        error: null,
+        data: updatedAIConfig,
+      }
+    } else {
+      // Lógica de criação
+      const newAIConfig = await prisma.AIConfig.create({
+        data: {
+          ...data,
+          userId: session.user.id,
+          linksPagamento: {
+            create: linksPagamento,
+          },
+        },
+        include: {
+          linksPagamento: true,
+        },
+      })
+
+      console.log('Novo AIConfig criado:', newAIConfig);
+      return {
+        error: null,
+        data: newAIConfig,
       }
     }
-
-    const updatedTodo = await prisma.todo.update({
-      where: {
-        id: input.id,
-        userId: session?.user?.id,
-      },
-      data: {
-        title: input.title,
-        doneAt: input.doneAt,
-      },
-    })
-
+  } catch (error) {
+    console.error('Erro ao upsert AIConfig:', error);
     return {
-      error: null,
-      data: updatedTodo,
-    }
-  }
-
-  if (!input.title) {
-    return {
-      error: 'Title is required',
+      error: 'Erro ao salvar configuração: ' + (error as Error).message,
       data: null,
     }
   }
-
-  const todo = await prisma.todo.create({
-    data: {
-      title: input.title,
-      userId: session?.user?.id,
-    },
-  })
-
-  return todo
 }
 
-export async function deleteTodo(input: z.infer<typeof deleteTodoSchema>) {
+export async function deleteAIConfig(input: z.infer<typeof deleteAIConfigSchema>) {
   const session = await auth()
 
   if (!session?.user?.id) {
     return {
-      error: 'Not authorized',
+      error: 'Não autorizado',
       data: null,
     }
   }
 
-  const todo = await prisma.todo.findUnique({
+  const aiConfig = await prisma.AIConfig.findUnique({
     where: {
       id: input.id,
       userId: session?.user?.id,
@@ -102,14 +114,14 @@ export async function deleteTodo(input: z.infer<typeof deleteTodoSchema>) {
     },
   })
 
-  if (!todo) {
+  if (!aiConfig) {
     return {
-      error: 'Not found',
+      error: 'Não encontrado',
       data: null,
     }
   }
 
-  await prisma.todo.delete({
+  await prisma.AIConfig.delete({
     where: {
       id: input.id,
       userId: session?.user?.id,
@@ -118,6 +130,45 @@ export async function deleteTodo(input: z.infer<typeof deleteTodoSchema>) {
 
   return {
     error: null,
-    data: 'Todo deleted successfully',
+    data: 'Configuração de IA excluída com sucesso',
+  }
+}
+
+export async function fetchFullAIConfig(id: string) {
+  const session = await auth()
+
+  if (!session?.user?.id) {
+    return {
+      error: 'Não autorizado',
+      data: null,
+    }
+  }
+
+  try {
+    const aiConfig = await prisma.AIConfig.findUnique({
+      where: { 
+        id,
+        userId: session.user.id
+      },
+      include: { linksPagamento: true }
+    })
+
+    if (!aiConfig) {
+      return {
+        error: 'Configuração não encontrada',
+        data: null,
+      }
+    }
+
+    return {
+      error: null,
+      data: aiConfig,
+    }
+  } catch (error) {
+    console.error('Erro ao buscar configuração:', error)
+    return {
+      error: 'Erro ao buscar configuração',
+      data: null,
+    }
   }
 }
