@@ -52,9 +52,11 @@ model User {
   stripeSubscriptionStatus String?
   stripePriceId            String?
 
-  accounts Account[]
-  sessions Session[]
-  todos    Todo[]
+  accounts     Account[]
+  sessions     Session[]
+  todos        Todo[]
+  aiConfigs    AIConfig[]
+  interactions Interaction[]
 }
 
 model VerificationToken {
@@ -75,4 +77,44 @@ model Todo {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   doneAt    DateTime?
+}
+
+model AIConfig {
+  id                         String        @id @default(cuid())
+  isActive                   Boolean       @default(true)
+  nomeAtendenteDigital       String
+  enviarParaAtendente        Boolean
+  cargoUsuario               String
+  instrucoesAtendenteVirtual String
+  horarioAtendimento         String
+  anexarInstrucoesPdf        String?
+  condicoesAtendimento       String?
+  user                       User          @relation(fields: [userId], references: [id])
+  userId                     String
+  linksPagamento             PaymentLink[]
+  createdAt                  DateTime      @default(now())
+  updatedAt                  DateTime      @updatedAt
+}
+
+model PaymentLink {
+  id         String   @id @default(cuid())
+  url        String
+  objective  String
+  aiConfigId String
+  aiConfig   AIConfig @relation(fields: [aiConfigId], references: [id])
+}
+
+model Interaction {
+  id                 String    @id @default(cuid())
+  name               String?
+  phoneNumber        String?
+  interactionsCount  Int?
+  currentlyTalkingTo String?
+  lastMessage        String?
+  lastContactAt      DateTime? 
+  status             String?
+  userId             String?
+  user               User?      @relation(fields: [userId], references: [id])
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 }
