@@ -1,3 +1,4 @@
+// src/schema.ts
 import { z } from 'zod'
 
 const paymentLinkSchema = z.object({
@@ -10,14 +11,22 @@ export const upsertAIConfigSchema = z.object({
   isActive: z.boolean().default(true),
   nomeAtendenteDigital: z.string().min(1, "O nome do atendente digital é obrigatório"),
   enviarParaAtendente: z.boolean(),
-  cargoUsuario: z.string().min(1, "O cargo do usuário é obrigatório"),
-  instrucoesAtendenteVirtual: z.string(),
+  quemEhAtendente: z.string().min(1, "Este campo é obrigatório"),
+  oQueAtendenteFaz: z.string().min(1, "Este campo é obrigatório"),
+  objetivoAtendente: z.string().min(1, "Este campo é obrigatório"),
+  comoAtendenteDeve: z.string().min(1, "Este campo é obrigatório"),
   horarioAtendimento: z.enum(["Atender 24h por dia", "Fora do horário de atendimento", "Dentro do horário de atendimento"]),
   anexarInstrucoesPdf: z.union([z.instanceof(File), z.string()]).nullable(),
   condicoesAtendimento: z.string().optional(),
-  linksPagamento: z.array(paymentLinkSchema),
+  attachments: z.array(z.object({
+    type: z.enum(['link', 'image', 'pdf']),
+    content: z.string(),
+    description: z.string()
+  })).default([]),
 })
 
 export const deleteAIConfigSchema = z.object({
   id: z.string(),
 })
+
+export type AIConfigFormData = z.infer<typeof upsertAIConfigSchema>;

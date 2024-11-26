@@ -32,6 +32,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from "@/components/ui/textarea"
 import * as z from 'zod'
 import { useState, useEffect } from 'react';
+import { PlusIcon } from '@radix-ui/react-icons'
 
 type AIConfigUpsertDialogProps = {
   children?: React.ReactNode

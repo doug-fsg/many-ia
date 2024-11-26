@@ -4,6 +4,8 @@ import { auth } from '@/services/auth'
 import { prisma } from '@/services/database'
 import { z } from 'zod'
 import { deleteAIConfigSchema, upsertAIConfigSchema } from './schema'
+import { createEmbeddingFromAIConfig } from '@/utils/vectorUtils'
+import { revalidatePath } from 'next/cache'
 
 export async function getUserAIConfigs() {
   const session = await auth()
@@ -21,74 +23,120 @@ export async function getUserAIConfigs() {
 }
 
 export async function upsertAIConfig(input: z.infer<typeof upsertAIConfigSchema>) {
-  console.log('upsertAIConfig chamado com input:', input);
-  const session = await auth()
-
-  if (!session?.user?.id) {
-    console.log('Usuário não autenticado');
-    return {
-      error: 'Não autorizado',
-      data: null,
-    }
-  }
-
-  const { linksPagamento, ...restInput } = input;
-
-  const data = {
-    ...restInput,
-    condicoesAtendimento: restInput.condicoesAtendimento || '',
-  };
-
   try {
-    if (input.id) {
-      console.log('Atualizando AIConfig existente com ID:', input.id);
-      const updatedAIConfig = await prisma.AIConfig.update({
-        where: {
-          id: input.id,
-          userId: session?.user?.id,
-        },
-        data: {
-          ...data,
-          linksPagamento: {
-            deleteMany: {},
-            create: linksPagamento,
-          },
-        },
-        include: {
-          linksPagamento: true,
-        },
-      })
-
-      console.log('AIConfig atualizado com sucesso:', updatedAIConfig);
+    const session = await auth()
+    if (!session?.user?.id) {
       return {
-        error: null,
-        data: updatedAIConfig,
-      }
-    } else {
-      // Lógica de criação
-      const newAIConfig = await prisma.AIConfig.create({
-        data: {
-          ...data,
-          userId: session.user.id,
-          linksPagamento: {
-            create: linksPagamento,
-          },
-        },
-        include: {
-          linksPagamento: true,
-        },
-      })
-
-      console.log('Novo AIConfig criado:', newAIConfig);
-      return {
-        error: null,
-        data: newAIConfig,
+        error: 'Não autorizado',
+        data: null,
       }
     }
+
+    const { attachments, temasEvitar, id: configId, ...restInput } = input
+
+    if (configId) {
+      const existingConfig = await prisma.aIConfig.findUnique({
+        where: { id: configId },
+      })
+
+      if (existingConfig && Object.keys(input).length === 2 && 'isActive' in input) {
+        const result = await prisma.aIConfig.update({
+          where: { id: configId },
+          data: { isActive: input.isActive },
+        })
+        return { data: result, error: null }
+      }
+    }
+
+    try {
+      console.log('Gerando embedding para:', {
+        quemEhAtendente: restInput.quemEhAtendente,
+        oQueAtendenteFaz: restInput.oQueAtendenteFaz,
+        objetivoAtendente: restInput.objetivoAtendente,
+        comoAtendenteDeve: restInput.comoAtendenteDeve,
+      });
+
+      const { embedding } = await createEmbeddingFromAIConfig({
+        quemEhAtendente: restInput.quemEhAtendente,
+        oQueAtendenteFaz: restInput.oQueAtendenteFaz,
+        objetivoAtendente: restInput.objetivoAtendente,
+        comoAtendenteDeve: restInput.comoAtendenteDeve,
+      });
+
+      console.log('Embedding gerado:', embedding);
+
+      if (input.id) {
+        const updatedAIConfig = await prisma.AIConfig.update({
+          where: {
+            id: input.id,
+            userId: session.user.id,
+          },
+          data: {
+            ...restInput,
+            embedding,
+            temasEvitar: {
+              deleteMany: {},
+              create: temasEvitar.map(tema => ({ tema }))
+            },
+            attachments: {
+              deleteMany: {},
+              create: attachments.map(({ type, content, description }) => ({
+                type,
+                content,
+                description
+              }))
+            },
+          },
+          include: {
+            attachments: true,
+            temasEvitar: true,
+          },
+        })
+
+        return {
+          error: null,
+          data: updatedAIConfig,
+        }
+      } else {
+        const newAIConfig = await prisma.AIConfig.create({
+          data: {
+            ...restInput,
+            embedding,
+            userId: session.user.id,
+            temasEvitar: {
+              create: temasEvitar.map(tema => ({ tema }))
+            },
+            attachments: {
+              create: attachments.map(({ type, content, description }) => ({
+                type,
+                content,
+                description
+              }))
+            },
+          },
+          include: {
+            attachments: true,
+            temasEvitar: true,
+          },
+        })
+
+        return {
+          error: null,
+          data: newAIConfig,
+        }
+      }
+    } catch (embeddingError) {
+      console.error('Erro ao gerar embedding:', embeddingError);
+      throw embeddingError;
+    }
+
+    console.log('=== Server Action Concluída com Sucesso ===');
+    revalidatePath('/app/configuracoes')
+    return { data: result, error: null }
   } catch (error) {
-    console.error('Erro ao upsert AIConfig:', error);
+    console.error('Erro:', error)
     return {
-      error: 'Erro ao salvar configuração: ' + (error as Error).message,
+      error: error instanceof Error ? error.message : 'Erro desconhecido',
       data: null,
     }
   }
@@ -150,7 +198,10 @@ export async function fetchFullAIConfig(id: string) {
         id,
         userId: session.user.id
       },
-      include: { linksPagamento: true }
+      include: {
+        attachments: true,
+        temasEvitar: true
+      }
     })
 
     if (!aiConfig) {
@@ -168,6 +219,32 @@ export async function fetchFullAIConfig(id: string) {
     console.error('Erro ao buscar configuração:', error)
     return {
       error: 'Erro ao buscar configuração',
+      data: null,
+    }
+  }
+}
+
+export async function toggleAIConfigStatus(configId: string, isActive: boolean) {
+  try {
+    const session = await auth()
+    if (!session?.user?.id) {
+      return {
+        error: 'Não autorizado',
+        data: null,
+      }
+    }
+
+    const result = await prisma.aIConfig.update({
+      where: { id: configId },
+      data: { isActive },
+    })
+
+    revalidatePath('/app/configuracoes')
+    return { data: result, error: null }
+  } catch (error) {
+    console.error('Erro ao atualizar status:', error)
+    return {
+      error: error instanceof Error ? error.message : 'Erro desconhecido',
       data: null,
     }
   }
