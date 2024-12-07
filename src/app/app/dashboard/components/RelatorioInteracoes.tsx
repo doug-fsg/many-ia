@@ -28,7 +28,32 @@ export function RelatorioInteracoes() {
             variant: 'destructive',
           });
         } else {
-          setInteracoes(result.data || []);
+          // Dados fictícios para teste
+          const fakeData = [
+            {
+              id: '1',
+              name: 'João Silva',
+              phoneNumber: '(11) 98765-4321',
+              interactionsCount: 5,
+              lastMessage: 'Olá, como posso ajudar?',
+              lastContactAt: new Date().toISOString(),
+              status: 'Aberta',
+              interesse: 'Alto',
+            },
+            {
+              id: '2',
+              name: 'Maria Oliveira',
+              phoneNumber: '(21) 91234-5678',
+              interactionsCount: 3,
+              lastMessage: 'Obrigado pelo contato!',
+              lastContactAt: new Date().toISOString(),
+              status: 'Resolvida',
+              interesse: 'Médio',
+            },
+          ];
+
+          setInteracoes(fakeData);
+          setLoading(false);
         }
       } catch (error) {
         console.error('Erro ao chamar getUserInteractions:', error);
@@ -68,6 +93,7 @@ export function RelatorioInteracoes() {
               <TableRow>
                 <TableHead>Nome</TableHead>
                 <TableHead>Telefone</TableHead>
+                <TableHead>Interesse</TableHead>
                 <TableHead>Contagens de Interações</TableHead>
                 <TableHead>Última Mensagem</TableHead>
                 <TableHead>Último Contato</TableHead>
@@ -79,6 +105,7 @@ export function RelatorioInteracoes() {
                 <TableRow key={interacao.id}>
                   <TableCell>{interacao.name}</TableCell>
                   <TableCell>{interacao.phoneNumber}</TableCell>
+                  <TableCell>{interacao.interesse}</TableCell>
                   <TableCell>{interacao.interactionsCount}</TableCell>
                   <TableCell>{interacao.lastMessage}</TableCell>
                   <TableCell>{interacao.lastContactAt ? new Date(interacao.lastContactAt).toLocaleString() : 'N/A'}</TableCell>

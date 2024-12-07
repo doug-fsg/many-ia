@@ -7,7 +7,7 @@ import { deleteAIConfigSchema, upsertAIConfigSchema } from './schema'
 import { createEmbeddingFromAIConfig } from '@/utils/vectorUtils'
 import { revalidatePath } from 'next/cache'
 
-export async function getUserAIConfigs() {
+async function getUserAIConfigs() {
   const session = await auth()
 
   const aiConfigs = await prisma.AIConfig.findMany({
@@ -22,7 +22,7 @@ export async function getUserAIConfigs() {
   return aiConfigs
 }
 
-export async function upsertAIConfig(input: z.infer<typeof upsertAIConfigSchema>) {
+async function upsertAIConfig(input: z.infer<typeof upsertAIConfigSchema>) {
   try {
     const session = await auth()
     if (!session?.user?.id) {
@@ -63,7 +63,6 @@ export async function upsertAIConfig(input: z.infer<typeof upsertAIConfigSchema>
         comoAtendenteDeve: restInput.comoAtendenteDeve,
       });
 
-      console.log('Embedding gerado:', embedding);
 
       if (input.id) {
         const updatedAIConfig = await prisma.AIConfig.update({
@@ -142,7 +141,7 @@ export async function upsertAIConfig(input: z.infer<typeof upsertAIConfigSchema>
   }
 }
 
-export async function deleteAIConfig(input: z.infer<typeof deleteAIConfigSchema>) {
+async function deleteAIConfig(input: z.infer<typeof deleteAIConfigSchema>) {
   const session = await auth()
 
   if (!session?.user?.id) {
@@ -182,7 +181,7 @@ export async function deleteAIConfig(input: z.infer<typeof deleteAIConfigSchema>
   }
 }
 
-export async function fetchFullAIConfig(id: string) {
+async function fetchFullAIConfig(id: string) {
   const session = await auth()
 
   if (!session?.user?.id) {
@@ -224,7 +223,7 @@ export async function fetchFullAIConfig(id: string) {
   }
 }
 
-export async function toggleAIConfigStatus(configId: string, isActive: boolean) {
+async function toggleAIConfigStatus(configId: string, isActive: boolean) {
   try {
     const session = await auth()
     if (!session?.user?.id) {
@@ -248,4 +247,63 @@ export async function toggleAIConfigStatus(configId: string, isActive: boolean) 
       data: null,
     }
   }
+}
+
+async function getManytalksAccountId() {
+  try {
+    const session = await auth()
+    if (!session?.user?.id) {
+      return {
+        error: 'Usuário não autenticado',
+        data: null
+      }
+    }
+
+    const user = await prisma.user.findUnique({
+      where: {
+        id: session.user.id
+      }
+    })
+
+    return {
+      error: null,
+      data: user?.manytalksAccountId
+    }
+  } catch (error) {
+    console.error('Erro ao buscar manytalksAccountId:', error)
+    return {
+      error: 'Erro ao buscar ID da conta',
+      data: null
+    }
+  }
+}
+
+export async function updateAIConfigInbox(
+  id: string, 
+  inboxId: number | null, 
+  inboxName: string | null
+) {
+  try {
+    await prisma.aIConfig.update({
+      where: { id },
+      data: {
+        inboxId: inboxId,
+        inboxName: inboxName
+      }
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Erro ao atualizar inbox:', error);
+    return { error: 'Falha ao atualizar o canal' };
+  }
+}
+
+export {
+  getUserAIConfigs,
+  upsertAIConfig,
+  deleteAIConfig,
+  toggleAIConfigStatus,
+  getManytalksAccountId,
+  fetchFullAIConfig
 }

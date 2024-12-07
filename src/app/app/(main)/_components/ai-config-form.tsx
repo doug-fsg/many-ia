@@ -20,7 +20,24 @@ import * as z from 'zod'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { ExpandIcon } from "lucide-react"
 import { experimental_useFormStatus as useFormStatus } from 'react-dom'
-console.log('Action importada:', !!upsertAIConfig);
+import { aiTemplates, TemplateKeys } from '../templates'
+import { Label } from '@/components/ui/label'
+import { Check, ChevronsUpDown } from "lucide-react"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import { cn } from "@/lib/utils"
+
 type PaymentLink = {
   url: string
   objective: string
@@ -38,9 +55,27 @@ type AIConfigFormProps = {
   isEditMode?: boolean
 }
 
+// Definição dos templates em formato mais adequado para o combobox
+const templateOptions = [
+  {
+    value: "suporteCliente",
+    label: "Suporte ao Cliente",
+    description: "Ideal para atendimento ao cliente e suporte técnico"
+  },
+  {
+    value: "consultorVendas",
+    label: "Consultor de Vendas",
+    description: "Perfeito para vendas consultivas e negociações"
+  },
+  {
+    value: "corretor",
+    label: "Corretor de Imóveis",
+    description: "Especializado em atendimento imobiliário"
+  }
+]
+
 export function AIConfigForm({ defaultValue, onSuccess, isEditMode = false }: AIConfigFormProps) {
   const router = useRouter()
-  const [paymentLinks, setPaymentLinks] = useState<PaymentLink[]>([])
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [expandedField, setExpandedField] = useState<string | null>(null);
   const [expandedContent, setExpandedContent] = useState("");
@@ -49,6 +84,9 @@ export function AIConfigForm({ defaultValue, onSuccess, isEditMode = false }: AI
     defaultValue?.temasEvitar || []
   );
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [open, setOpen] = useState(false)
+  const [selectedTemplate, setSelectedTemplate] = useState("")
+  const [isCustomized, setIsCustomized] = useState(false)
 
   const form = useForm<AIConfigFormData>({
     resolver: zodResolver(upsertAIConfigSchema),
@@ -62,23 +100,34 @@ export function AIConfigForm({ defaultValue, onSuccess, isEditMode = false }: AI
       horarioAtendimento: 'Atender 24h por dia',
       anexarInstrucoesPdf: null,
       condicoesAtendimento: '',
-      linksPagamento: [],
       informacoesEmpresa: '',
-      // attachments: [],
     },
   })
-
-  useEffect(() => {
-    if (defaultValue?.linksPagamento && defaultValue.linksPagamento.length > 0) {
-      setPaymentLinks(defaultValue.linksPagamento)
-    }
-  }, [defaultValue])
 
   useEffect(() => {
     if (defaultValue?.attachments && defaultValue.attachments.length > 0) {
       setAttachments(defaultValue.attachments);
     }
   }, [defaultValue]);
+
+  // Observa mudanças no formulário
+  useEffect(() => {
+    const subscription = form.watch((value, { name, type }) => {
+      if (selectedTemplate && type === "change") {
+        const template = aiTemplates[selectedTemplate as TemplateKeys];
+        const currentValues = form.getValues();
+        
+        // Verifica se algum valor é diferente do template
+        const isDifferent = Object.keys(template).some(key => {
+          return template[key as keyof typeof template] !== currentValues[key as keyof typeof currentValues];
+        });
+
+        setIsCustomized(isDifferent);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [form, selectedTemplate]);
 
   const adicionarTema = () => {
     if (novoTema.trim()) {
@@ -101,7 +150,6 @@ export function AIConfigForm({ defaultValue, onSuccess, isEditMode = false }: AI
   };
 
   const handleFileUpload = async (file: File): Promise<string> => {
-    console.log('Iniciando upload do arquivo:', file.name)
     const formData = new FormData()
     formData.append('file', file)
     try {
@@ -109,12 +157,10 @@ export function AIConfigForm({ defaultValue, onSuccess, isEditMode = false }: AI
         method: 'POST', 
         body: formData 
       })
-      console.log('Resposta do servidor:', response.status, response.statusText)
       if (!response.ok) {
         throw new Error(`Falha ao fazer upload do arquivo: ${response.status} ${response.statusText}`)
       }
       const data = await response.json()
-      console.log('Dados recebidos do servidor:', data)
       if (!data.fileId) {
         throw new Error('URL do arquivo não recebida do servidor')
       }
@@ -126,11 +172,9 @@ export function AIConfigForm({ defaultValue, onSuccess, isEditMode = false }: AI
   }
 
   const handleSubmitForm = async (data: AIConfigFormData) => {
-    console.log('1. Iniciando submissão do formulário');
     
     try {
       if (Object.keys(form.formState.errors).length > 0) {
-        console.log('2. Erros de validação encontrados:', form.formState.errors);
         return;
       }
 
@@ -141,13 +185,10 @@ export function AIConfigForm({ defaultValue, onSuccess, isEditMode = false }: AI
         id: isEditMode && defaultValue ? defaultValue.id : undefined
       };
 
-      console.log('3. Dados preparados para envio:', formData);
       
       // Usando try/catch específico para a action
       try {
-        console.log('4. Chamando server action');
         const result = await upsertAIConfig(formData);
-        console.log('5. Resposta da server action:', result);
 
         if (result.error) {
           throw new Error(result.error);
@@ -178,7 +219,6 @@ export function AIConfigForm({ defaultValue, onSuccess, isEditMode = false }: AI
   }
 
   const addPaymentLink = () => {
-    console.log('Adicionando novo link de pagamento')
     setPaymentLinks([...paymentLinks, { url: '', objective: '' }])
   }
 
@@ -190,7 +230,6 @@ export function AIConfigForm({ defaultValue, onSuccess, isEditMode = false }: AI
   }
 
   const removePaymentLink = (index: number) => {
-    console.log(`Removendo link de pagamento ${index + 1}`)
     const updatedLinks = paymentLinks.filter((_, i) => i !== index)
     setPaymentLinks(updatedLinks)
   }
@@ -236,6 +275,28 @@ export function AIConfigForm({ defaultValue, onSuccess, isEditMode = false }: AI
   const removeAttachment = (index: number) => {
     setAttachments(attachments.filter((_, i) => i !== index));
   };
+
+  const handleTemplateSelect = (templateKey: TemplateKeys) => {
+    const template = aiTemplates[templateKey];
+    
+    if (!template) {
+      console.error('Modelo não encontrado:', templateKey);
+      return;
+    }
+
+    // Aplica os valores do template
+    Object.entries(template).forEach(([key, value]) => {
+      form.setValue(key as any, value, {
+        shouldDirty: true,
+        shouldTouch: true,
+        shouldValidate: true
+      });
+    });
+
+    setSelectedTemplate(templateKey);
+    setIsCustomized(false); // Reset do estado customizado
+  }
+  
 
   const formContent = (
     <>
@@ -313,7 +374,6 @@ export function AIConfigForm({ defaultValue, onSuccess, isEditMode = false }: AI
                       onChange={(e) => {
                         const file = e.target.files?.[0]
                         if (file) {
-                          console.log('Arquivo selecionado:', file.name)
                           field.onChange(file)
                           form.setValue('anexarInstrucoesPdf', file, { shouldValidate: true, shouldDirty: true })
                         }
@@ -450,7 +510,6 @@ export function AIConfigForm({ defaultValue, onSuccess, isEditMode = false }: AI
                     className="h-36"
                     {...field} 
                     onChange={(e) => {
-                      console.log('Quem é o Atendente:', e.target.value)
                       field.onChange(e.target.value)
                     }}
                   />
@@ -486,7 +545,6 @@ export function AIConfigForm({ defaultValue, onSuccess, isEditMode = false }: AI
                     className="h-36"
                     {...field} 
                     onChange={(e) => {
-                      console.log('O que o Atendente Faz:', e.target.value)
                       field.onChange(e.target.value)
                     }}
                   />
@@ -522,7 +580,6 @@ export function AIConfigForm({ defaultValue, onSuccess, isEditMode = false }: AI
                     className="h-36"
                     {...field} 
                     onChange={(e) => {
-                      console.log('Objetivo do Atendente:', e.target.value)
                       field.onChange(e.target.value)
                     }}
                   />
@@ -772,6 +829,98 @@ export function AIConfigForm({ defaultValue, onSuccess, isEditMode = false }: AI
             }} 
             className="space-y-8"
           >
+            <div className="space-y-6 mb-8">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <h2 className="text-2xl font-bold tracking-tight">Modelos</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Comece com um modelo pré-configurado ou personalize do zero.
+                  </p>
+                </div>
+                
+                <Popover open={open} onOpenChange={setOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={open}
+                      className="w-[250px] justify-between"
+                    >
+                      <div className="flex items-center gap-2">
+                        {selectedTemplate ? (
+                          <>
+                            <div className={cn(
+                              "w-2 h-2 rounded-full",
+                              isCustomized ? "bg-orange-500" : "bg-primary"
+                            )} />
+                            {isCustomized 
+                              ? "Personalizado" 
+                              : templateOptions.find((template) => template.value === selectedTemplate)?.label}
+                          </>
+                        ) : (
+                          "Selecione um modelo..."
+                        )}
+                      </div>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[400px] p-0" align="end">
+                    <Command>
+                      <CommandInput 
+                        placeholder="Buscar modelo..." 
+                        className="h-9"
+                      />
+                      <CommandList>
+                        <CommandEmpty>Nenhum template encontrado.</CommandEmpty>
+                        <CommandGroup>
+                          {templateOptions.map((template) => (
+                            <CommandItem
+                              key={template.value}
+                              value={template.value}
+                              onSelect={() => {
+                                handleTemplateSelect(template.value as TemplateKeys);
+                                setOpen(false);
+                              }}
+                              className="flex flex-col items-start py-3 px-4 cursor-pointer"
+                            >
+                              <div className="flex w-full items-center gap-2">
+                                <div className={cn(
+                                  "w-2 h-2 rounded-full",
+                                  selectedTemplate === template.value 
+                                    ? (isCustomized ? "bg-orange-500" : "bg-primary")
+                                    : "bg-muted"
+                                )} />
+                                <span className="font-medium">
+                                  {template.label}
+                                  {selectedTemplate === template.value && isCustomized && (
+                                    <span className="ml-2 text-sm text-orange-500">(Personalizado)</span>
+                                  )}
+                                </span>
+                                <Check
+                                  className={cn(
+                                    "ml-auto h-4 w-4",
+                                    selectedTemplate === template.value ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                              </div>
+                              <span className="text-sm text-muted-foreground ml-4 mt-1">
+                                {template.description}
+                              </span>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div className="flex items-center">
+                <div className="flex-grow border-t border-border"></div>
+                <p className="mx-4 text-sm text-muted-foreground">ou configure manualmente</p>
+                <div className="flex-grow border-t border-border"></div>
+              </div>
+            </div>
             {formContent}
             <div className="flex justify-end gap-4">
               <Button 

@@ -1,6 +1,5 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
 import { AIConfigForm } from '@/app/app/(main)/_components/ai-config-form'
 import {
   DashboardPage,
@@ -8,8 +7,9 @@ import {
   DashboardPageHeaderTitle,
   DashboardPageMain,
 } from '@/components/dashboard/page'
+import { useRouter } from 'next/navigation'
 
-export default function NewAIConfigPage() {
+export default function NovaConfiguracaoPage() {
   const router = useRouter()
 
   return (
@@ -19,9 +19,11 @@ export default function NewAIConfigPage() {
       </DashboardPageHeader>
       <DashboardPageMain>
         <AIConfigForm 
+          isEditMode={false}
           onSuccess={() => {
-            router.refresh()
+            
             router.push('/app')
+            router.refresh()
           }}
         />
       </DashboardPageMain>

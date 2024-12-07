@@ -10,6 +10,7 @@ import { AIConfigUpsertDialog } from './_components/ai-config-upsert-dialog'
 import { Button } from '@/components/ui/button'
 import { PlusIcon } from '@radix-ui/react-icons'
 import { getUserAIConfigs } from './actions'
+import Link from 'next/link'
 
 
 export default async function Page() {
@@ -21,12 +22,12 @@ export default async function Page() {
         <DashboardPageHeaderTitle>Inteligência Artificial</DashboardPageHeaderTitle>
         <DashboardPageHeaderNav>
           <DashboardPageHeaderNav>
-            <AIConfigUpsertDialog>
-              <Button variant="outline" size="sm">
-                <PlusIcon className="w-4 h-4 mr-3" />
-                Nova Configuração
-              </Button>
-            </AIConfigUpsertDialog>
+            <Link 
+              href="/app/configuracoes/nova" 
+              className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+            >
+              Nova Configuração
+            </Link>
           </DashboardPageHeaderNav>
         </DashboardPageHeaderNav>
       </DashboardPageHeader>

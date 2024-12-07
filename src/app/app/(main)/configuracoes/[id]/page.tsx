@@ -11,6 +11,7 @@ import {
   DashboardPageHeaderTitle,
   DashboardPageMain,
 } from '@/components/dashboard/page'
+import { SpinnerLoader } from '@/components/SpinnerLoader' // Atualize o caminho conforme a localização do SpinnerLoader
 
 export default function EditAIConfigPage({ params }: { params: { id: string } }) {
   const [aiConfig, setAiConfig] = useState<AIConfig | null>(null)
@@ -27,7 +28,7 @@ export default function EditAIConfigPage({ params }: { params: { id: string } })
   }, [params.id])
 
   if (!aiConfig) {
-    return <div>Carregando...</div>
+    return <SpinnerLoader /> // Substituído pelo componente de carregamento
   }
 
   return (

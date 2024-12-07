@@ -7,7 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
 model Account {
   id                String  @id @default(cuid())
   userId            String
@@ -44,11 +43,12 @@ model User {
   stripePriceId            String?
   stripeSubscriptionId     String?
   stripeSubscriptionStatus String?
+  manytalksAccountId       String?
   aiConfigs                AIConfig[]
   accounts                 Account[]
+  inboxes                  Inbox[]
   interactions             Interaction[]
   sessions                 Session[]
-  todos                    Todo[]
 }
 
 model VerificationToken {
@@ -59,9 +59,10 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-model Todo {
+model Inbox {
   id        String    @id @default(cuid())
-  title     String
+  name      String
+  inboxId   String
   userId    String
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -82,12 +83,15 @@ model AIConfig {
   horarioAtendimento   String
   anexarInstrucoesPdf  String?
   condicoesAtendimento String?
-  embedding            Json // Unsupported("vector")
+  embedding            Json
   createdAt            DateTime      @default(now())
   updatedAt            DateTime      @updatedAt
+  informacoesEmpresa   String
   user                 User          @relation(fields: [userId], references: [id])
   attachments          Attachment[]
   temasEvitar          TemasEvitar[]
+  inboxId              Int?
+  inboxName            String?
 
   @@index([userId])
 }

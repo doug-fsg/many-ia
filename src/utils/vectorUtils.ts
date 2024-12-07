@@ -31,7 +31,6 @@ export async function createEmbeddingFromAIConfig(config: {
       input: combinedText,
     });
 
-    console.log('Embedding gerado com sucesso');
     
     return {
       embedding: {

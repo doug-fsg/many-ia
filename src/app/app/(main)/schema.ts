@@ -16,6 +16,7 @@ export const upsertAIConfigSchema = z.object({
   objetivoAtendente: z.string().min(1, "Este campo é obrigatório"),
   comoAtendenteDeve: z.string().min(1, "Este campo é obrigatório"),
   horarioAtendimento: z.enum(["Atender 24h por dia", "Fora do horário de atendimento", "Dentro do horário de atendimento"]),
+  informacoesEmpresa: z.string().optional(),
   anexarInstrucoesPdf: z.union([z.instanceof(File), z.string()]).nullable(),
   condicoesAtendimento: z.string().optional(),
   attachments: z.array(z.object({
@@ -23,6 +24,7 @@ export const upsertAIConfigSchema = z.object({
     content: z.string(),
     description: z.string()
   })).default([]),
+  
 })
 
 export const deleteAIConfigSchema = z.object({
