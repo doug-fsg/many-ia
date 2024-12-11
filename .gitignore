@@ -36,3 +36,6 @@ yarn-error.log*
 next-env.d.ts
 
 /private
+.gitignoredeploy.sh
+.env
+.env
