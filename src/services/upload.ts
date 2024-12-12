@@ -7,11 +7,14 @@ const storage = multer.diskStorage({
     cb(null, path.join(process.cwd(), 'public/uploads')); // Define onde salvar os arquivos
   },
   filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname)); // Gera um nome único para o arquivo
-  }
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(
+      null,
+      file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname),
+    ); // Gera um nome único para o arquivo
+  },
 });
 
-const upload = multer({ storage: storage });
+const upload = multer({ storage });
 
 export default upload;

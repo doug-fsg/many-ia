@@ -1,6 +1,6 @@
 interface ManytalksInbox {
   id: number;
- name: string;
+  name: string;
   channel_type: string;
   avatar_url: string;
   manytalksAccountId: string;
@@ -11,7 +11,7 @@ export async function buscarInboxes(accountId: string | undefined) {
     console.error('❌ AccountId não fornecido');
     return {
       error: 'AccountId não fornecido',
-      data: null
+      data: null,
     };
   }
 
@@ -24,10 +24,10 @@ export async function buscarInboxes(accountId: string | undefined) {
     const response = await fetch(url, {
       method: 'GET',
       headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
       },
-      cache: 'no-store'
+      cache: 'no-store',
     });
 
     if (!response.ok) {
@@ -35,7 +35,7 @@ export async function buscarInboxes(accountId: string | undefined) {
       console.error('❌ Resposta não-OK:', {
         status: response.status,
         statusText: response.statusText,
-        errorText
+        errorText,
       });
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -44,19 +44,19 @@ export async function buscarInboxes(accountId: string | undefined) {
     console.log('✅ Dados recebidos:', data);
     return {
       error: null,
-      data
+      data,
     };
   } catch (error) {
     console.error('❌ Erro crítico em buscarInboxes:', {
       accountId,
       erro: error,
       url: `/api/manytalks?accountId=${accountId}`,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
 
     return {
       error: 'Falha ao buscar inboxes',
-      data: null
+      data: null,
     };
   }
 }

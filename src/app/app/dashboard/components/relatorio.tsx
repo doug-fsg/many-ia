@@ -1,6 +1,6 @@
-'use client'
+'use client';
 
-import * as React from "react"
+import * as React from 'react';
 import {
   Card,
   CardContent,
@@ -8,15 +8,10 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs"
-import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
+} from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 
 export default function Dashboard() {
   return (
@@ -26,7 +21,8 @@ export default function Dashboard() {
           <CardHeader className="pb-3">
             <CardTitle>Seus Pedidos</CardTitle>
             <CardDescription>
-              Apresentando nosso painel de pedidos dinâmico para gerenciamento e análise eficientes.
+              Apresentando nosso painel de pedidos dinâmico para gerenciamento e
+              análise eficientes.
             </CardDescription>
           </CardHeader>
           <CardFooter>
@@ -72,7 +68,9 @@ export default function Dashboard() {
           <Card>
             <CardHeader>
               <CardTitle>Pedidos da Semana</CardTitle>
-              <CardDescription>Visão geral dos pedidos desta semana.</CardDescription>
+              <CardDescription>
+                Visão geral dos pedidos desta semana.
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {/* Conteúdo dos pedidos da semana aqui */}
@@ -83,25 +81,25 @@ export default function Dashboard() {
           <Card>
             <CardHeader>
               <CardTitle>Pedidos do Mês</CardTitle>
-              <CardDescription>Visão geral dos pedidos deste mês.</CardDescription>
+              <CardDescription>
+                Visão geral dos pedidos deste mês.
+              </CardDescription>
             </CardHeader>
-            <CardContent>
-              {/* Conteúdo dos pedidos do mês aqui */}
-            </CardContent>
+            <CardContent>{/* Conteúdo dos pedidos do mês aqui */}</CardContent>
           </Card>
         </TabsContent>
         <TabsContent value="ano">
           <Card>
             <CardHeader>
               <CardTitle>Pedidos do Ano</CardTitle>
-              <CardDescription>Visão geral dos pedidos deste ano.</CardDescription>
+              <CardDescription>
+                Visão geral dos pedidos deste ano.
+              </CardDescription>
             </CardHeader>
-            <CardContent>
-              {/* Conteúdo dos pedidos do ano aqui */}
-            </CardContent>
+            <CardContent>{/* Conteúdo dos pedidos do ano aqui */}</CardContent>
           </Card>
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }

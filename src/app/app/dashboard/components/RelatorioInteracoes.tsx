@@ -1,9 +1,16 @@
-'use client'
+'use client';
 
-import React from 'react'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { useToast } from "@/components/ui/use-toast"
+import React from 'react';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { useToast } from '@/components/ui/use-toast';
 import { getUserInteractions } from '../../dashboard/(main)/actions';
 
 export function RelatorioInteracoes() {
@@ -60,7 +67,8 @@ export function RelatorioInteracoes() {
         setError('Erro ao carregar interações: ' + (error as Error).message);
         toast({
           title: 'Erro',
-          description: 'Falha ao carregar as interações: ' + (error as Error).message,
+          description:
+            'Falha ao carregar as interações: ' + (error as Error).message,
           variant: 'destructive',
         });
       } finally {
@@ -86,7 +94,9 @@ export function RelatorioInteracoes() {
       </CardHeader>
       <CardContent>
         {interacoes.length === 0 ? (
-          <div>Nenhuma interação encontrada. Verifique se há dados na tabela.</div>
+          <div>
+            Nenhuma interação encontrada. Verifique se há dados na tabela.
+          </div>
         ) : (
           <Table>
             <TableHeader>
@@ -108,7 +118,11 @@ export function RelatorioInteracoes() {
                   <TableCell>{interacao.interesse}</TableCell>
                   <TableCell>{interacao.interactionsCount}</TableCell>
                   <TableCell>{interacao.lastMessage}</TableCell>
-                  <TableCell>{interacao.lastContactAt ? new Date(interacao.lastContactAt).toLocaleString() : 'N/A'}</TableCell>
+                  <TableCell>
+                    {interacao.lastContactAt
+                      ? new Date(interacao.lastContactAt).toLocaleString()
+                      : 'N/A'}
+                  </TableCell>
                   <TableCell>{interacao.status}</TableCell>
                 </TableRow>
               ))}

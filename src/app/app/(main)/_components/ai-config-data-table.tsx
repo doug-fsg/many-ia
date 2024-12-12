@@ -1,17 +1,44 @@
-'use client'
+'use client';
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { Pencil2Icon, TrashIcon, MinusCircledIcon, PlusCircledIcon, ChevronDownIcon, ChevronUpIcon } from '@radix-ui/react-icons';
+import {
+  Pencil2Icon,
+  TrashIcon,
+  MinusCircledIcon,
+  PlusCircledIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+} from '@radix-ui/react-icons';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { toast } from '@/components/ui/use-toast';
-import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
-import { Command, CommandList, CommandItem, CommandInput } from '@/components/ui/command';
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from '@/components/ui/popover';
+import {
+  Command,
+  CommandList,
+  CommandItem,
+  CommandInput,
+} from '@/components/ui/command';
 import { AIConfig } from '../types';
-import { deleteAIConfig, toggleAIConfigStatus, getManytalksAccountId, updateAIConfigInbox } from '../actions';
+import {
+  deleteAIConfig,
+  toggleAIConfigStatus,
+  getManytalksAccountId,
+  updateAIConfigInbox,
+} from '../actions';
 import { buscarInboxes } from '@/lib/manytalks';
 
 type AIConfigDataTable = {
@@ -27,15 +54,17 @@ interface ManytalksInbox {
 export function AIConfigDataTable({ data }: AIConfigDataTable) {
   const router = useRouter();
   const [deleteModalOpen, setDeleteModalOpen] = React.useState(false);
-  const [configToDelete, setConfigToDelete] = React.useState<AIConfig | null>(null);
-  const [expandedConfig, setExpandedConfig] = React.useState<string | null>(null);
+  const [configToDelete, setConfigToDelete] = React.useState<AIConfig | null>(
+    null,
+  );
+  const [expandedConfig, setExpandedConfig] = React.useState<string | null>(
+    null,
+  );
   const [inboxes, setInboxes] = React.useState<ManytalksInbox[]>([]);
-  const [loading, setLoading] = React.useState(false);
   const [openPopoverId, setOpenPopoverId] = React.useState<string | null>(null);
 
   const fetchInboxes = async () => {
     try {
-      setLoading(true);
       const accountResult = await getManytalksAccountId();
       if (accountResult.error || !accountResult.data) {
         throw new Error('ID da conta Manytalks não encontrado');
@@ -50,7 +79,8 @@ export function AIConfigDataTable({ data }: AIConfigDataTable) {
       console.error('Erro ao buscar inboxes:', error);
       toast({
         title: 'Erro ao buscar inboxes',
-        description: error instanceof Error ? error.message : 'Erro desconhecido',
+        description:
+          error instanceof Error ? error.message : 'Erro desconhecido',
         variant: 'destructive',
       });
     } finally {
@@ -92,7 +122,10 @@ export function AIConfigDataTable({ data }: AIConfigDataTable) {
 
   const handleToggleActiveAIConfig = async (aiConfig: AIConfig) => {
     try {
-      const result = await toggleAIConfigStatus(aiConfig.id, !aiConfig.isActive);
+      const result = await toggleAIConfigStatus(
+        aiConfig.id,
+        !aiConfig.isActive,
+      );
 
       if (result.error) {
         throw new Error(result.error);
@@ -118,10 +151,14 @@ export function AIConfigDataTable({ data }: AIConfigDataTable) {
     setExpandedConfig(expandedConfig === id ? null : id);
   };
 
-  const handleInboxSelect = async (aiConfigId: string, inboxId: number, inboxName: string) => {
+  const handleInboxSelect = async (
+    aiConfigId: string,
+    inboxId: number,
+    inboxName: string,
+  ) => {
     try {
       const result = await updateAIConfigInbox(aiConfigId, inboxId, inboxName);
-      
+
       if (result.error) {
         throw new Error(result.error);
       }
@@ -146,7 +183,7 @@ export function AIConfigDataTable({ data }: AIConfigDataTable) {
   const handleRemoveInbox = async (aiConfig: AIConfig) => {
     try {
       const result = await updateAIConfigInbox(aiConfig.id, null, null);
-      
+
       if (result.error) {
         throw new Error(result.error);
       }
@@ -174,14 +211,21 @@ export function AIConfigDataTable({ data }: AIConfigDataTable) {
     <>
       <div className="flex flex-wrap gap-4 p-4">
         {data.map((aiConfig) => (
-          <Card key={aiConfig.id} className="relative hover:shadow-md transition-shadow w-[300px]">
+          <Card
+            key={aiConfig.id}
+            className="relative hover:shadow-md transition-shadow w-[300px]"
+          >
             <CardContent className="p-4">
               <div className="flex flex-col space-y-4">
                 <div className="flex justify-between items-start">
-                  <h3 className="font-semibold text-lg mb-2">{aiConfig.nomeAtendenteDigital}</h3>
+                  <h3 className="font-semibold text-lg mb-2">
+                    {aiConfig.nomeAtendenteDigital}
+                  </h3>
                   <Badge
                     className={`${
-                      aiConfig.isActive ? 'bg-green-500 text-white' : 'bg-gray-300 text-gray-700'
+                      aiConfig.isActive
+                        ? 'bg-green-500 text-white'
+                        : 'bg-gray-300 text-gray-700'
                     } w-20 justify-center`}
                   >
                     {aiConfig.isActive ? 'ativo' : 'inativo'}
@@ -189,19 +233,24 @@ export function AIConfigDataTable({ data }: AIConfigDataTable) {
                 </div>
                 <div className="border-t pt-4">
                   <div className="flex items-center gap-2 mt-1">
-                    <Popover open={openPopoverId === aiConfig.id} onOpenChange={(open) => setOpenPopoverId(open ? aiConfig.id : null)}>
+                    <Popover
+                      open={openPopoverId === aiConfig.id}
+                      onOpenChange={(open) =>
+                        setOpenPopoverId(open ? aiConfig.id : null)
+                      }
+                    >
                       <PopoverTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           className="h-7 px-2 text-xs hover:bg-muted group"
                         >
                           {aiConfig.inboxName ? (
                             <span className="flex items-center gap-2 text-foreground">
                               <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
                               {aiConfig.inboxName}
-                              <MinusCircledIcon 
-                                className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 ml-2 hover:text-red-600" 
+                              <MinusCircledIcon
+                                className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 ml-2 hover:text-red-600"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleRemoveInbox(aiConfig);
@@ -218,15 +267,21 @@ export function AIConfigDataTable({ data }: AIConfigDataTable) {
                       </PopoverTrigger>
                       <PopoverContent className="w-[250px] p-0" align="start">
                         <Command>
-                          <CommandInput 
-                            placeholder="Buscar canal..." 
+                          <CommandInput
+                            placeholder="Buscar canal..."
                             className="h-8 text-xs text-foreground"
                           />
                           <CommandList>
                             {inboxes.map((inbox) => (
-                              <CommandItem 
-                                key={inbox.id} 
-                                onSelect={() => handleInboxSelect(aiConfig.id, inbox.id, inbox.name)}
+                              <CommandItem
+                                key={inbox.id}
+                                onSelect={() =>
+                                  handleInboxSelect(
+                                    aiConfig.id,
+                                    inbox.id,
+                                    inbox.name,
+                                  )
+                                }
                                 className="text-xs py-1.5 text-foreground"
                               >
                                 {inbox.name}
@@ -243,7 +298,9 @@ export function AIConfigDataTable({ data }: AIConfigDataTable) {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => router.push(`/app/configuracoes/${aiConfig.id}`)}
+                    onClick={() =>
+                      router.push(`/app/configuracoes/${aiConfig.id}`)
+                    }
                     className="flex items-center gap-1 text-gray-600 hover:text-blue-600"
                   >
                     <Pencil2Icon className="h-4 w-4" />
@@ -286,8 +343,9 @@ export function AIConfigDataTable({ data }: AIConfigDataTable) {
             <DialogTitle>Confirmação de Exclusão</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-gray-500">
-            Tem certeza que deseja excluir a configuração "{configToDelete?.nomeAtendenteDigital}"? Esta ação não pode
-            ser desfeita.
+            Tem certeza que deseja excluir a configuração "
+            {configToDelete?.nomeAtendenteDigital}"? Esta ação não pode ser
+            desfeita.
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={handleCancelDelete}>

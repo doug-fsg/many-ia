@@ -1,12 +1,12 @@
-'use client'
+'use client';
 
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useRouter } from 'next/navigation'
-import { useForm } from 'react-hook-form'
-import { updateProfile } from '../actions'
-import { updateProfileSchema } from '../schemas'
-import { toast } from '@/components/ui/use-toast'
-import { z } from 'zod'
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useRouter } from 'next/navigation';
+import { useForm } from 'react-hook-form';
+import { updateProfile } from '../actions';
+import { updateProfileSchema } from '../schemas';
+import { toast } from '@/components/ui/use-toast';
+import { z } from 'zod';
 import {
   Form,
   FormControl,
@@ -14,25 +14,25 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form'
-import { SheetFooter } from '@/components/ui/sheet'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Session } from 'next-auth'
+} from '@/components/ui/form';
+import { SheetFooter } from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Session } from 'next-auth';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card'
+} from '@/components/ui/card';
 
 type ProfileFormProps = {
-  defaultValues: Session['user']
-}
+  defaultValues: Session['user'];
+};
 
 export function ProfileForm({ defaultValues }: ProfileFormProps) {
-  const router = useRouter()
+  const router = useRouter();
 
   const form = useForm<z.infer<typeof updateProfileSchema>>({
     resolver: zodResolver(updateProfileSchema),
@@ -40,17 +40,17 @@ export function ProfileForm({ defaultValues }: ProfileFormProps) {
       name: defaultValues?.name ?? '',
       email: defaultValues?.email ?? '',
     },
-  })
+  });
 
   const onSubmit = form.handleSubmit(async (data) => {
-    await updateProfile(data)
-    router.refresh()
+    await updateProfile(data);
+    router.refresh();
 
     toast({
       title: 'Sucesso',
       description: 'Seu perfil foi atualizado com sucesso.',
-    })
-  })
+    });
+  });
 
   return (
     <Form {...form}>
@@ -112,5 +112,5 @@ export function ProfileForm({ defaultValues }: ProfileFormProps) {
         </SheetFooter>
       </form>
     </Form>
-  )
+  );
 }

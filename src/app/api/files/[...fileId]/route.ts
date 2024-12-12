@@ -5,7 +5,7 @@ import fs from 'fs/promises';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { fileId: string[] } }
+  { params }: { params: { fileId: string[] } },
 ) {
   const session = await auth();
   if (!session?.user?.id) {
@@ -25,9 +25,15 @@ export async function GET(
     const file = await fs.readFile(filePath);
     const response = new NextResponse(file);
     response.headers.set('Content-Type', 'application/octet-stream');
-    response.headers.set('Content-Disposition', `attachment; filename="${fileName}"`);
+    response.headers.set(
+      'Content-Disposition',
+      `attachment; filename="${fileName}"`,
+    );
     return response;
-  } catch (error) {
-    return NextResponse.json({ error: 'Arquivo não encontrado' }, { status: 404 });
+  } catch {
+    return NextResponse.json(
+      { error: 'Arquivo não encontrado' },
+      { status: 404 },
+    );
   }
 }

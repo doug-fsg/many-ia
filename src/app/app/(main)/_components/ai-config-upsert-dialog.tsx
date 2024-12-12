@@ -1,7 +1,7 @@
-'use client'
+'use client';
 
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Dialog,
   DialogContent,
@@ -10,7 +10,7 @@ import {
   DialogDescription,
   DialogFooter,
   DialogTrigger,
-} from '@/components/ui/dialog'
+} from '@/components/ui/dialog';
 import {
   Form,
   FormField,
@@ -19,38 +19,52 @@ import {
   FormControl,
   FormDescription,
   FormMessage,
-} from '@/components/ui/form'
-import { useForm } from 'react-hook-form'
-import { AIConfig } from '../types'
-import { upsertAIConfig } from '../actions'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { upsertAIConfigSchema } from '../schema'
-import { useRouter } from 'next/navigation'
-import { toast } from '@/components/ui/use-toast'
-import { Switch } from '@/components/ui/switch'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Textarea } from "@/components/ui/textarea"
-import * as z from 'zod'
+} from '@/components/ui/form';
+import { useForm } from 'react-hook-form';
+import { AIConfig } from '../types';
+import { upsertAIConfig } from '../actions';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { upsertAIConfigSchema } from '../schema';
+import { useRouter } from 'next/navigation';
+import { toast } from '@/components/ui/use-toast';
+import { Switch } from '@/components/ui/switch';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import * as z from 'zod';
 import { useState, useEffect } from 'react';
-import { PlusIcon } from '@radix-ui/react-icons'
+import { PlusIcon } from '@radix-ui/react-icons';
 
 type AIConfigUpsertDialogProps = {
-  children?: React.ReactNode
-  defaultValue?: AIConfig
-  onSuccess?: () => void
-  isEditMode?: boolean
+  children?: React.ReactNode;
+  defaultValue?: AIConfig;
+  onSuccess?: () => void;
+  isEditMode?: boolean;
   isOpen?: boolean;
   onClose?: () => void;
-  onSubmit?: (data: AIConfig) => Promise<void>
-}
+  onSubmit?: (data: AIConfig) => Promise<void>;
+};
 
 type PaymentLink = {
   url: string;
   objective: string;
 };
 
-export function AIConfigUpsertDialog({ children, defaultValue, onSuccess, isEditMode = false, onClose, isOpen, onSubmit }: AIConfigUpsertDialogProps) {
-  const router = useRouter()
+export function AIConfigUpsertDialog({
+  children,
+  defaultValue,
+  onSuccess,
+  isEditMode = false,
+  onClose,
+  isOpen,
+  onSubmit,
+}: AIConfigUpsertDialogProps) {
+  const router = useRouter();
   const [paymentLinks, setPaymentLinks] = useState<PaymentLink[]>([]);
 
   const form = useForm({
@@ -66,10 +80,13 @@ export function AIConfigUpsertDialog({ children, defaultValue, onSuccess, isEdit
       condicoesAtendimento: '',
       linksPagamento: [],
     },
-  })
+  });
 
   useEffect(() => {
-    if (defaultValue?.linksPagamento && defaultValue.linksPagamento.length > 0) {
+    if (
+      defaultValue?.linksPagamento &&
+      defaultValue.linksPagamento.length > 0
+    ) {
       setPaymentLinks(defaultValue.linksPagamento);
     }
   }, [defaultValue]);
@@ -79,13 +96,19 @@ export function AIConfigUpsertDialog({ children, defaultValue, onSuccess, isEdit
     const formData = new FormData();
     formData.append('file', file);
     try {
-      const response = await fetch('/api/upload', { 
-        method: 'POST', 
-        body: formData 
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
       });
-      console.log('Resposta do servidor:', response.status, response.statusText);
+      console.log(
+        'Resposta do servidor:',
+        response.status,
+        response.statusText,
+      );
       if (!response.ok) {
-        throw new Error(`Falha ao fazer upload do arquivo: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Falha ao fazer upload do arquivo: ${response.status} ${response.statusText}`,
+        );
       }
       const data = await response.json();
       console.log('Dados recebidos do servidor:', data);
@@ -97,7 +120,7 @@ export function AIConfigUpsertDialog({ children, defaultValue, onSuccess, isEdit
       console.error('Erro durante o upload:', error);
       throw error;
     }
-  }
+  };
 
   const handleSubmit = async (data: z.infer<typeof upsertAIConfigSchema>) => {
     console.log('handleSubmit chamado', { isEditMode, data, paymentLinks });
@@ -112,7 +135,8 @@ export function AIConfigUpsertDialog({ children, defaultValue, onSuccess, isEdit
           console.error('Erro no upload do arquivo:', uploadError);
           toast({
             title: 'Erro',
-            description: 'Falha ao fazer upload do arquivo. Por favor, tente novamente.',
+            description:
+              'Falha ao fazer upload do arquivo. Por favor, tente novamente.',
             variant: 'destructive',
           });
           return; // Interrompe a execução se houver erro no upload
@@ -122,7 +146,7 @@ export function AIConfigUpsertDialog({ children, defaultValue, onSuccess, isEdit
       const updatedData = {
         ...data,
         anexarInstrucoesPdf: fileUrl,
-        linksPagamento: paymentLinks
+        linksPagamento: paymentLinks,
       };
 
       if (isEditMode && defaultValue) {
@@ -159,13 +183,17 @@ export function AIConfigUpsertDialog({ children, defaultValue, onSuccess, isEdit
         variant: 'destructive',
       });
     }
-  }
+  };
 
   const addPaymentLink = () => {
     setPaymentLinks([...paymentLinks, { url: '', objective: '' }]);
   };
 
-  const updatePaymentLink = (index: number, field: 'url' | 'objective', value: string) => {
+  const updatePaymentLink = (
+    index: number,
+    field: 'url' | 'objective',
+    value: string,
+  ) => {
     const updatedLinks = [...paymentLinks];
     updatedLinks[index][field] = value;
     setPaymentLinks(updatedLinks);
@@ -190,10 +218,7 @@ export function AIConfigUpsertDialog({ children, defaultValue, onSuccess, isEdit
               </FormDescription>
             </div>
             <FormControl>
-              <Switch
-                checked={field.value}
-                onCheckedChange={field.onChange}
-              />
+              <Switch checked={field.value} onCheckedChange={field.onChange} />
             </FormControl>
           </FormItem>
         )}
@@ -206,7 +231,10 @@ export function AIConfigUpsertDialog({ children, defaultValue, onSuccess, isEdit
           <FormItem>
             <FormLabel>Nome do Atendente Digital</FormLabel>
             <FormControl>
-              <Input placeholder="Digite o nome do atendente digital" {...field} />
+              <Input
+                placeholder="Digite o nome do atendente digital"
+                {...field}
+              />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -234,7 +262,10 @@ export function AIConfigUpsertDialog({ children, defaultValue, onSuccess, isEdit
           <FormItem>
             <FormLabel>Instruções para o Atendente Virtual</FormLabel>
             <FormControl>
-              <Textarea placeholder="Detalhes específicos do atendimento" {...field} />
+              <Textarea
+                placeholder="Detalhes específicos do atendimento"
+                {...field}
+              />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -254,9 +285,15 @@ export function AIConfigUpsertDialog({ children, defaultValue, onSuccess, isEdit
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
-                <SelectItem value="Atender 24h por dia">Atender 24h por dia</SelectItem>
-                <SelectItem value="Fora do horário de atendimento">Fora do horário de atendimento</SelectItem>
-                <SelectItem value="Dentro do horário de atendimento">Dentro do horário de atendimento</SelectItem>
+                <SelectItem value="Atender 24h por dia">
+                  Atender 24h por dia
+                </SelectItem>
+                <SelectItem value="Fora do horário de atendimento">
+                  Fora do horário de atendimento
+                </SelectItem>
+                <SelectItem value="Dentro do horário de atendimento">
+                  Dentro do horário de atendimento
+                </SelectItem>
               </SelectContent>
             </Select>
             <FormMessage />
@@ -281,7 +318,10 @@ export function AIConfigUpsertDialog({ children, defaultValue, onSuccess, isEdit
                         const file = e.target.files?.[0];
                         if (file) {
                           field.onChange(file);
-                          form.setValue('anexarInstrucoesPdf', file, { shouldValidate: true, shouldDirty: true });
+                          form.setValue('anexarInstrucoesPdf', file, {
+                            shouldValidate: true,
+                            shouldDirty: true,
+                          });
                         }
                       }}
                       className="pl-10"
@@ -294,7 +334,11 @@ export function AIConfigUpsertDialog({ children, defaultValue, onSuccess, isEdit
                       stroke="currentColor"
                       className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
                     >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M12 4.5v15m7.5-7.5h-15"
+                      />
                     </svg>
                   </div>
                   {field.value && (
@@ -320,8 +364,16 @@ export function AIConfigUpsertDialog({ children, defaultValue, onSuccess, isEdit
                           stroke="currentColor"
                           className="w-4 h-4 mr-2"
                         >
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                          />
                         </svg>
                         Visualizar
                       </Button>
@@ -331,7 +383,10 @@ export function AIConfigUpsertDialog({ children, defaultValue, onSuccess, isEdit
                         className="flex items-center"
                         onClick={() => {
                           field.onChange(null);
-                          form.setValue('anexarInstrucoesPdf', null, { shouldValidate: true, shouldDirty: true });
+                          form.setValue('anexarInstrucoesPdf', null, {
+                            shouldValidate: true,
+                            shouldDirty: true,
+                          });
                         }}
                       >
                         <svg
@@ -342,7 +397,11 @@ export function AIConfigUpsertDialog({ children, defaultValue, onSuccess, isEdit
                           stroke="currentColor"
                           className="w-4 h-4 mr-2"
                         >
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
+                          />
                         </svg>
                         Remover
                       </Button>
@@ -387,7 +446,9 @@ export function AIConfigUpsertDialog({ children, defaultValue, onSuccess, isEdit
                 <Input
                   placeholder="https://exemplo.com/pagamento"
                   value={link.url}
-                  onChange={(e) => updatePaymentLink(index, 'url', e.target.value)}
+                  onChange={(e) =>
+                    updatePaymentLink(index, 'url', e.target.value)
+                  }
                 />
               </FormControl>
             </FormItem>
@@ -397,7 +458,9 @@ export function AIConfigUpsertDialog({ children, defaultValue, onSuccess, isEdit
                 <Input
                   placeholder="Descreva o objetivo do link de pagamento"
                   value={link.objective}
-                  onChange={(e) => updatePaymentLink(index, 'objective', e.target.value)}
+                  onChange={(e) =>
+                    updatePaymentLink(index, 'objective', e.target.value)
+                  }
                 />
               </FormControl>
             </FormItem>
@@ -412,7 +475,9 @@ export function AIConfigUpsertDialog({ children, defaultValue, onSuccess, isEdit
           <FormItem className="flex flex-col rounded-lg border p-4">
             <div className="flex flex-row items-center justify-between">
               <div className="space-y-0.5">
-                <FormLabel className="text-base">Enviar para Atendente</FormLabel>
+                <FormLabel className="text-base">
+                  Enviar para Atendente
+                </FormLabel>
                 <FormDescription>
                   Defina se o atendimento deve ser enviado para o atendente.
                 </FormDescription>
@@ -432,14 +497,17 @@ export function AIConfigUpsertDialog({ children, defaultValue, onSuccess, isEdit
                   <FormItem className="mt-4">
                     <FormLabel>Condições de Atendimento</FormLabel>
                     <FormControl>
-                      <Input 
-                        placeholder="Separe as condições por vírgula" 
-                        {...condicoesField} 
-                        onChange={(e) => condicoesField.onChange(e.target.value)}
+                      <Input
+                        placeholder="Separe as condições por vírgula"
+                        {...condicoesField}
+                        onChange={(e) =>
+                          condicoesField.onChange(e.target.value)
+                        }
                       />
                     </FormControl>
                     <FormDescription>
-                      Ex: Quando houver problema técnico, Quando houver reclamação
+                      Ex: Quando houver problema técnico, Quando houver
+                      reclamação
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -450,15 +518,18 @@ export function AIConfigUpsertDialog({ children, defaultValue, onSuccess, isEdit
         )}
       />
     </>
-  )
+  );
 
   const saveButton = (
-    <Button type="submit" disabled={!form.formState.isDirty || form.formState.isSubmitting}>
+    <Button
+      type="submit"
+      disabled={!form.formState.isDirty || form.formState.isSubmitting}
+    >
       {form.formState.isSubmitting
         ? 'Salvando...'
         : isEditMode
-        ? 'Salvar Edições'
-        : 'Salvar Configuração'}
+          ? 'Salvar Edições'
+          : 'Salvar Configuração'}
     </Button>
   );
 
@@ -469,43 +540,45 @@ export function AIConfigUpsertDialog({ children, defaultValue, onSuccess, isEdit
           <DialogHeader>
             <DialogTitle>Editar Configuração de IA</DialogTitle>
             <DialogDescription>
-              Faça as alterações necessárias na sua configuração de IA. Clique em "Salvar Edições" quando terminar.
+              Faça as alterações necessárias na sua configuração de IA. Clique
+              em "Salvar Edições" quando terminar.
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
+            <form
+              onSubmit={form.handleSubmit(handleSubmit)}
+              className="space-y-8"
+            >
               {formContent}
-              <DialogFooter>
-                {saveButton}
-              </DialogFooter>
+              <DialogFooter>{saveButton}</DialogFooter>
             </form>
           </Form>
         </DialogContent>
       </Dialog>
-    )
+    );
   }
 
   return (
     <Dialog>
-      <DialogTrigger asChild>
-        {children}
-      </DialogTrigger>
+      <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Configuração de IA</DialogTitle>
           <DialogDescription>
-            Adicione ou edite sua configuração de IA aqui. Clique em salvar quando terminar.
+            Adicione ou edite sua configuração de IA aqui. Clique em salvar
+            quando terminar.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
+          <form
+            onSubmit={form.handleSubmit(handleSubmit)}
+            className="space-y-8"
+          >
             {formContent}
-            <DialogFooter>
-              {saveButton}
-            </DialogFooter>
+            <DialogFooter>{saveButton}</DialogFooter>
           </form>
         </Form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
