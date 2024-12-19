@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "lint2": "eslint .",
+    "format": "npx eslint --fix \"src/**/*.{js,jsx,ts,tsx}\"",
     "lint:fix": "eslint . --fix",
     "dev:https": "concurrently \"next dev\" \"local-ssl-proxy --source 3001 --target 3000\""
   },

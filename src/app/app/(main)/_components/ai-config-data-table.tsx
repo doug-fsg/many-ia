@@ -68,10 +68,12 @@ export function AIConfigDataTable({ data }: AIConfigDataTable) {
         throw new Error('ID da conta Manytalks não encontrado')
       }
       const inboxesData = await buscarInboxes(accountResult.data)
-      const processedInboxes = inboxesData.data.payload.map((inbox) => ({
-        id: inbox.id,
-        name: inbox.name,
-      }))
+      const processedInboxes = inboxesData.data.payload.map(
+        (inbox: ManytalksInbox) => ({
+          id: inbox.id,
+          name: inbox.name,
+        }),
+      )
       setInboxes(processedInboxes)
     } catch (error) {
       console.error('Erro ao buscar inboxes:', error)
@@ -81,8 +83,6 @@ export function AIConfigDataTable({ data }: AIConfigDataTable) {
           error instanceof Error ? error.message : 'Erro desconhecido',
         variant: 'destructive',
       })
-    } finally {
-      setLoading(false)
     }
   }
 
