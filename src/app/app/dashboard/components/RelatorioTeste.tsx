@@ -1,26 +1,26 @@
-import React from 'react';
+import React from 'react'
 import {
   Card,
   CardHeader,
   CardTitle,
   CardContent,
   CardDescription,
-} from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
+} from '@/components/ui/card'
+import { Progress } from '@/components/ui/progress'
 
 export const RelatorioTeste: React.FC = () => {
   // Dados de exemplo
-  const totalCreditos = 10000;
-  const creditoGastoSemana = 3000;
-  const creditoGastoMes = 7000;
-  const contatosSemana = 200;
-  const contatosMes = 600;
+  const totalCreditos = 10000
+  const creditoGastoSemana = 3000
+  const creditoGastoMes = 7000
+  const contatosSemana = 200
+  const contatosMes = 600
 
   // Cálculos
-  const creditoRestante = totalCreditos - creditoGastoMes;
-  const porcentagemCreditoSemana = (creditoGastoSemana / totalCreditos) * 100;
-  const porcentagemCreditoMes = (creditoGastoMes / totalCreditos) * 100;
-  const porcentagemCreditoRestante = (creditoRestante / totalCreditos) * 100;
+  const creditoRestante = totalCreditos - creditoGastoMes
+  const porcentagemCreditoSemana = (creditoGastoSemana / totalCreditos) * 100
+  const porcentagemCreditoMes = (creditoGastoMes / totalCreditos) * 100
+  const porcentagemCreditoRestante = (creditoRestante / totalCreditos) * 100
 
   return (
     <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
@@ -101,5 +101,5 @@ export const RelatorioTeste: React.FC = () => {
         </CardContent>
       </Card>
     </div>
-  );
-};
+  )
+}

@@ -4,16 +4,13 @@ import {
   DashboardPageHeaderNav,
   DashboardPageHeaderTitle,
   DashboardPageMain,
-} from '@/components/dashboard/page';
-import { AIConfigDataTable } from './_components/ai-config-data-table';
-import { AIConfigUpsertDialog } from './_components/ai-config-upsert-dialog';
-import { Button } from '@/components/ui/button';
-import { PlusIcon } from '@radix-ui/react-icons';
-import { getUserAIConfigs } from './actions';
-import Link from 'next/link';
+} from '@/components/dashboard/page'
+import { AIConfigDataTable } from './_components/ai-config-data-table'
+import { getUserAIConfigs } from './actions'
+import Link from 'next/link'
 
 export default async function Page() {
-  const aiConfigs = await getUserAIConfigs();
+  const aiConfigs = await getUserAIConfigs()
 
   return (
     <DashboardPage>
@@ -36,5 +33,5 @@ export default async function Page() {
         <AIConfigDataTable data={aiConfigs} />
       </DashboardPageMain>
     </DashboardPage>
-  );
+  )
 }

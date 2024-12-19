@@ -1,18 +1,18 @@
-'use client';
+'use client'
 
 import {
   DashboardSidebarNav,
   DashboardSidebarNavLink,
   DashboardSidebarNavMain,
-} from '@/components/dashboard/sidebar';
-import { usePathname } from 'next/navigation';
+} from '@/components/dashboard/sidebar'
+import { usePathname } from 'next/navigation'
 
 export function SettingsSidebar() {
-  const pathname = usePathname();
+  const pathname = usePathname()
 
   const isActive = (path: string) => {
-    return pathname === path;
-  };
+    return pathname === path
+  }
 
   return (
     <aside>
@@ -39,5 +39,5 @@ export function SettingsSidebar() {
         </DashboardSidebarNavMain>
       </DashboardSidebarNav>
     </aside>
-  );
+  )
 }

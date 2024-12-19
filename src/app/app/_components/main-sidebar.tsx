@@ -1,4 +1,4 @@
-'use client';
+'use client'
 
 import {
   DashboardSidebar,
@@ -10,27 +10,27 @@ import {
   DashboardSidebarNavHeader,
   DashboardSidebarNavHeaderTitle,
   DashboardSidebarFooter,
-} from '@/components/dashboard/sidebar';
-import { usePathname } from 'next/navigation';
+} from '@/components/dashboard/sidebar'
+import { usePathname } from 'next/navigation'
 import {
   HomeIcon,
   MixerVerticalIcon,
   DashboardIcon,
-} from '@radix-ui/react-icons';
-import { UserDropdown } from './user-dropdown';
-import { Logo } from '@/components/logo';
-import { Session } from 'next-auth';
+} from '@radix-ui/react-icons'
+import { UserDropdown } from './user-dropdown'
+import { Logo } from '@/components/logo'
+import { Session } from 'next-auth'
 
 type MainSidebarProps = {
-  user: Session['user'];
-};
+  user: Session['user']
+}
 
 export function MainSidebar({ user }: MainSidebarProps) {
-  const pathname = usePathname();
+  const pathname = usePathname()
 
   const isActive = (path: string) => {
-    return pathname === path;
-  };
+    return pathname === path
+  }
 
   return (
     <DashboardSidebar>
@@ -79,5 +79,5 @@ export function MainSidebar({ user }: MainSidebarProps) {
         <UserDropdown user={user} />
       </DashboardSidebarFooter>
     </DashboardSidebar>
-  );
+  )
 }

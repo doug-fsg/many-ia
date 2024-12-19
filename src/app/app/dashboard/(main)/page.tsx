@@ -4,12 +4,10 @@ import {
   DashboardPageHeaderNav,
   DashboardPageHeaderTitle,
   DashboardPageMain,
-} from '@/components/dashboard/page';
-import { RelatorioTeste } from '../components/RelatorioTeste';
-import { Button } from '@/components/ui/button';
-import { PlusIcon } from '@radix-ui/react-icons';
-import { Card, CardContent } from '@/components/ui/card';
-import { RelatorioInteracoes } from '../components/RelatorioInteracoes';
+} from '@/components/dashboard/page'
+import { RelatorioTeste } from '../components/RelatorioTeste'
+import { Card, CardContent } from '@/components/ui/card'
+import { RelatorioInteracoes } from '../components/RelatorioInteracoes'
 // import { Relatorio2 } from '../components/relatorio'
 
 export default async function Page() {
@@ -32,5 +30,5 @@ export default async function Page() {
         </Card>
       </DashboardPageMain>
     </DashboardPage>
-  );
+  )
 }

@@ -1,20 +1,20 @@
-'use server';
+'use server'
 
-import { z } from 'zod';
-import { updateProfileSchema } from './schemas';
-import { auth } from '@/services/auth';
-import { prisma } from '@/services/database';
+import { z } from 'zod'
+import { updateProfileSchema } from './schemas'
+import { auth } from '@/services/auth'
+import { prisma } from '@/services/database'
 
 export async function updateProfile(
   input: z.infer<typeof updateProfileSchema>,
 ) {
-  const session = await auth();
+  const session = await auth()
 
   if (!session?.user?.id) {
     return {
       error: 'Not authorized',
       data: null,
-    };
+    }
   }
 
   await prisma.user.update({
@@ -24,5 +24,5 @@ export async function updateProfile(
     data: {
       name: input.name,
     },
-  });
+  })
 }

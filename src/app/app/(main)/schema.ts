@@ -1,10 +1,10 @@
 // src/schema.ts
-import { z } from 'zod';
+import { z } from 'zod'
 
-const paymentLinkSchema = z.object({
-  url: z.string().url('URL inválida'),
-  objective: z.string().min(1, 'O objetivo é obrigatório'),
-});
+// const paymentLinkSchema = z.object({
+//   url: z.string().url('URL inválida'),
+//   objective: z.string().min(1, 'O objetivo é obrigatório'),
+// })
 
 export const upsertAIConfigSchema = z.object({
   id: z.string().optional(),
@@ -34,10 +34,10 @@ export const upsertAIConfigSchema = z.object({
       }),
     )
     .default([]),
-});
+})
 
 export const deleteAIConfigSchema = z.object({
   id: z.string(),
-});
+})
 
-export type AIConfigFormData = z.infer<typeof upsertAIConfigSchema>;
+export type AIConfigFormData = z.infer<typeof upsertAIConfigSchema>

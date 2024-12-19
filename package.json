@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "lint2": "eslint .",
+    "lint:fix": "eslint . --fix",
     "dev:https": "concurrently \"next dev\" \"local-ssl-proxy --source 3001 --target 3000\""
   },
   "dependencies": {
@@ -80,6 +82,7 @@
     "concurrently": "^9.1.0",
     "eslint": "^8.57.0",
     "eslint-config-next": "14.1.0",
+    "eslint-plugin-unused-imports": "^4.1.4",
     "postcss": "^8",
     "prisma": "^5.10.2",
     "tailwindcss": "^3.3.0",

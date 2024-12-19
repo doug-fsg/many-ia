@@ -1,14 +1,14 @@
 // src/components/AIConfigForm.tsx
-'use client';
+'use client'
 
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useRouter } from 'next/navigation';
-import { AIConfig } from '../types';
-import { upsertAIConfig } from '../actions';
-import { upsertAIConfigSchema, AIConfigFormData } from '../schema';
-import { toast } from '@/components/ui/use-toast';
-import { Button } from '@/components/ui/button';
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useRouter } from 'next/navigation'
+import { AIConfig } from '../types'
+import { upsertAIConfig } from '../actions'
+import { upsertAIConfigSchema, AIConfigFormData } from '../schema'
+import { toast } from '@/components/ui/use-toast'
+import { Button } from '@/components/ui/button'
 import {
   Form,
   FormControl,
@@ -17,27 +17,27 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+} from '@/components/ui/form'
+import { Card, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { useState, useEffect } from 'react';
+} from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
+import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { ExpandIcon, Check, ChevronsUpDown } from 'lucide-react';
-import { aiTemplates, TemplateKeys } from '../templates';
+} from '@/components/ui/dialog'
+import { ExpandIcon, Check, ChevronsUpDown } from 'lucide-react'
+import { aiTemplates, TemplateKeys } from '../templates'
 
 import {
   Command,
@@ -46,25 +46,32 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from '@/components/ui/command';
+} from '@/components/ui/command'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
+} from '@/components/ui/popover'
+import { cn } from '@/lib/utils'
 
 type Attachment = {
-  type: 'link' | 'image' | 'pdf';
-  content: string; // URL para links ou fileId para arquivos
-  description: string;
-};
+  type: 'link' | 'image' | 'pdf'
+  content: string // URL para links ou fileId para arquivos
+  description: string
+}
 
 type AIConfigFormProps = {
-  defaultValue?: AIConfig;
-  onSuccess?: () => void;
-  isEditMode?: boolean;
-};
+  defaultValue?: AIConfig
+  onSuccess?: () => void
+  isEditMode?: boolean
+  initialData?: AIConfig
+}
+
+// Adicione a interface para TemasEvitar
+interface TemasEvitar {
+  id: string
+  tema: string
+}
 
 // Definição dos templates em formato mais adequado para o combobox
 const templateOptions = [
@@ -83,24 +90,28 @@ const templateOptions = [
     label: 'Corretor de Imóveis',
     description: 'Especializado em atendimento imobiliário',
   },
-];
+]
 
 export function AIConfigForm({
   defaultValue,
   onSuccess,
   isEditMode = false,
 }: AIConfigFormProps) {
-  const router = useRouter();
-  const [expandedField, setExpandedField] = useState<string | null>(null);
-  const [expandedContent, setExpandedContent] = useState('');
-  const [novoTema, setNovoTema] = useState('');
-  const [temasEvitar, setTemasEvitar] = useState<string[]>(
-    defaultValue?.temasEvitar || [],
-  );
-  const [attachments, setAttachments] = useState<Attachment[]>([]);
-  const [open, setOpen] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState('');
-  const [isCustomized, setIsCustomized] = useState(false);
+  const router = useRouter()
+  const [expandedField, setExpandedField] = useState<string | null>(null)
+  const [expandedContent, setExpandedContent] = useState('')
+  const [novoTema, setNovoTema] = useState('')
+  const [temasEvitar, setTemasEvitar] = useState<string[]>(() => {
+    if (defaultValue?.temasEvitar) {
+      return defaultValue.temasEvitar.map((tema: TemasEvitar) => tema.tema)
+    }
+    return []
+  })
+  const [attachments, setAttachments] = useState<Attachment[]>([])
+  const [open, setOpen] = useState(false)
+  const [selectedTemplate, setSelectedTemplate] = useState('')
+  const [isCustomized, setIsCustomized] = useState(false)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
 
   const form = useForm<AIConfigFormData>({
     resolver: zodResolver(upsertAIConfigSchema),
@@ -116,209 +127,147 @@ export function AIConfigForm({
       condicoesAtendimento: '',
       informacoesEmpresa: '',
     },
-  });
+  })
 
   useEffect(() => {
     if (defaultValue?.attachments && defaultValue.attachments.length > 0) {
-      setAttachments(defaultValue.attachments);
+      setAttachments(defaultValue.attachments)
     }
-  }, [defaultValue]);
+  }, [defaultValue])
 
-  // Observa mudanças no formulário
   useEffect(() => {
     const subscription = form.watch((value, { _name, type }) => {
       if (selectedTemplate && type === 'change') {
-        const template = aiTemplates[selectedTemplate as TemplateKeys];
-        const currentValues = form.getValues();
+        const template = aiTemplates[selectedTemplate as TemplateKeys]
+        const currentValues = form.getValues()
 
-        // Verifica se algum valor é diferente do template
         const isDifferent = Object.keys(template).some((key) => {
           return (
             template[key as keyof typeof template] !==
             currentValues[key as keyof typeof currentValues]
-          );
-        });
+          )
+        })
 
-        setIsCustomized(isDifferent);
+        setIsCustomized(isDifferent)
       }
-    });
+    })
 
-    return () => subscription.unsubscribe();
-  }, [form, selectedTemplate]);
+    return () => subscription.unsubscribe()
+  }, [form, selectedTemplate])
 
   const adicionarTema = () => {
     if (novoTema.trim()) {
       if (!temasEvitar.includes(novoTema.trim())) {
-        setTemasEvitar([...temasEvitar, novoTema.trim()]);
-        setNovoTema('');
+        setTemasEvitar([...temasEvitar, novoTema.trim()])
+        setNovoTema('')
       } else {
         toast({
           title: 'Tema já existe',
           description: 'Este tema já foi adicionado à lista.',
           variant: 'destructive',
-        });
+        })
       }
     }
-  };
+  }
 
   const removerTema = (index: number) => {
-    const novosTemas = temasEvitar.filter((_, i) => i !== index);
-    setTemasEvitar(novosTemas);
-  };
+    const novosTemas = temasEvitar.filter((_, i) => i !== index)
+    setTemasEvitar(novosTemas)
+  }
 
   const handleFileUpload = async (file: File): Promise<string> => {
-    const formData = new FormData();
-    formData.append('file', file);
+    const formData = new FormData()
+    formData.append('file', file)
     try {
       const response = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
-      });
+      })
       if (!response.ok) {
         throw new Error(
           `Falha ao fazer upload do arquivo: ${response.status} ${response.statusText}`,
-        );
+        )
       }
-      const data = await response.json();
+      const data = await response.json()
       if (!data.fileId) {
-        throw new Error('URL do arquivo não recebida do servidor');
+        throw new Error('URL do arquivo não recebida do servidor')
       }
-      return data.fileId;
+      return data.fileId
     } catch (error) {
-      console.error('Erro durante o upload:', error);
-      throw error;
+      console.error('Erro durante o upload:', error)
+      throw error
     }
-  };
-
-  const handleSubmitForm = async (_name: AIConfigFormData) => {
-    try {
-      if (Object.keys(form.formState.errors).length > 0) {
-        return;
-      }
-
-      const formData = {
-        ...data,
-        attachments,
-        temasEvitar,
-        id: isEditMode && defaultValue ? defaultValue.id : undefined,
-      };
-
-      // Usando try/catch específico para a action
-      try {
-        const result = await upsertAIConfig(formData);
-
-        if (result.error) {
-          throw new Error(result.error);
-        }
-
-        toast({
-          title: 'Sucesso',
-          description: 'Configuração salva com sucesso.',
-        });
-
-        router.refresh();
-
-        if (onSuccess) {
-          onSuccess();
-        }
-      } catch (actionError) {
-        console.error('6. Erro na server action:', actionError);
-        throw actionError;
-      }
-    } catch (error) {
-      console.error('7. Erro geral:', error);
-      toast({
-        title: 'Erro',
-        description:
-          typeof error === 'string' ? error : 'Falha ao salvar a configuração.',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const updatePaymentLink = (
-    index: number,
-    field: 'url' | 'objective',
-    value: string,
-  ) => {
-    console.log(
-      `Atualizando link de pagamento ${index + 1}, campo: ${field}, valor: ${value}`,
-    );
-    const updatedLinks = [...paymentLinks];
-    updatedLinks[index][field] = value;
-    setPaymentLinks(updatedLinks);
-  };
+  }
 
   const handleExpandField = (fieldName: string) => {
-    const currentValue = form.getValues(fieldName) as string;
-    setExpandedContent(currentValue);
-    setExpandedField(fieldName);
-    setIsDialogOpen(true);
-  };
+    const currentValue = form.getValues(fieldName) as string
+    setExpandedContent(currentValue)
+    setExpandedField(fieldName)
+    setIsDialogOpen(true)
+  }
 
   const handleCloseExpanded = () => {
     if (expandedField) {
       form.setValue(expandedField, expandedContent, {
         shouldValidate: true,
         shouldDirty: true,
-      });
+      })
     }
-    setIsDialogOpen(false);
+    setIsDialogOpen(false)
     setTimeout(() => {
-      setExpandedField(null);
-      setExpandedContent('');
-    }, 200);
-  };
+      setExpandedField(null)
+      setExpandedContent('')
+    }, 200)
+  }
 
   const addAttachment = () => {
     setAttachments([
       ...attachments,
       { type: 'link', content: '', description: '' },
-    ]);
-  };
+    ])
+  }
 
   const updateAttachment = (
     index: number,
     field: keyof Attachment,
     value: string,
   ) => {
-    const updatedAttachments = [...attachments];
+    const updatedAttachments = [...attachments]
     if (field === 'type') {
       updatedAttachments[index] = {
         type: value as 'link' | 'image' | 'pdf',
         content: '',
         description: '',
-      };
+      }
     } else {
-      updatedAttachments[index][field] = value;
+      updatedAttachments[index][field] = value
     }
-    setAttachments(updatedAttachments);
-  };
+    setAttachments(updatedAttachments)
+  }
 
   const removeAttachment = (index: number) => {
-    setAttachments(attachments.filter((_, i) => i !== index));
-  };
+    setAttachments(attachments.filter((_, i) => i !== index))
+  }
 
   const handleTemplateSelect = (templateKey: TemplateKeys) => {
-    const template = aiTemplates[templateKey];
+    const template = aiTemplates[templateKey]
 
     if (!template) {
-      console.error('Modelo não encontrado:', templateKey);
-      return;
+      console.error('Modelo não encontrado:', templateKey)
+      return
     }
 
-    // Aplica os valores do template
     Object.entries(template).forEach(([key, value]) => {
-      form.setValue(key as any, value, {
+      form.setValue(key as keyof AIConfigFormData, value, {
         shouldDirty: true,
         shouldTouch: true,
         shouldValidate: true,
-      });
-    });
+      })
+    })
 
-    setSelectedTemplate(templateKey);
-    setIsCustomized(false); // Reset do estado customizado
-  };
+    setSelectedTemplate(templateKey)
+    setIsCustomized(false)
+  }
 
   const formContent = (
     <>
@@ -400,13 +349,13 @@ export function AIConfigForm({
                       type="file"
                       accept=".pdf"
                       onChange={(e) => {
-                        const file = e.target.files?.[0];
+                        const file = e.target.files?.[0]
                         if (file) {
-                          field.onChange(file);
+                          field.onChange(file)
                           form.setValue('anexarInstrucoesPdf', file, {
                             shouldValidate: true,
                             shouldDirty: true,
-                          });
+                          })
                         }
                       }}
                       className="pl-10"
@@ -433,12 +382,11 @@ export function AIConfigForm({
                         size="sm"
                         className="flex items-center"
                         onClick={() => {
-                          console.log('Removendo arquivo selecionado');
-                          field.onChange(null);
+                          field.onChange(null)
                           form.setValue('anexarInstrucoesPdf', null, {
                             shouldValidate: true,
                             shouldDirty: true,
-                          });
+                          })
                         }}
                       >
                         <svg
@@ -507,11 +455,7 @@ export function AIConfigForm({
                         placeholder="Separe as condições por vírgula"
                         {...condicoesField}
                         onChange={(e) => {
-                          console.log(
-                            'Condições de Atendimento:',
-                            e.target.value,
-                          );
-                          condicoesField.onChange(e.target.value);
+                          condicoesField.onChange(e.target.value)
                         }}
                       />
                     </FormControl>
@@ -533,7 +477,6 @@ export function AIConfigForm({
           <h2 className="text-lg font-semibold">Informações Essenciais</h2>
         </div>
 
-        {/* Quem é o seu Atendente */}
         <div className="relative">
           <FormField
             control={form.control}
@@ -558,7 +501,7 @@ export function AIConfigForm({
                     className="h-36"
                     {...field}
                     onChange={(e) => {
-                      field.onChange(e.target.value);
+                      field.onChange(e.target.value)
                     }}
                   />
                 </FormControl>
@@ -568,7 +511,6 @@ export function AIConfigForm({
           />
         </div>
 
-        {/* O que seu Atendente faz? */}
         <div className="relative">
           <FormField
             control={form.control}
@@ -593,7 +535,7 @@ export function AIConfigForm({
                     className="h-36"
                     {...field}
                     onChange={(e) => {
-                      field.onChange(e.target.value);
+                      field.onChange(e.target.value)
                     }}
                   />
                 </FormControl>
@@ -603,7 +545,6 @@ export function AIConfigForm({
           />
         </div>
 
-        {/* Qual o objetivo do seu Atendente? */}
         <div className="relative">
           <FormField
             control={form.control}
@@ -628,7 +569,7 @@ export function AIConfigForm({
                     className="h-36"
                     {...field}
                     onChange={(e) => {
-                      field.onChange(e.target.value);
+                      field.onChange(e.target.value)
                     }}
                   />
                 </FormControl>
@@ -638,7 +579,6 @@ export function AIConfigForm({
           />
         </div>
 
-        {/* Como seu Atendente deve responder? */}
         <div className="relative">
           <FormField
             control={form.control}
@@ -663,11 +603,7 @@ export function AIConfigForm({
                     className="h-36"
                     {...field}
                     onChange={(e) => {
-                      console.log(
-                        'Como o Atendente Deve Responder:',
-                        e.target.value,
-                      );
-                      field.onChange(e.target.value);
+                      field.onChange(e.target.value)
                     }}
                   />
                 </FormControl>
@@ -678,7 +614,6 @@ export function AIConfigForm({
         </div>
       </div>
 
-      {/* Novo campo de Informações sobre a Empresa */}
       <div className="space-y-6 border rounded-lg p-6">
         <FormField
           control={form.control}
@@ -712,7 +647,6 @@ export function AIConfigForm({
         />
       </div>
 
-      {/* Anexos para IA */}
       <FormItem className="flex flex-col rounded-lg border p-4">
         <div className="flex flex-row items-center justify-between mb-4">
           <FormLabel className="text-base">Anexos para IA</FormLabel>
@@ -774,13 +708,13 @@ export function AIConfigForm({
                   type="file"
                   accept={attachment.type === 'image' ? 'image/*' : '.pdf'}
                   onChange={async (e) => {
-                    const file = e.target.files?.[0];
+                    const file = e.target.files?.[0]
                     if (file) {
                       try {
-                        const fileId = await handleFileUpload(file);
-                        updateAttachment(index, 'content', fileId);
+                        const fileId = await handleFileUpload(file)
+                        updateAttachment(index, 'content', fileId)
                       } catch (error) {
-                        console.error('Erro no upload:', error);
+                        console.error('Erro no upload:', error)
                       }
                     }
                   }}
@@ -802,7 +736,6 @@ export function AIConfigForm({
         ))}
       </FormItem>
 
-      {/* Temas a evitar */}
       <FormItem className="flex flex-col rounded-lg border p-4 space-y-2">
         <FormLabel className="text-base">
           Quais temas ele deve evitar?
@@ -814,8 +747,8 @@ export function AIConfigForm({
             onChange={(e) => setNovoTema(e.target.value)}
             onKeyPress={(e) => {
               if (e.key === 'Enter') {
-                e.preventDefault();
-                adicionarTema();
+                e.preventDefault()
+                adicionarTema()
               }
             }}
           />
@@ -848,7 +781,7 @@ export function AIConfigForm({
         </FormDescription>
       </FormItem>
     </>
-  );
+  )
 
   return (
     <Card>
@@ -856,42 +789,40 @@ export function AIConfigForm({
         <Form {...form}>
           <form
             onSubmit={(e) => {
-              e.preventDefault();
-              console.log('Form submetido');
-              const formData = form.getValues();
-              console.log('Dados do formulário:', formData);
+              e.preventDefault()
+              const formData = form.getValues()
+              const temasFormatados = temasEvitar.map((tema) => ({ tema }))
 
               upsertAIConfig({
                 ...formData,
                 attachments,
-                temasEvitar,
+                temasEvitar: temasFormatados,
                 id: isEditMode && defaultValue ? defaultValue.id : undefined,
               })
                 .then((result) => {
-                  console.log('Resultado da action:', result);
                   if (result.error) {
                     toast({
                       title: 'Erro',
                       description: result.error,
                       variant: 'destructive',
-                    });
+                    })
                   } else {
                     toast({
                       title: 'Sucesso',
                       description: 'Configuração salva com sucesso.',
-                    });
-                    router.refresh();
-                    if (onSuccess) onSuccess();
+                    })
+                    router.refresh()
+                    if (onSuccess) onSuccess()
                   }
                 })
                 .catch((error) => {
-                  console.error('Erro ao salvar:', error);
+                  console.error('Erro ao salvar:', error)
                   toast({
                     title: 'Erro',
                     description: 'Falha ao salvar a configuração.',
                     variant: 'destructive',
-                  });
-                });
+                  })
+                })
             }}
             className="space-y-8"
           >
@@ -951,8 +882,8 @@ export function AIConfigForm({
                               onSelect={() => {
                                 handleTemplateSelect(
                                   template.value as TemplateKeys,
-                                );
-                                setOpen(false);
+                                )
+                                setOpen(false)
                               }}
                               className="flex flex-col items-start py-3 px-4 cursor-pointer"
                             >
@@ -1025,7 +956,7 @@ export function AIConfigForm({
       </CardContent>
 
       <Dialog
-        open={expandedField !== null}
+        open={isDialogOpen}
         onOpenChange={(open) => !open && handleCloseExpanded()}
       >
         <DialogContent className="w-screen h-screen max-w-none m-0 p-6 rounded-none">
@@ -1053,5 +984,5 @@ export function AIConfigForm({
         </DialogContent>
       </Dialog>
     </Card>
-  );
+  )
 }

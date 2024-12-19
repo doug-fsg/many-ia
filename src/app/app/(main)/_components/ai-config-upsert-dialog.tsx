@@ -1,7 +1,7 @@
-'use client';
+'use client'
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   Dialog,
   DialogContent,
@@ -10,7 +10,7 @@ import {
   DialogDescription,
   DialogFooter,
   DialogTrigger,
-} from '@/components/ui/dialog';
+} from '@/components/ui/dialog'
 import {
   Form,
   FormField,
@@ -19,41 +19,40 @@ import {
   FormControl,
   FormDescription,
   FormMessage,
-} from '@/components/ui/form';
-import { useForm } from 'react-hook-form';
-import { AIConfig } from '../types';
-import { upsertAIConfig } from '../actions';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { upsertAIConfigSchema } from '../schema';
-import { useRouter } from 'next/navigation';
-import { toast } from '@/components/ui/use-toast';
-import { Switch } from '@/components/ui/switch';
+} from '@/components/ui/form'
+import { useForm } from 'react-hook-form'
+import { AIConfig } from '../types'
+import { upsertAIConfig } from '../actions'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { upsertAIConfigSchema } from '../schema'
+import { useRouter } from 'next/navigation'
+import { toast } from '@/components/ui/use-toast'
+import { Switch } from '@/components/ui/switch'
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import * as z from 'zod';
-import { useState, useEffect } from 'react';
-import { PlusIcon } from '@radix-ui/react-icons';
+} from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import * as z from 'zod'
+import { useState, useEffect } from 'react'
 
 type AIConfigUpsertDialogProps = {
-  children?: React.ReactNode;
-  defaultValue?: AIConfig;
-  onSuccess?: () => void;
-  isEditMode?: boolean;
-  isOpen?: boolean;
-  onClose?: () => void;
-  onSubmit?: (data: AIConfig) => Promise<void>;
-};
+  children?: React.ReactNode
+  defaultValue?: AIConfig
+  onSuccess?: () => void
+  isEditMode?: boolean
+  isOpen?: boolean
+  onClose?: () => void
+  onSubmit?: (data: AIConfig) => Promise<void>
+}
 
 type PaymentLink = {
-  url: string;
-  objective: string;
-};
+  url: string
+  objective: string
+}
 
 export function AIConfigUpsertDialog({
   children,
@@ -64,8 +63,8 @@ export function AIConfigUpsertDialog({
   isOpen,
   onSubmit,
 }: AIConfigUpsertDialogProps) {
-  const router = useRouter();
-  const [paymentLinks, setPaymentLinks] = useState<PaymentLink[]>([]);
+  const router = useRouter()
+  const [paymentLinks, setPaymentLinks] = useState<PaymentLink[]>([])
 
   const form = useForm({
     resolver: zodResolver(upsertAIConfigSchema),
@@ -80,66 +79,62 @@ export function AIConfigUpsertDialog({
       condicoesAtendimento: '',
       linksPagamento: [],
     },
-  });
+  })
 
   useEffect(() => {
     if (
       defaultValue?.linksPagamento &&
       defaultValue.linksPagamento.length > 0
     ) {
-      setPaymentLinks(defaultValue.linksPagamento);
+      setPaymentLinks(defaultValue.linksPagamento)
     }
-  }, [defaultValue]);
+  }, [defaultValue])
 
   const handleFileUpload = async (file: File): Promise<string> => {
-    console.log('Iniciando upload do arquivo:', file.name);
-    const formData = new FormData();
-    formData.append('file', file);
+    console.log('Iniciando upload do arquivo:', file.name)
+    const formData = new FormData()
+    formData.append('file', file)
     try {
       const response = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
-      });
-      console.log(
-        'Resposta do servidor:',
-        response.status,
-        response.statusText,
-      );
+      })
+      console.log('Resposta do servidor:', response.status, response.statusText)
       if (!response.ok) {
         throw new Error(
           `Falha ao fazer upload do arquivo: ${response.status} ${response.statusText}`,
-        );
+        )
       }
-      const data = await response.json();
-      console.log('Dados recebidos do servidor:', data);
+      const data = await response.json()
+      console.log('Dados recebidos do servidor:', data)
       if (!data.fileId) {
-        throw new Error('URL do arquivo não recebida do servidor');
+        throw new Error('URL do arquivo não recebida do servidor')
       }
-      return data.fileId;
+      return data.fileId
     } catch (error) {
-      console.error('Erro durante o upload:', error);
-      throw error;
+      console.error('Erro durante o upload:', error)
+      throw error
     }
-  };
+  }
 
   const handleSubmit = async (data: z.infer<typeof upsertAIConfigSchema>) => {
-    console.log('handleSubmit chamado', { isEditMode, data, paymentLinks });
+    console.log('handleSubmit chamado', { isEditMode, data, paymentLinks })
     try {
-      let fileUrl = data.anexarInstrucoesPdf;
+      let fileUrl = data.anexarInstrucoesPdf
 
       if (data.anexarInstrucoesPdf instanceof File) {
         try {
-          fileUrl = await handleFileUpload(data.anexarInstrucoesPdf);
-          console.log('Upload concluído, URL:', fileUrl);
+          fileUrl = await handleFileUpload(data.anexarInstrucoesPdf)
+          console.log('Upload concluído, URL:', fileUrl)
         } catch (uploadError) {
-          console.error('Erro no upload do arquivo:', uploadError);
+          console.error('Erro no upload do arquivo:', uploadError)
           toast({
             title: 'Erro',
             description:
               'Falha ao fazer upload do arquivo. Por favor, tente novamente.',
             variant: 'destructive',
-          });
-          return; // Interrompe a execução se houver erro no upload
+          })
+          return // Interrompe a execução se houver erro no upload
         }
       }
 
@@ -147,62 +142,62 @@ export function AIConfigUpsertDialog({
         ...data,
         anexarInstrucoesPdf: fileUrl,
         linksPagamento: paymentLinks,
-      };
-
-      if (isEditMode && defaultValue) {
-        updatedData.id = defaultValue.id;
       }
 
-      console.log('Antes de chamar upsertAIConfig', updatedData);
+      if (isEditMode && defaultValue) {
+        updatedData.id = defaultValue.id
+      }
+
+      console.log('Antes de chamar upsertAIConfig', updatedData)
       if (onSubmit) {
-        await onSubmit(updatedData);
+        await onSubmit(updatedData)
       } else {
-        const result = await upsertAIConfig(updatedData);
+        const result = await upsertAIConfig(updatedData)
         if (result.error) {
-          throw new Error(result.error);
+          throw new Error(result.error)
         }
       }
 
-      router.refresh();
+      router.refresh()
       toast({
         title: 'Sucesso',
         description: 'Sua configuração de IA foi salva com sucesso.',
-      });
+      })
 
       if (onSuccess) {
-        onSuccess();
+        onSuccess()
       }
       if (onClose) {
-        onClose();
+        onClose()
       }
     } catch (error) {
-      console.error('Erro ao salvar configurações:', error);
+      console.error('Erro ao salvar configurações:', error)
       toast({
         title: 'Erro',
         description: 'Falha ao salvar a configuração de IA.',
         variant: 'destructive',
-      });
+      })
     }
-  };
+  }
 
   const addPaymentLink = () => {
-    setPaymentLinks([...paymentLinks, { url: '', objective: '' }]);
-  };
+    setPaymentLinks([...paymentLinks, { url: '', objective: '' }])
+  }
 
   const updatePaymentLink = (
     index: number,
     field: 'url' | 'objective',
     value: string,
   ) => {
-    const updatedLinks = [...paymentLinks];
-    updatedLinks[index][field] = value;
-    setPaymentLinks(updatedLinks);
-  };
+    const updatedLinks = [...paymentLinks]
+    updatedLinks[index][field] = value
+    setPaymentLinks(updatedLinks)
+  }
 
   const removePaymentLink = (index: number) => {
-    const updatedLinks = paymentLinks.filter((_, i) => i !== index);
-    setPaymentLinks(updatedLinks);
-  };
+    const updatedLinks = paymentLinks.filter((_, i) => i !== index)
+    setPaymentLinks(updatedLinks)
+  }
 
   const formContent = (
     <>
@@ -315,13 +310,13 @@ export function AIConfigUpsertDialog({
                       type="file"
                       accept=".pdf"
                       onChange={(e) => {
-                        const file = e.target.files?.[0];
+                        const file = e.target.files?.[0]
                         if (file) {
-                          field.onChange(file);
+                          field.onChange(file)
                           form.setValue('anexarInstrucoesPdf', file, {
                             shouldValidate: true,
                             shouldDirty: true,
-                          });
+                          })
                         }
                       }}
                       className="pl-10"
@@ -349,10 +344,10 @@ export function AIConfigUpsertDialog({
                         className="flex items-center"
                         onClick={() => {
                           if (typeof field.value === 'string') {
-                            window.open(`/api/files/${field.value}`, '_blank');
+                            window.open(`/api/files/${field.value}`, '_blank')
                           } else if (field.value instanceof File) {
-                            const url = URL.createObjectURL(field.value);
-                            window.open(url, '_blank');
+                            const url = URL.createObjectURL(field.value)
+                            window.open(url, '_blank')
                           }
                         }}
                       >
@@ -382,11 +377,11 @@ export function AIConfigUpsertDialog({
                         size="sm"
                         className="flex items-center"
                         onClick={() => {
-                          field.onChange(null);
+                          field.onChange(null)
                           form.setValue('anexarInstrucoesPdf', null, {
                             shouldValidate: true,
                             shouldDirty: true,
-                          });
+                          })
                         }}
                       >
                         <svg
@@ -518,7 +513,7 @@ export function AIConfigUpsertDialog({
         )}
       />
     </>
-  );
+  )
 
   const saveButton = (
     <Button
@@ -531,7 +526,7 @@ export function AIConfigUpsertDialog({
           ? 'Salvar Edições'
           : 'Salvar Configuração'}
     </Button>
-  );
+  )
 
   if (isEditMode) {
     return (
@@ -555,7 +550,7 @@ export function AIConfigUpsertDialog({
           </Form>
         </DialogContent>
       </Dialog>
-    );
+    )
   }
 
   return (
@@ -580,5 +575,5 @@ export function AIConfigUpsertDialog({
         </Form>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

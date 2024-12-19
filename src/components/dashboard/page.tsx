@@ -1,15 +1,15 @@
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib/utils'
 
 export type DashboardPageGenericProps<T = unknown> = {
-  children: React.ReactNode;
-  className?: string;
-} & T;
+  children: React.ReactNode
+  className?: string
+} & T
 
 export function DashboardPage({
   className,
   children,
 }: DashboardPageGenericProps) {
-  return <section className={cn(['h-screen', className])}>{children}</section>;
+  return <section className={cn(['h-screen', className])}>{children}</section>
 }
 
 export function DashboardPageHeader({
@@ -25,7 +25,7 @@ export function DashboardPageHeader({
     >
       {children}
     </header>
-  );
+  )
 }
 
 export function DashboardPageHeaderTitle({
@@ -38,19 +38,19 @@ export function DashboardPageHeaderTitle({
     >
       {children}
     </span>
-  );
+  )
 }
 
 export function DashboardPageHeaderNav({
   className,
   children,
 }: DashboardPageGenericProps) {
-  return <nav className={cn(['', className])}>{children}</nav>;
+  return <nav className={cn(['', className])}>{children}</nav>
 }
 
 export function DashboardPageMain({
   className,
   children,
 }: DashboardPageGenericProps) {
-  return <main className={cn(['p-6', className])}>{children}</main>;
+  return <main className={cn(['p-6', className])}>{children}</main>
 }

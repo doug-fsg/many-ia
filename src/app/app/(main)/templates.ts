@@ -53,6 +53,6 @@ export const aiTemplates = {
     informacoesEmpresa: '',
     anexarInstrucoesPdf: null,
   },
-} as const;
+} as const
 
-export type TemplateKeys = keyof typeof aiTemplates;
+export type TemplateKeys = keyof typeof aiTemplates

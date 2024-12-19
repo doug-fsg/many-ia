@@ -3,9 +3,9 @@ import {
   DashboardPageHeader,
   DashboardPageHeaderTitle,
   DashboardPageMain,
-} from '@/components/dashboard/page';
-import { PropsWithChildren } from 'react';
-import { SettingsSidebar } from './_components/settings-sidebar';
+} from '@/components/dashboard/page'
+import { PropsWithChildren } from 'react'
+import { SettingsSidebar } from './_components/settings-sidebar'
 
 export default function Layout({ children }: PropsWithChildren) {
   return (
@@ -22,5 +22,5 @@ export default function Layout({ children }: PropsWithChildren) {
         </div>
       </DashboardPageMain>
     </DashboardPage>
-  );
+  )
 }

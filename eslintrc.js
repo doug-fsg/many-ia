@@ -20,4 +20,4 @@ module.exports = {
     '@typescript-eslint/no-explicit-any': 'warn',
     '@typescript-eslint/no-require-imports': 'off', // Permite require() se necessário
   },
-};
+}

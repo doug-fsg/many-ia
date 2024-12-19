@@ -1,6 +1,6 @@
-'use client';
+'use client'
 
-import * as React from 'react';
+import * as React from 'react'
 import {
   Card,
   CardContent,
@@ -8,10 +8,10 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
+} from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Button } from '@/components/ui/button'
+import { Progress } from '@/components/ui/progress'
 
 export default function Dashboard() {
   return (
@@ -101,5 +101,5 @@ export default function Dashboard() {
         </TabsContent>
       </Tabs>
     </div>
-  );
+  )
 }

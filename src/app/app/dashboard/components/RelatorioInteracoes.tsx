@@ -1,7 +1,7 @@
-'use client';
+'use client'
 
-import React from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import React from 'react'
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import {
   Table,
   TableBody,
@@ -9,31 +9,42 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { useToast } from '@/components/ui/use-toast';
-import { getUserInteractions } from '../../dashboard/(main)/actions';
+} from '@/components/ui/table'
+import { useToast } from '@/components/ui/use-toast'
+import { getUserInteractions } from '../../dashboard/(main)/actions'
+
+interface Interacao {
+  id: string
+  name: string
+  phoneNumber: string
+  interactionsCount: number
+  lastMessage: string
+  lastContactAt: string
+  status: string
+  interesse: string
+}
 
 export function RelatorioInteracoes() {
-  const [interacoes, setInteracoes] = React.useState([]);
-  const [error, setError] = React.useState<string | null>(null);
-  const [loading, setLoading] = React.useState(true);
-  const { toast } = useToast();
+  const [interacoes, setInteracoes] = React.useState<Interacao[]>([])
+  const [error, setError] = React.useState<string | null>(null)
+  const [loading, setLoading] = React.useState(true)
+  const { toast } = useToast()
 
   React.useEffect(() => {
     async function fetchInteracoes() {
-      console.log('Iniciando fetchInteracoes');
-      setLoading(true);
+      console.log('Iniciando fetchInteracoes')
+      setLoading(true)
       try {
-        console.log('Chamando getUserInteractions');
-        const result = await getUserInteractions();
-        console.log('Resultado de getUserInteractions:', result);
+        console.log('Chamando getUserInteractions')
+        const result = await getUserInteractions()
+        console.log('Resultado de getUserInteractions:', result)
         if (result.error) {
-          setError(result.error);
+          setError(result.error)
           toast({
             title: 'Erro',
             description: 'Falha ao carregar as interações: ' + result.error,
             variant: 'destructive',
-          });
+          })
         } else {
           // Dados fictícios para teste
           const fakeData = [
@@ -57,34 +68,34 @@ export function RelatorioInteracoes() {
               status: 'Resolvida',
               interesse: 'Médio',
             },
-          ];
+          ]
 
-          setInteracoes(fakeData);
-          setLoading(false);
+          setInteracoes(fakeData)
+          setLoading(false)
         }
       } catch (error) {
-        console.error('Erro ao chamar getUserInteractions:', error);
-        setError('Erro ao carregar interações: ' + (error as Error).message);
+        console.error('Erro ao chamar getUserInteractions:', error)
+        setError('Erro ao carregar interações: ' + (error as Error).message)
         toast({
           title: 'Erro',
           description:
             'Falha ao carregar as interações: ' + (error as Error).message,
           variant: 'destructive',
-        });
+        })
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
     }
 
-    fetchInteracoes();
-  }, [toast]);
+    fetchInteracoes()
+  }, [toast])
 
   if (loading) {
-    return <div>Carregando interações...</div>;
+    return <div>Carregando interações...</div>
   }
 
   if (error) {
-    return <div>Erro ao carregar interações: {error}</div>;
+    return <div>Erro ao carregar interações: {error}</div>
   }
 
   return (
@@ -111,7 +122,7 @@ export function RelatorioInteracoes() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {interacoes.map((interacao: any) => (
+              {interacoes.map((interacao: Interacao) => (
                 <TableRow key={interacao.id}>
                   <TableCell>{interacao.name}</TableCell>
                   <TableCell>{interacao.phoneNumber}</TableCell>
@@ -131,5 +142,5 @@ export function RelatorioInteracoes() {
         )}
       </CardContent>
     </Card>
-  );
+  )
 }

@@ -1,155 +1,150 @@
-'use client';
+'use client'
 
-import * as React from 'react';
-import { useRouter } from 'next/navigation';
+import * as React from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Pencil2Icon,
   TrashIcon,
   MinusCircledIcon,
   PlusCircledIcon,
-  ChevronDownIcon,
-  ChevronUpIcon,
-} from '@radix-ui/react-icons';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
+} from '@radix-ui/react-icons'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from '@/components/ui/dialog';
-import { toast } from '@/components/ui/use-toast';
+} from '@/components/ui/dialog'
+import { toast } from '@/components/ui/use-toast'
 import {
   Popover,
   PopoverTrigger,
   PopoverContent,
-} from '@/components/ui/popover';
+} from '@/components/ui/popover'
 import {
   Command,
   CommandList,
   CommandItem,
   CommandInput,
-} from '@/components/ui/command';
-import { AIConfig } from '../types';
+} from '@/components/ui/command'
+import { AIConfig } from '../types'
 import {
   deleteAIConfig,
   toggleAIConfigStatus,
   getManytalksAccountId,
   updateAIConfigInbox,
-} from '../actions';
-import { buscarInboxes } from '@/lib/manytalks';
+} from '../actions'
+import { buscarInboxes } from '@/lib/manytalks'
 
 type AIConfigDataTable = {
-  data: AIConfig[];
-};
+  data: AIConfig[]
+}
 
 interface ManytalksInbox {
-  id: number;
-  name: string;
-  channel_type: string;
+  id: number
+  name: string
+  channel_type: string
 }
 
 export function AIConfigDataTable({ data }: AIConfigDataTable) {
-  const router = useRouter();
-  const [deleteModalOpen, setDeleteModalOpen] = React.useState(false);
+  const router = useRouter()
+  const [deleteModalOpen, setDeleteModalOpen] = React.useState(false)
   const [configToDelete, setConfigToDelete] = React.useState<AIConfig | null>(
     null,
-  );
-  const [expandedConfig, setExpandedConfig] = React.useState<string | null>(
+  )
+  const [inboxes, setInboxes] = React.useState<ManytalksInbox[]>([])
+  const [openPopoverId, setOpenPopoverId] = React.useState<string | null>(null)
+  const [_expandedConfig, _setExpandedConfig] = React.useState<string | null>(
     null,
-  );
-  const [inboxes, setInboxes] = React.useState<ManytalksInbox[]>([]);
-  const [openPopoverId, setOpenPopoverId] = React.useState<string | null>(null);
+  )
 
   const fetchInboxes = async () => {
     try {
-      const accountResult = await getManytalksAccountId();
+      const accountResult = await getManytalksAccountId()
       if (accountResult.error || !accountResult.data) {
-        throw new Error('ID da conta Manytalks não encontrado');
+        throw new Error('ID da conta Manytalks não encontrado')
       }
-      const inboxesData = await buscarInboxes(accountResult.data);
+      const inboxesData = await buscarInboxes(accountResult.data)
       const processedInboxes = inboxesData.data.payload.map((inbox) => ({
         id: inbox.id,
         name: inbox.name,
-      }));
-      setInboxes(processedInboxes);
+      }))
+      setInboxes(processedInboxes)
     } catch (error) {
-      console.error('Erro ao buscar inboxes:', error);
+      console.error('Erro ao buscar inboxes:', error)
       toast({
         title: 'Erro ao buscar inboxes',
         description:
           error instanceof Error ? error.message : 'Erro desconhecido',
         variant: 'destructive',
-      });
+      })
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const handleDeleteAIConfig = async () => {
-    if (!configToDelete) return;
+    if (!configToDelete) return
 
     try {
-      await deleteAIConfig({ id: configToDelete.id });
-      router.refresh();
+      await deleteAIConfig({ id: configToDelete.id })
+      router.refresh()
       toast({
         title: 'Exclusão bem-sucedida',
         description: 'A configuração de IA foi excluída com sucesso.',
-      });
-      setDeleteModalOpen(false);
-      setConfigToDelete(null);
+      })
+      setDeleteModalOpen(false)
+      setConfigToDelete(null)
     } catch (error) {
-      console.error('Erro ao excluir:', error);
+      console.error('Erro ao excluir:', error)
       toast({
         title: 'Erro',
         description: 'Falha ao excluir a configuração.',
         variant: 'destructive',
-      });
+      })
     }
-  };
+  }
 
   const handleOpenDeleteModal = (aiConfig: AIConfig) => {
-    setConfigToDelete(aiConfig);
-    setDeleteModalOpen(true);
-  };
+    setConfigToDelete(aiConfig)
+    setDeleteModalOpen(true)
+  }
 
   const handleCancelDelete = () => {
-    setDeleteModalOpen(false);
-    setConfigToDelete(null);
-  };
+    setDeleteModalOpen(false)
+    setConfigToDelete(null)
+  }
 
   const handleToggleActiveAIConfig = async (aiConfig: AIConfig) => {
     try {
-      const result = await toggleAIConfigStatus(
-        aiConfig.id,
-        !aiConfig.isActive,
-      );
+      const result = await toggleAIConfigStatus(aiConfig.id, !aiConfig.isActive)
 
       if (result.error) {
-        throw new Error(result.error);
+        throw new Error(result.error)
       }
 
-      router.refresh();
+      router.refresh()
 
       toast({
         title: 'Atualização bem-sucedida',
         description: `Configuração ${!aiConfig.isActive ? 'ativada' : 'desativada'} com sucesso.`,
-      });
+      })
     } catch (error) {
-      console.error('Erro ao atualizar status:', error);
+      console.error('Erro ao atualizar status:', error)
       toast({
         title: 'Erro',
         description: 'Falha ao atualizar o status.',
         variant: 'destructive',
-      });
+      })
     }
-  };
+  }
 
-  const handleExpandConfig = (id: string) => {
-    setExpandedConfig(expandedConfig === id ? null : id);
-  };
+  const _handleExpandConfig = (id: string) => {
+    _setExpandedConfig(id)
+  }
 
   const handleInboxSelect = async (
     aiConfigId: string,
@@ -157,55 +152,55 @@ export function AIConfigDataTable({ data }: AIConfigDataTable) {
     inboxName: string,
   ) => {
     try {
-      const result = await updateAIConfigInbox(aiConfigId, inboxId, inboxName);
+      const result = await updateAIConfigInbox(aiConfigId, inboxId, inboxName)
 
       if (result.error) {
-        throw new Error(result.error);
+        throw new Error(result.error)
       }
 
-      router.refresh();
-      setOpenPopoverId(null);
+      router.refresh()
+      setOpenPopoverId(null)
 
       toast({
         title: 'Canal atualizado',
         description: `Canal alterado para: ${inboxName}`,
-      });
+      })
     } catch (error) {
-      console.error('Erro ao atualizar canal:', error);
+      console.error('Erro ao atualizar canal:', error)
       toast({
         title: 'Erro',
         description: 'Não foi possível atualizar o canal',
         variant: 'destructive',
-      });
+      })
     }
-  };
+  }
 
   const handleRemoveInbox = async (aiConfig: AIConfig) => {
     try {
-      const result = await updateAIConfigInbox(aiConfig.id, null, null);
+      const result = await updateAIConfigInbox(aiConfig.id, null, null)
 
       if (result.error) {
-        throw new Error(result.error);
+        throw new Error(result.error)
       }
 
-      router.refresh();
+      router.refresh()
       toast({
         title: 'Canal removido',
         description: 'Canal de entrada removido com sucesso',
-      });
+      })
     } catch (error) {
-      console.error('Erro ao remover canal:', error);
+      console.error('Erro ao remover canal:', error)
       toast({
         title: 'Erro',
         description: 'Não foi possível remover o canal',
         variant: 'destructive',
-      });
+      })
     }
-  };
+  }
 
   React.useEffect(() => {
-    fetchInboxes();
-  }, []);
+    fetchInboxes()
+  }, [])
 
   return (
     <>
@@ -252,8 +247,8 @@ export function AIConfigDataTable({ data }: AIConfigDataTable) {
                               <MinusCircledIcon
                                 className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 ml-2 hover:text-red-600"
                                 onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleRemoveInbox(aiConfig);
+                                  e.stopPropagation()
+                                  handleRemoveInbox(aiConfig)
                                 }}
                               />
                             </span>
@@ -358,5 +353,5 @@ export function AIConfigDataTable({ data }: AIConfigDataTable) {
         </DialogContent>
       </Dialog>
     </>
-  );
+  )
 }
