@@ -65,7 +65,7 @@ export function AIConfigDataTable({ data }: AIConfigDataTable) {
     try {
       const accountResult = await getManytalksAccountId()
       if (accountResult.error || !accountResult.data) {
-        throw new Error('ID da conta Manytalks não encontrado')
+        return
       }
       const inboxesData = await buscarInboxes(accountResult.data)
       const processedInboxes = inboxesData.data.payload.map(

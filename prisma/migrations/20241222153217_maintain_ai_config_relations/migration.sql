@@ -1,7 +1,4 @@
-CREATE EXTENSION IF NOT EXISTS vector;-- CreateTable
-
-
-
+-- CreateTable
 CREATE TABLE "Account" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
@@ -40,6 +37,7 @@ CREATE TABLE "User" (
     "stripePriceId" TEXT,
     "stripeSubscriptionId" TEXT,
     "stripeSubscriptionStatus" TEXT,
+    "manytalksAccountId" TEXT,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
@@ -52,15 +50,16 @@ CREATE TABLE "VerificationToken" (
 );
 
 -- CreateTable
-CREATE TABLE "Todo" (
+CREATE TABLE "Inbox" (
     "id" TEXT NOT NULL,
-    "title" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "inboxId" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "doneAt" TIMESTAMP(3),
 
-    CONSTRAINT "Todo_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "Inbox_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -77,9 +76,12 @@ CREATE TABLE "AIConfig" (
     "horarioAtendimento" TEXT NOT NULL,
     "anexarInstrucoesPdf" TEXT,
     "condicoesAtendimento" TEXT,
-    "embedding" JSON,
+    "embedding" JSONB NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "informacoesEmpresa" TEXT NOT NULL,
+    "inboxId" INTEGER,
+    "inboxName" TEXT,
 
     CONSTRAINT "AIConfig_pkey" PRIMARY KEY ("id")
 );
@@ -156,7 +158,7 @@ ALTER TABLE "Account" ADD CONSTRAINT "Account_userId_fkey" FOREIGN KEY ("userId"
 ALTER TABLE "Session" ADD CONSTRAINT "Session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Todo" ADD CONSTRAINT "Todo_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Inbox" ADD CONSTRAINT "Inbox_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "AIConfig" ADD CONSTRAINT "AIConfig_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
