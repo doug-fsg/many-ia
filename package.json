@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build --ignore-warnings",
     "start": "next start",
     "lint": "next lint",
     "format": "npx eslint --fix \"src/**/*.{js,jsx,ts,tsx}\"",
