@@ -148,7 +148,10 @@ export async function GET(req: NextRequest) {
 
   console.log('[LOG] Sessão salva no banco de dados.');
 
-  const response = NextResponse.redirect(new URL('/app', req.nextUrl.origin));
+  const siteUrl = process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin;
+  const response = NextResponse.redirect(new URL('/app', siteUrl));
+
+
   response.cookies.set('authjs.session-token', sessionToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
