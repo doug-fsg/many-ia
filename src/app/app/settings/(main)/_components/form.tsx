@@ -59,7 +59,7 @@ export function ProfileForm({ defaultValues }: ProfileFormProps) {
           <CardHeader>
             <CardTitle>Nome</CardTitle>
             <CardDescription>
-              Este será o nome exibido publicamente.
+              Este será o nome exibido no seu perfil.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -71,31 +71,6 @@ export function ProfileForm({ defaultValues }: ProfileFormProps) {
                   <FormLabel>Nome</FormLabel>
                   <FormControl>
                     <Input placeholder="Digite seu nome" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Email</CardTitle>
-            <CardDescription>
-              Entre em contato pelo email contact@micro-saas.com para alterar o
-              email.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Digite seu email" readOnly {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

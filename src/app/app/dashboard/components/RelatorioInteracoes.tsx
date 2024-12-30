@@ -12,6 +12,16 @@ import {
 } from '@/components/ui/table'
 import { useToast } from '@/components/ui/use-toast'
 import { getUserInteractions } from '../../dashboard/(main)/actions'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface Interacao {
   id: string
@@ -19,25 +29,28 @@ interface Interacao {
   phoneNumber: string
   interactionsCount: number
   lastMessage: string
+  currentlyTalkingTo: string
   lastContactAt: string
   status: string
   interesse: string
+  manytalksAccountId?: string
+  ConversationID: number
 }
 
 export function RelatorioInteracoes() {
   const [interacoes, setInteracoes] = React.useState<Interacao[]>([])
+  const [filteredInteracoes, setFilteredInteracoes] = React.useState<Interacao[]>([])
   const [error, setError] = React.useState<string | null>(null)
   const [loading, setLoading] = React.useState(true)
+  const [searchTerm, setSearchTerm] = React.useState('')
+  const [statusFilter, setStatusFilter] = React.useState('all') // Updated initial state
   const { toast } = useToast()
 
   React.useEffect(() => {
     async function fetchInteracoes() {
-      console.log('Iniciando fetchInteracoes')
       setLoading(true)
       try {
-        console.log('Chamando getUserInteractions')
         const result = await getUserInteractions()
-        console.log('Resultado de getUserInteractions:', result)
         if (result.error) {
           setError(result.error)
           toast({
@@ -46,32 +59,8 @@ export function RelatorioInteracoes() {
             variant: 'destructive',
           })
         } else {
-          // Dados fictícios para teste
-          const fakeData = [
-            {
-              id: '1',
-              name: 'João Silva',
-              phoneNumber: '(11) 98765-4321',
-              interactionsCount: 5,
-              lastMessage: 'Olá, como posso ajudar?',
-              lastContactAt: new Date().toISOString(),
-              status: 'Aberta',
-              interesse: 'Alto',
-            },
-            {
-              id: '2',
-              name: 'Maria Oliveira',
-              phoneNumber: '(21) 91234-5678',
-              interactionsCount: 3,
-              lastMessage: 'Obrigado pelo contato!',
-              lastContactAt: new Date().toISOString(),
-              status: 'Resolvida',
-              interesse: 'Médio',
-            },
-          ]
-
-          setInteracoes(fakeData)
-          setLoading(false)
+          setInteracoes(result.data)
+          setFilteredInteracoes(result.data)
         }
       } catch (error) {
         console.error('Erro ao chamar getUserInteractions:', error)
@@ -90,12 +79,31 @@ export function RelatorioInteracoes() {
     fetchInteracoes()
   }, [toast])
 
-  if (loading) {
-    return <div>Carregando interações...</div>
-  }
+  React.useEffect(() => {
+    const filtered = interacoes.filter((interacao) => {
+      const matchesSearch = 
+      (interacao.name?.toLowerCase()?.includes(searchTerm.toLowerCase()) || false) ||
+      interacao.phoneNumber?.includes(searchTerm) || 
+      (interacao.interesse?.toLowerCase()?.includes(searchTerm.toLowerCase()) || false);
+      const matchesStatus = statusFilter === 'all' || interacao.status === statusFilter // Updated filtering logic
+      return matchesSearch && matchesStatus
+    })
+    setFilteredInteracoes(filtered)
+  }, [interacoes, searchTerm, statusFilter])
+
+  const uniqueStatuses = Array.from(new Set(interacoes.map(i => i.status)))
 
   if (error) {
-    return <div>Erro ao carregar interações: {error}</div>
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Erro</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p>Erro ao carregar interações: {error}</p>
+        </CardContent>
+      </Card>
+    )
   }
 
   return (
@@ -104,43 +112,94 @@ export function RelatorioInteracoes() {
         <CardTitle>Relatório de Interações</CardTitle>
       </CardHeader>
       <CardContent>
-        {interacoes.length === 0 ? (
-          <div>
-            Nenhuma interação encontrada. Verifique se há dados na tabela.
+        <div className="flex flex-col space-y-4 md:flex-row md:space-x-4 md:space-y-0 mb-4">
+          <div className="flex-1">
+            <Label htmlFor="search">Buscar</Label>
+            <Input
+              id="search"
+              placeholder="Buscar por nome, telefone ou interesse"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
+          <div>
+            <Label htmlFor="status">Filtrar por Status</Label>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger id="status">
+                <SelectValue placeholder="Todos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem> {/* Updated Select component */}
+                {uniqueStatuses.map((status) => (
+                  <SelectItem key={status} value={status}>
+                    {status}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        {loading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-[250px]" />
+            <Skeleton className="h-4 w-[200px]" />
+            <Skeleton className="h-4 w-[300px]" />
+          </div>
+        ) : filteredInteracoes.length === 0 ? (
+          <div>Nenhuma interação encontrada. Verifique os filtros aplicados.</div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Telefone</TableHead>
-                <TableHead>Interesse</TableHead>
-                <TableHead>Contagens de Interações</TableHead>
-                <TableHead>Última Mensagem</TableHead>
-                <TableHead>Último Contato</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {interacoes.map((interacao: Interacao) => (
-                <TableRow key={interacao.id}>
-                  <TableCell>{interacao.name}</TableCell>
-                  <TableCell>{interacao.phoneNumber}</TableCell>
-                  <TableCell>{interacao.interesse}</TableCell>
-                  <TableCell>{interacao.interactionsCount}</TableCell>
-                  <TableCell>{interacao.lastMessage}</TableCell>
-                  <TableCell>
-                    {interacao.lastContactAt
-                      ? new Date(interacao.lastContactAt).toLocaleString()
-                      : 'N/A'}
-                  </TableCell>
-                  <TableCell>{interacao.status}</TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Telefone</TableHead>
+                  <TableHead>Interesse</TableHead>
+                  <TableHead>Contagens de Interações</TableHead>
+                  <TableHead>Última Mensagem</TableHead>
+                  <TableHead>Atualmente falando com:</TableHead>
+                  <TableHead>Último Contato</TableHead>
+                  <TableHead>Conversa</TableHead>
+                  <TableHead>Status</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredInteracoes.map((interacao: Interacao) => (
+                  <TableRow key={interacao.id}>
+                    <TableCell>{interacao.name}</TableCell>
+                    <TableCell>{interacao.phoneNumber}</TableCell>
+                    <TableCell>{interacao.interesse}</TableCell>
+                    <TableCell>{interacao.interactionsCount}</TableCell>
+                    <TableCell>{interacao.lastMessage}</TableCell>
+                    <TableCell>{interacao.currentlyTalkingTo}</TableCell>
+                    <TableCell>
+                      {interacao.lastContactAt
+                        ? new Date(interacao.lastContactAt).toLocaleString()
+                        : 'N/A'}
+                    </TableCell>
+                    <TableCell>
+                      {interacao.manytalksAccountId ? (
+                        <a
+                          href={`https://app.manytalks.com.br/app/accounts/${interacao.manytalksAccountId}/conversations/${interacao.ConversationID}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-500 underline"
+                        >
+                          link
+                        </a>
+                      ) : (
+                        'N/A'
+                      )}
+                  </TableCell>
+                    <TableCell>{interacao.status}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </CardContent>
     </Card>
   )
 }
+

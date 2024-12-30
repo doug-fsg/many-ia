@@ -33,11 +33,11 @@ export function MainSidebar({ user }: MainSidebarProps) {
   }
 
   return (
-    <DashboardSidebar>
+    <DashboardSidebar className="fixed left-0 top-0 bottom-0 w-64 z-50">
       <DashboardSidebarHeader>
         <Logo />
       </DashboardSidebarHeader>
-      <DashboardSidebarMain className="flex flex-col flex-grow">
+      <DashboardSidebarMain className="flex flex-col flex-grow overflow-y-auto">
         <DashboardSidebarNav>
           <DashboardSidebarNavMain>
             <DashboardSidebarNavLink href="/app" active={isActive('/app')}>

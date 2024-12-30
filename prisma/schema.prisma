@@ -129,8 +129,11 @@ model Interaction {
   lastMessage        String?
   lastContactAt      DateTime?
   status             String?
-  userId             String?
+  interesse          String?
+  value              Decimal?  @db.Decimal(10, 2) // 10 dígitos, 2 decimais para centavos
+  ConversationID     Int?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
+  userId             String?
   user               User?     @relation(fields: [userId], references: [id])
 }

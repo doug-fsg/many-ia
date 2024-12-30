@@ -10,6 +10,9 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'ManyTalks IA',
   description: 'Atendimento personalizado com Inteligência Artificial',
+  icons: {
+    icon: '/favicon.svg',
+  },
 }
 
 export default function RootLayout({
