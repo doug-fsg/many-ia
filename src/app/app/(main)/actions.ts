@@ -84,10 +84,10 @@ async function upsertAIConfig(input: z.infer<typeof upsertAIConfigSchema>) {
             },
             attachments: {
               deleteMany: {},
-              create: attachments.map(({ type, content, description }) => ({
-                type,
-                content,
-                description,
+              create: attachments.map((attachment) => ({
+                type: attachment.type,
+                content: attachment.content,
+                description: attachment.description,
               })),
             },
           },
@@ -113,10 +113,10 @@ async function upsertAIConfig(input: z.infer<typeof upsertAIConfigSchema>) {
               })),
             },
             attachments: {
-              create: attachments.map(({ type, content, description }) => ({
-                type,
-                content,
-                description,
+              create: attachments.map((attachment) => ({
+                type: attachment.type,
+                content: attachment.content.split('/').pop() || attachment.content,
+                description: attachment.description,
               })),
             },
           },

@@ -7,6 +7,12 @@ const storage = multer.diskStorage({
     cb(null, path.join(process.cwd(), 'public/uploads')) // Define onde salvar os arquivos
   },
   filename: function (req, file, cb) {
+    console.log('File upload details:', {
+      originalname: file.originalname,
+      fieldname: file.fieldname,
+      // Adicione mais detalhes que possam ajudar
+    });
+    
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9)
     cb(
       null,

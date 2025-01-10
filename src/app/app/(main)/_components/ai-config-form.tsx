@@ -704,26 +704,99 @@ export function AIConfigForm({
                 <FormLabel>
                   {attachment.type === 'image' ? 'Imagem' : 'PDF'}
                 </FormLabel>
-                <Input
-                  type="file"
-                  accept={attachment.type === 'image' ? 'image/*' : '.pdf'}
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0]
-                    if (file) {
-                      try {
-                        const fileId = await handleFileUpload(file)
-                        updateAttachment(index, 'content', fileId)
-                      } catch (error) {
-                        console.error('Erro no upload:', error)
-                      }
-                    }
-                  }}
-                />
+                {attachment.type === 'image' ? (
+                  <FormItem>
+                    {attachment.content ? (
+                      <div className="flex items-center space-x-4 bg-secondary/50 p-3 rounded-lg border">
+                        <div className="relative w-20 h-20 rounded-md overflow-hidden shadow-sm">
+                          <img 
+                            src={`/api/files/${attachment.content}`} 
+                            alt="Uploaded" 
+                            className="object-cover w-full h-full"
+                          />
+                          <div className="absolute inset-0 bg-black/10 hover:bg-black/20 transition-colors"></div>
+                        </div>
+                        <div className="flex-1 space-y-1">
+                          <p className="text-sm font-medium truncate">
+                            {attachment.content}
+                          </p>
+                          <div className="flex space-x-2">
+                            <Button 
+                              type="button" 
+                              variant="outline"
+                              size="sm"
+                              className="hover:bg-primary/10"
+                              onClick={() => window.open(`/api/files/${attachment.content}`, '_blank')}
+                            >
+                              Visualizar
+                            </Button>
+                            <Button 
+                              type="button" 
+                              variant="ghost"
+                              size="sm"
+                              className="text-destructive hover:bg-destructive/10"
+                              onClick={() => updateAttachment(index, 'content', '')}
+                            >
+                              Remover
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        className="cursor-pointer file:mr-4 file:rounded-md file:border-0 file:bg-primary/10 file:px-4 file:py-2 file:text-sm file:font-medium hover:file:bg-primary/20 border-input"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0]
+                          if (file) {
+                            try {
+                              const fileId = await handleFileUpload(file)
+                              updateAttachment(index, 'content', fileId)
+                            } catch (error) {
+                              console.error('Erro no upload:', error)
+                              toast({
+                                title: 'Erro de Upload',
+                                description: 'Não foi possível fazer upload da imagem.',
+                                variant: 'destructive'
+                              })
+                            }
+                          }
+                        }}
+                      />
+                    )}
+                  </FormItem>
+                ) : (
+                  <FormItem>
+                   
+                    <Input
+                      type="file"
+                      accept=".pdf"
+                      className="cursor-pointer file:mr-4 file:rounded-md file:border-0 file:bg-primary/10 file:px-4 file:py-2 file:text-sm file:font-medium hover:file:bg-primary/20 border-input"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0]
+                        if (file) {
+                          try {
+                            const fileId = await handleFileUpload(file)
+                            updateAttachment(index, 'content', fileId)
+                          } catch (error) {
+                            console.error('Erro no upload:', error)
+                            toast({
+                              title: 'Erro de Upload',
+                              description: 'Não foi possível fazer upload do PDF.',
+                              variant: 'destructive'
+                            })
+                          }
+                        }
+                      }}
+                    />
+                  </FormItem>
+                )}
               </FormItem>
             )}
 
             <FormItem>
-              <FormLabel>Descrição</FormLabel>
+              <FormLabel>Gatilho</FormLabel>
               <Input
                 placeholder="Descreva o anexo"
                 value={attachment.description}
