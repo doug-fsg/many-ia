@@ -12,6 +12,7 @@ export const aiTemplates = {
     comoAtendenteDeve:
       'Ser paciente, empático e profissional. Usar linguagem clara e acessível. Seguir protocolos de atendimento.',
     horarioAtendimento: 'Atender 24h por dia',
+    tempoRetornoAtendimento: 'Não retornar automaticamente',
     condicoesAtendimento:
       'Quando houver reclamação grave, Quando precisar de aprovação superior, Quando envolver reembolso',
     informacoesEmpresa: '',
@@ -30,6 +31,7 @@ export const aiTemplates = {
     comoAtendenteDeve:
       'Ser proativo, persuasivo e profissional. Focar em benefícios e valor agregado. Qualificar leads adequadamente.',
     horarioAtendimento: 'Dentro do horário de atendimento',
+    tempoRetornoAtendimento: 'Não retornar automaticamente',
     condicoesAtendimento:
       'Quando houver negociação especial, Quando precisar de desconto, Quando for pedido personalizado',
     informacoesEmpresa: '',
@@ -48,6 +50,7 @@ export const aiTemplates = {
     comoAtendenteDeve:
       'Ser conhecedor do mercado, profissional e atencioso. Entender necessidades específicas do cliente.',
     horarioAtendimento: 'Dentro do horário de atendimento',
+    tempoRetornoAtendimento: 'Não retornar automaticamente',
     condicoesAtendimento:
       'Quando houver proposta, Quando precisar de visita, Quando solicitar documentação',
     informacoesEmpresa: '',

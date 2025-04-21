@@ -6,30 +6,17 @@ import { z } from 'zod'
 import { deleteAIConfigSchema, upsertAIConfigSchema } from './schema'
 import { createEmbeddingFromAIConfig } from '@/utils/vectorUtils'
 import { revalidatePath } from 'next/cache'
-
-async function getUserAIConfigs() {
-  const session = await auth()
-
-  const aiConfigs = await prisma.AIConfig.findMany({
-    where: {
-      userId: session?.user?.id,
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-  })
-
-  return aiConfigs
-}
+import { getAuthenticatedUser } from '@/lib/auth-helper'
 
 async function upsertAIConfig(input: z.infer<typeof upsertAIConfigSchema>) {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
+    const user = await getAuthenticatedUser();
+    
+    if (!user?.id) {
       return {
         error: 'Não autorizado',
         data: null,
-      }
+      };
     }
 
     const { attachments, temasEvitar, id: configId, ...restInput } = input
@@ -68,10 +55,10 @@ async function upsertAIConfig(input: z.infer<typeof upsertAIConfigSchema>) {
       })
 
       if (input.id) {
-        const updatedAIConfig = await prisma.AIConfig.update({
+        const updatedAIConfig = await prisma.aIConfig.update({
           where: {
             id: input.id,
-            userId: session.user.id,
+            userId: user.id,
           },
           data: {
             ...restInput,
@@ -102,11 +89,11 @@ async function upsertAIConfig(input: z.infer<typeof upsertAIConfigSchema>) {
           data: updatedAIConfig,
         }
       } else {
-        const newAIConfig = await prisma.AIConfig.create({
+        const newAIConfig = await prisma.aIConfig.create({
           data: {
             ...restInput,
             embedding,
-            userId: session.user.id,
+            userId: user.id,
             temasEvitar: {
               create: temasEvitar.map((tema) => ({
                 tema: typeof tema === 'string' ? tema : tema.tema,
@@ -138,7 +125,7 @@ async function upsertAIConfig(input: z.infer<typeof upsertAIConfigSchema>) {
 
     console.log('=== Server Action Concluída com Sucesso ===')
     revalidatePath('/app/configuracoes')
-    return { data: result, error: null }
+    return { data: null, error: null }
   } catch (error) {
     console.error('Erro:', error)
     return {
@@ -149,24 +136,24 @@ async function upsertAIConfig(input: z.infer<typeof upsertAIConfigSchema>) {
 }
 
 async function deleteAIConfig(input: z.infer<typeof deleteAIConfigSchema>) {
-  const session = await auth()
+  const user = await getAuthenticatedUser();
 
-  if (!session?.user?.id) {
+  if (!user?.id) {
     return {
       error: 'Não autorizado',
       data: null,
-    }
+    };
   }
 
-  const aiConfig = await prisma.AIConfig.findUnique({
+  const aiConfig = await prisma.aIConfig.findUnique({
     where: {
       id: input.id,
-      userId: session?.user?.id,
+      userId: user.id,
     },
     select: {
       id: true,
     },
-  })
+  });
 
   if (!aiConfig) {
     return {
@@ -175,10 +162,10 @@ async function deleteAIConfig(input: z.infer<typeof deleteAIConfigSchema>) {
     }
   }
 
-  await prisma.AIConfig.delete({
+  await prisma.aIConfig.delete({
     where: {
       id: input.id,
-      userId: session?.user?.id,
+      userId: user.id,
     },
   })
 
@@ -189,20 +176,20 @@ async function deleteAIConfig(input: z.infer<typeof deleteAIConfigSchema>) {
 }
 
 async function fetchFullAIConfig(id: string) {
-  const session = await auth()
+  const user = await getAuthenticatedUser();
 
-  if (!session?.user?.id) {
+  if (!user?.id) {
     return {
       error: 'Não autorizado',
       data: null,
-    }
+    };
   }
 
   try {
-    const aiConfig = await prisma.AIConfig.findUnique({
+    const aiConfig = await prisma.aIConfig.findUnique({
       where: {
         id,
-        userId: session.user.id,
+        userId: user.id,
       },
       include: {
         attachments: true,
@@ -232,12 +219,13 @@ async function fetchFullAIConfig(id: string) {
 
 async function toggleAIConfigStatus(configId: string, isActive: boolean) {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
+    const user = await getAuthenticatedUser();
+    
+    if (!user?.id) {
       return {
         error: 'Não autorizado',
         data: null,
-      }
+      };
     }
 
     const result = await prisma.aIConfig.update({
@@ -258,23 +246,24 @@ async function toggleAIConfigStatus(configId: string, isActive: boolean) {
 
 async function getManytalksAccountId() {
   try {
-    const session = await auth()
-    if (!session?.user?.id) {
+    const user = await getAuthenticatedUser();
+    
+    if (!user?.id) {
       return {
         error: 'Usuário não autenticado',
         data: null,
-      }
+      };
     }
 
-    const user = await prisma.user.findUnique({
+    const userFromDb = await prisma.user.findUnique({
       where: {
-        id: session.user.id,
+        id: user.id,
       },
-    })
+    });
 
     return {
       error: null,
-      data: user?.manytalksAccountId,
+      data: userFromDb?.manytalksAccountId,
     }
   } catch (error) {
     console.error('Erro ao buscar manytalksAccountId:', error)
@@ -306,8 +295,40 @@ export async function updateAIConfigInbox(
   }
 }
 
+export async function getUserAIConfigs() {
+  try {
+    const user = await getAuthenticatedUser();
+    
+    if (!user?.id) {
+      return {
+        error: 'Usuário não autenticado',
+        data: null,
+      };
+    }
+
+    const aiConfigs = await prisma.aIConfig.findMany({
+      where: {
+        userId: user.id,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return {
+      error: null,
+      data: aiConfigs,
+    };
+  } catch (error) {
+    console.error('Erro ao buscar configurações de IA:', error);
+    return {
+      error: 'Erro ao buscar configurações de IA',
+      data: null,
+    };
+  }
+}
+
 export {
-  getUserAIConfigs,
   upsertAIConfig,
   deleteAIConfig,
   toggleAIConfigStatus,

@@ -10,7 +10,8 @@ import { getUserAIConfigs } from './actions'
 import Link from 'next/link'
 
 export default async function Page() {
-  const aiConfigs = await getUserAIConfigs()
+  const result = await getUserAIConfigs()
+  const aiConfigs = result.data || []
 
   return (
     <DashboardPage>

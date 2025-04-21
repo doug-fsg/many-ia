@@ -19,10 +19,10 @@ import {
 } from '@radix-ui/react-icons'
 import { UserDropdown } from './user-dropdown'
 import { Logo } from '@/components/logo'
-import { Session } from 'next-auth'
+import { AuthUser } from '@/lib/auth-helper'
 
 type MainSidebarProps = {
-  user: Session['user']
+  user: AuthUser
 }
 
 export function MainSidebar({ user }: MainSidebarProps) {

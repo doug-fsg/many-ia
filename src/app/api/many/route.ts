@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/services/database';
 import { randomBytes } from 'crypto';
-import jwt from 'jsonwebtoken';
+import { SignJWT } from 'jose';
+import { cookies } from 'next/headers';
 
 // Função para gerar um token temporário
 async function generateTemporaryToken(email: string): Promise<string> {
   const token = randomBytes(32).toString('hex');
-  const expires = new Date(Date.now() + 15 * 60 * 1000); // Expira em 15 minutos
+  const expires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutos
 
   await prisma.verificationToken.create({
     data: {
@@ -16,40 +17,25 @@ async function generateTemporaryToken(email: string): Promise<string> {
     },
   });
 
-  console.log(`[LOG] Token temporário gerado para ${email}: ${token}`);
   return token;
 }
 
 // Função para validar o token temporário
 async function validateTemporaryToken(token: string, email: string): Promise<boolean> {
-  console.log('[LOG] Validando token temporário:', { token, email });
-
   const storedToken = await prisma.verificationToken.findUnique({
     where: { token },
   });
 
-  if (!storedToken) {
-    console.error('[ERRO] Token não encontrado no banco de dados.');
+  if (!storedToken || 
+      storedToken.identifier !== email || 
+      storedToken.expires < new Date()) {
     return false;
   }
-
-  if (storedToken.identifier !== email) {
-    console.error('[ERRO] Token não corresponde ao email.');
-    return false;
-  }
-
-  if (storedToken.expires < new Date()) {
-    console.error('[ERRO] Token expirado.');
-    return false;
-  }
-
-  console.log('[LOG] Token validado com sucesso.');
 
   await prisma.verificationToken.delete({
     where: { token },
   });
 
-  console.log('[LOG] Token removido após uso.');
   return true;
 }
 
@@ -58,21 +44,20 @@ export async function GET(req: NextRequest) {
   const email = searchParams.get('email');
   const token = searchParams.get('token');
   const manytalksAccountId = searchParams.get('manytalksAccountId');
-  const name = searchParams.get('name'); // Nome do usuário
-  const image = searchParams.get('image'); // Imagem do usuário
-
-  console.log('[LOG] Requisição recebida com parâmetros:', { email, token, manytalksAccountId, name, image });
+  const name = searchParams.get('name');
+  const image = searchParams.get('image');
 
   if (!email) {
-    console.error('[ERRO] Email não fornecido.');
     return NextResponse.json({ error: 'Email não fornecido' }, { status: 400 });
   }
 
+  // Etapa 1: Gerar token temporário
   if (!token) {
     const newToken = await generateTemporaryToken(email);
     return NextResponse.json({ token: newToken });
   }
 
+  // Etapa 2: Validar token e criar/atualizar usuário
   const isValidToken = await validateTemporaryToken(token, email);
 
   if (!isValidToken) {
@@ -82,24 +67,23 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  console.log('[LOG] Token validado. Prosseguindo com o login.');
-
   let user = await prisma.user.findUnique({ where: { email } });
 
   if (!user) {
-    console.log('[LOG] Usuário não encontrado. Criando novo usuário...');
     user = await prisma.user.create({
       data: {
         email,
-        name: name || email.split('@')[0], // Salva o nome, ou usa o prefixo do email como padrão
-        image, // Salva a imagem fornecida
+        name: name || email.split('@')[0],
+        image,
         emailVerified: new Date(),
-        manytalksAccountId, // Salva o manytalksAccountId ao criar o usuário
+        manytalksAccountId,
+        isIntegrationUser: true
       },
     });
   } else {
-    console.log('[LOG] Usuário encontrado. Atualizando dados, se necessário...');
-    const updatedData: any = {};
+    const updatedData: any = {
+      isIntegrationUser: true
+    };
 
     if (name && user.name !== name) {
       updatedData.name = name;
@@ -111,52 +95,66 @@ export async function GET(req: NextRequest) {
       updatedData.manytalksAccountId = manytalksAccountId;
     }
 
-    if (Object.keys(updatedData).length > 0) {
-      await prisma.user.update({
-        where: { email },
-        data: updatedData,
-      });
-      console.log('[LOG] Dados atualizados para o usuário:', updatedData);
-    }
+    await prisma.user.update({
+      where: { email },
+      data: updatedData,
+    });
+    
+    user = await prisma.user.findUnique({ where: { email } });
   }
 
-  console.log('[LOG] Usuário processado:', user);
+  if (!user) {
+    return NextResponse.json({ error: 'Erro interno' }, { status: 500 });
+  }
 
-  const sessionToken = jwt.sign(
-    { userId: user.id, email: user.email },
-    process.env.JWT_SECRET,
-    { expiresIn: '1h' }
-  );
-
-  console.log('[LOG] Token de sessão gerado:', sessionToken);
+  const expiresIn = 60 * 60 * 24 * 7; // 7 dias
+  const sessionToken = await new SignJWT({ 
+    userId: user.id,
+    email: user.email,
+    name: user.name,
+    isIntegrationUser: user.isIntegrationUser
+  })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setExpirationTime(`${expiresIn}s`)
+    .sign(new TextEncoder().encode(process.env.JWT_SECRET || 'fallback-secret'));
 
   // Remover sessões existentes antes de criar uma nova
   await prisma.session.deleteMany({
     where: {
       userId: user.id,
     },
-  })
-  console.log('[LOG] Sessões antigas removidas para o usuário:', user.email)
-
-  await prisma.session.create({
-    data: {
-      sessionToken: sessionToken,
-      userId: user.id,
-      expires: new Date(Date.now() + 60 * 60 * 1000), // Expira em 1 hora
-    },
   });
 
-  console.log('[LOG] Sessão salva no banco de dados.');
+  // Criar nova sessão no banco
+  await prisma.session.create({
+    data: {
+      sessionToken,
+      userId: user.id,
+      expires: new Date(Date.now() + expiresIn * 1000)
+    },
+  });
 
   const siteUrl = process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin;
   const response = NextResponse.redirect(new URL('/app', siteUrl));
 
-
-  response.cookies.set('authjs.session-token', sessionToken, {
+  const cookieOptions = {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax' as const,
     path: '/',
-  })
+    maxAge: expiresIn
+  };
+  
+  const cookieStore = cookies();
+  cookieStore.set('authjs.session-token', sessionToken, cookieOptions);
+  cookieStore.set('next-auth.session-token', sessionToken, cookieOptions);
+  
+  if (process.env.NODE_ENV === 'production') {
+    cookieStore.set('__Secure-next-auth.session-token', sessionToken, {
+      ...cookieOptions,
+      secure: true
+    });
+  }
 
-  return response
+  return response;
 }

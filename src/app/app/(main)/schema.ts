@@ -22,6 +22,7 @@ export const upsertAIConfigSchema = z.object({
     'Fora do horário de atendimento',
     'Dentro do horário de atendimento',
   ]),
+  tempoRetornoAtendimento: z.string().optional(),
   informacoesEmpresa: z.string().optional(),
   anexarInstrucoesPdf: z.union([z.instanceof(File), z.string()]).nullable(),
   condicoesAtendimento: z.string().optional(),

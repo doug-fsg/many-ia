@@ -123,6 +123,7 @@ export function AIConfigForm({
       objetivoAtendente: '',
       comoAtendenteDeve: '',
       horarioAtendimento: 'Atender 24h por dia',
+      tempoRetornoAtendimento: 'Não retornar automaticamente',
       anexarInstrucoesPdf: null,
       condicoesAtendimento: '',
       informacoesEmpresa: '',
@@ -330,6 +331,47 @@ export function AIConfigForm({
                 </SelectItem>
               </SelectContent>
             </Select>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="tempoRetornoAtendimento"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Retornar o atendimento em</FormLabel>
+            <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o tempo para retorno automático" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                <SelectItem value="Não retornar automaticamente">
+                  Não retornar automaticamente
+                </SelectItem>
+                <SelectItem value="5min">
+                  5 minutos
+                </SelectItem>
+                <SelectItem value="15min">
+                  15 minutos
+                </SelectItem>
+                <SelectItem value="30min">
+                  30 minutos
+                </SelectItem>
+                <SelectItem value="1h">
+                  1 hora
+                </SelectItem>
+                <SelectItem value="2h">
+                  2 horas
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <FormDescription>
+              Define em quanto tempo a IA deve retomar o atendimento após intervenção humana
+            </FormDescription>
             <FormMessage />
           </FormItem>
         )}

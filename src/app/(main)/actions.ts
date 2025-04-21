@@ -1,0 +1,1 @@
+import { getAuthenticatedUser } from '@/lib/auth-helper' 

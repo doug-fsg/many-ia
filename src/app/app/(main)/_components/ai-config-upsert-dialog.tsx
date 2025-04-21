@@ -66,7 +66,7 @@ export function AIConfigUpsertDialog({
   const router = useRouter()
   const [paymentLinks, setPaymentLinks] = useState<PaymentLink[]>([])
 
-  const form = useForm({
+  const form = useForm<AIConfigFormData>({
     resolver: zodResolver(upsertAIConfigSchema),
     defaultValues: defaultValue || {
       isActive: true,
@@ -75,6 +75,7 @@ export function AIConfigUpsertDialog({
       cargoUsuario: '',
       instrucoesAtendenteVirtual: '',
       horarioAtendimento: 'Atender 24h por dia',
+      tempoRetornoAtendimento: 'Não retornar automaticamente',
       anexarInstrucoesPdf: null,
       condicoesAtendimento: '',
       linksPagamento: [],
@@ -291,6 +292,47 @@ export function AIConfigUpsertDialog({
                 </SelectItem>
               </SelectContent>
             </Select>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      <FormField
+        control={form.control}
+        name="tempoRetornoAtendimento"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Retornar o atendimento em</FormLabel>
+            <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o tempo para retorno automático" />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                <SelectItem value="Não retornar automaticamente">
+                  Não retornar automaticamente
+                </SelectItem>
+                <SelectItem value="5min">
+                  5 minutos
+                </SelectItem>
+                <SelectItem value="15min">
+                  15 minutos
+                </SelectItem>
+                <SelectItem value="30min">
+                  30 minutos
+                </SelectItem>
+                <SelectItem value="1h">
+                  1 hora
+                </SelectItem>
+                <SelectItem value="2h">
+                  2 horas
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <FormDescription>
+              Define em quanto tempo a IA deve retomar o atendimento após intervenção humana
+            </FormDescription>
             <FormMessage />
           </FormItem>
         )}
