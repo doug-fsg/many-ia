@@ -17,8 +17,8 @@ export async function GET() {
     // Verificar se o usuário é da integração
     if (session.user.isIntegrationUser) {
       return NextResponse.json(
-        { error: 'Esta funcionalidade não está disponível para usuários da integração' }, 
-        { status: 403 }
+        [], 
+        { status: 200 }
       )
     }
     
@@ -41,12 +41,15 @@ export async function GET() {
       },
     })
     
+    // Retorna o array de conexões (vazio ou com itens)
     return NextResponse.json(connections)
   } catch (error) {
     console.error('Erro ao buscar conexões do WhatsApp:', error)
+    // Em caso de erro de banco de dados, retornar array vazio em vez de erro
+    // para não afetar a interface do usuário
     return NextResponse.json(
-      { error: 'Erro ao buscar conexões do WhatsApp' }, 
-      { status: 500 }
+      [], 
+      { status: 200 }
     )
   }
 } 

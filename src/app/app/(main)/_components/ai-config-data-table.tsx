@@ -1,46 +1,20 @@
-'use client'
+"use client"
 
-import * as React from 'react'
-import { useRouter } from 'next/navigation'
-import {
-  Pencil2Icon,
-  TrashIcon,
-  MinusCircledIcon,
-  PlusCircledIcon,
-  ChatBubbleIcon,
-} from '@radix-ui/react-icons'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog'
-import { toast } from '@/components/ui/use-toast'
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from '@/components/ui/popover'
-import {
-  Command,
-  CommandList,
-  CommandItem,
-  CommandInput,
-  CommandEmpty,
-  CommandGroup,
-} from '@/components/ui/command'
-import { AIConfig } from '../types'
-import {
-  deleteAIConfig,
-  toggleAIConfigStatus,
-  getManytalksAccountId,
-  updateAIConfigInbox,
-} from '../actions'
-import { buscarInboxes } from '@/lib/manytalks'
+import * as React from "react"
+import { useRouter } from "next/navigation"
+import { Pencil2Icon, TrashIcon, ChatBubbleIcon, DotsHorizontalIcon, MinusCircledIcon } from "@radix-ui/react-icons"
+import { Button } from "@/components/ui/button"
+import { Switch } from "@/components/ui/switch"
+import { Card, CardContent } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { toast } from "@/components/ui/use-toast"
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
+import { Command, CommandList, CommandItem, CommandInput, CommandEmpty, CommandGroup } from "@/components/ui/command"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import type { AIConfig } from "../types"
+import { deleteAIConfig, toggleAIConfigStatus, getManytalksAccountId, updateAIConfigInbox } from "../actions"
+import { buscarInboxes } from "@/lib/manytalks"
+import { TestAgentModal } from "@/components/chat/TestAgentModal"
 
 type AIConfigDataTable = {
   data: AIConfig[]
@@ -67,57 +41,65 @@ interface WhatsAppConnection {
 export function AIConfigDataTable({ data }: AIConfigDataTable) {
   const router = useRouter()
   const [deleteModalOpen, setDeleteModalOpen] = React.useState(false)
-  const [configToDelete, setConfigToDelete] = React.useState<AIConfig | null>(
-    null,
-  )
+  const [configToDelete, setConfigToDelete] = React.useState<AIConfig | null>(null)
   const [inboxes, setInboxes] = React.useState<ManytalksInbox[]>([])
   const [openPopoverId, setOpenPopoverId] = React.useState<string | null>(null)
   const [whatsappConnections, setWhatsappConnections] = React.useState<WhatsAppConnection[]>([])
   const [isLoadingConnections, setIsLoadingConnections] = React.useState(false)
   const [isIntegrationUser, setIsIntegrationUser] = React.useState(false)
+  const [hoveredCardId, setHoveredCardId] = React.useState<string | null>(null)
 
   const fetchInboxes = async () => {
     try {
       const accountResult = await getManytalksAccountId()
       if (accountResult.error || !accountResult.data) {
+        // Silenciosamente retornar sem mostrar erro para o usuário
+        console.warn("Não foi possível obter o ID da conta ManyTalks")
         return
       }
-      const inboxesData = await buscarInboxes(accountResult.data)
-      const processedInboxes = inboxesData.data.payload.map(
-        (inbox: ManytalksInbox) => ({
-          id: inbox.id,
-          name: inbox.name,
-        }),
-      )
-      setInboxes(processedInboxes)
+      
+      try {
+        const inboxesData = await buscarInboxes(accountResult.data)
+        if (inboxesData && inboxesData.data && inboxesData.data.payload) {
+          const processedInboxes = inboxesData.data.payload.map((inbox: ManytalksInbox) => ({
+            id: inbox.id,
+            name: inbox.name,
+          }))
+          setInboxes(processedInboxes)
+        } else {
+          // Se não houver dados, apenas definir como array vazio
+          setInboxes([])
+          console.warn("Nenhum inbox encontrado para esta conta")
+        }
+      } catch (inboxError) {
+        // Silenciosamente logger o erro sem mostrar para o usuário
+        console.warn("Erro ao buscar inboxes:", inboxError)
+        setInboxes([])
+      }
     } catch (error) {
-      console.error('Erro ao buscar inboxes:', error)
-      toast({
-        title: 'Erro ao buscar inboxes',
-        description:
-          error instanceof Error ? error.message : 'Erro desconhecido',
-        variant: 'destructive',
-      })
+      // Silenciosamente logger o erro sem mostrar para o usuário
+      console.warn("Erro ao buscar ID da conta:", error)
     }
   }
 
   const fetchWhatsAppConnections = async () => {
     setIsLoadingConnections(true)
     try {
-      const response = await fetch('/api/whatsapp/connections')
-      if (!response.ok) {
-        throw new Error('Erro ao buscar conexões do WhatsApp')
-      }
+      const response = await fetch("/api/whatsapp/connections")
       
-      const connections = await response.json()
-      setWhatsappConnections(connections)
+      if (response.ok) {
+        const connections = await response.json()
+        setWhatsappConnections(connections)
+      } else if (response.status === 401) {
+        // Apenas logamos o erro de autenticação, sem mostrar toast
+        console.warn("Usuário não autenticado para buscar conexões do WhatsApp")
+      } else {
+        // Apenas log em caso de erro real, sem exibir toast para o usuário
+        console.error("Erro ao buscar conexões do WhatsApp:", response.statusText)
+      }
     } catch (error) {
-      console.error('Erro ao buscar conexões do WhatsApp:', error)
-      toast({
-        title: 'Erro',
-        description: 'Falha ao carregar conexões do WhatsApp',
-        variant: 'destructive',
-      })
+      // Apenas log em caso de erro, sem exibir toast para o usuário
+      console.error("Erro ao buscar conexões do WhatsApp:", error)
     } finally {
       setIsLoadingConnections(false)
     }
@@ -130,17 +112,17 @@ export function AIConfigDataTable({ data }: AIConfigDataTable) {
       await deleteAIConfig({ id: configToDelete.id })
       router.refresh()
       toast({
-        title: 'Exclusão bem-sucedida',
-        description: 'A configuração de IA foi excluída com sucesso.',
+        title: "Exclusão bem-sucedida",
+        description: "A configuração de IA foi excluída com sucesso.",
       })
       setDeleteModalOpen(false)
       setConfigToDelete(null)
     } catch (error) {
-      console.error('Erro ao excluir:', error)
+      console.error("Erro ao excluir:", error)
       toast({
-        title: 'Erro',
-        description: 'Falha ao excluir a configuração.',
-        variant: 'destructive',
+        title: "Erro",
+        description: "Falha ao excluir a configuração.",
+        variant: "destructive",
       })
     }
   }
@@ -166,15 +148,15 @@ export function AIConfigDataTable({ data }: AIConfigDataTable) {
       router.refresh()
 
       toast({
-        title: 'Atualização bem-sucedida',
-        description: `Configuração ${!aiConfig.isActive ? 'ativada' : 'desativada'} com sucesso.`,
+        title: "Atualização bem-sucedida",
+        description: `Configuração ${!aiConfig.isActive ? "ativada" : "desativada"} com sucesso.`,
       })
     } catch (error) {
-      console.error('Erro ao atualizar status:', error)
+      console.error("Erro ao atualizar status:", error)
       toast({
-        title: 'Erro',
-        description: 'Falha ao atualizar o status.',
-        variant: 'destructive',
+        title: "Erro",
+        description: "Falha ao atualizar o status.",
+        variant: "destructive",
       })
     }
   }
@@ -186,76 +168,72 @@ export function AIConfigDataTable({ data }: AIConfigDataTable) {
 
   const handleWhatsAppSelect = async (aiConfigId: string, connectionId: string) => {
     try {
-      const response = await fetch('/api/ai/vincular-canal', {
-        method: 'POST',
+      const response = await fetch("/api/ai/vincular-canal", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           iaId: aiConfigId,
           connectionId: connectionId,
         }),
       })
-      
+
       if (!response.ok) {
-        throw new Error('Erro ao vincular canal')
+        throw new Error("Erro ao vincular canal")
       }
-      
+
       setOpenPopoverId(null)
       fetchWhatsAppConnections()
-      
+
       toast({
-        title: 'Canal vinculado',
-        description: 'Canal de WhatsApp vinculado com sucesso',
+        title: "Canal vinculado",
+        description: "Canal de WhatsApp vinculado com sucesso",
       })
     } catch (error) {
-      console.error('Erro ao vincular canal:', error)
+      console.error("Erro ao vincular canal:", error)
       toast({
-        title: 'Erro',
-        description: 'Não foi possível vincular o canal',
-        variant: 'destructive',
+        title: "Erro",
+        description: "Não foi possível vincular o canal",
+        variant: "destructive",
       })
     }
   }
 
   const handleRemoveWhatsApp = async (connectionId: string, aiConfigId: string) => {
     try {
-      const response = await fetch('/api/ai/desvincular-canal', {
-        method: 'POST',
+      const response = await fetch("/api/ai/desvincular-canal", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           iaId: aiConfigId,
           connectionId: connectionId,
         }),
       })
-      
+
       if (!response.ok) {
-        throw new Error('Erro ao desvincular canal')
+        throw new Error("Erro ao desvincular canal")
       }
-      
+
       fetchWhatsAppConnections()
-      
+
       toast({
-        title: 'Canal desvinculado',
-        description: 'Canal de WhatsApp desvinculado com sucesso',
+        title: "Canal desvinculado",
+        description: "Canal de WhatsApp desvinculado com sucesso",
       })
     } catch (error) {
-      console.error('Erro ao desvincular canal:', error)
+      console.error("Erro ao desvincular canal:", error)
       toast({
-        title: 'Erro',
-        description: 'Não foi possível desvincular o canal',
-        variant: 'destructive',
+        title: "Erro",
+        description: "Não foi possível desvincular o canal",
+        variant: "destructive",
       })
     }
   }
 
-  const handleInboxSelect = async (
-    aiConfigId: string,
-    inboxId: number,
-    inboxName: string,
-  ) => {
+  const handleInboxSelect = async (aiConfigId: string, inboxId: number, inboxName: string) => {
     try {
       const result = await updateAIConfigInbox(aiConfigId, inboxId, inboxName)
 
@@ -267,15 +245,15 @@ export function AIConfigDataTable({ data }: AIConfigDataTable) {
       setOpenPopoverId(null)
 
       toast({
-        title: 'Canal atualizado',
+        title: "Canal atualizado",
         description: `Canal alterado para: ${inboxName}`,
       })
     } catch (error) {
-      console.error('Erro ao atualizar canal:', error)
+      console.error("Erro ao atualizar canal:", error)
       toast({
-        title: 'Erro',
-        description: 'Não foi possível atualizar o canal',
-        variant: 'destructive',
+        title: "Erro",
+        description: "Não foi possível atualizar o canal",
+        variant: "destructive",
       })
     }
   }
@@ -290,15 +268,15 @@ export function AIConfigDataTable({ data }: AIConfigDataTable) {
 
       router.refresh()
       toast({
-        title: 'Canal removido',
-        description: 'Canal de entrada removido com sucesso',
+        title: "Canal removido",
+        description: "Canal de entrada removido com sucesso",
       })
     } catch (error) {
-      console.error('Erro ao remover canal:', error)
+      console.error("Erro ao remover canal:", error)
       toast({
-        title: 'Erro',
-        description: 'Não foi possível remover o canal',
-        variant: 'destructive',
+        title: "Erro",
+        description: "Não foi possível remover o canal",
+        variant: "destructive",
       })
     }
   }
@@ -312,28 +290,33 @@ export function AIConfigDataTable({ data }: AIConfigDataTable) {
     // Verificar se o usuário é de integração
     const checkUserType = async () => {
       try {
-        // Aqui podemos verificar o tipo do usuário através de uma API ou direto do session
-        // Por simplicidade, podemos usar a URL ou dados da sessão
-        const response = await fetch('/api/user/info')
-        const userData = await response.json()
-        setIsIntegrationUser(userData.isIntegrationUser || false)
+        const response = await fetch("/api/user/info")
+        if (response.ok) {
+          const userData = await response.json()
+          setIsIntegrationUser(userData.isIntegrationUser || false)
+        } else {
+          // Em caso de erro, assume que não é usuário de integração
+          setIsIntegrationUser(false)
+          console.warn("Não foi possível verificar o tipo de usuário, assumindo usuário regular")
+        }
       } catch (error) {
-        console.error('Erro ao verificar tipo de usuário:', error)
-        setIsIntegrationUser(false) // Valor padrão em caso de erro
+        // Em caso de erro, assume que não é usuário de integração
+        console.warn("Erro ao verificar tipo de usuário, assumindo usuário regular:", error)
+        setIsIntegrationUser(false)
       }
     }
-    
+
     checkUserType()
   }, [])
 
   // Função auxiliar para encontrar conexões de WhatsApp vinculadas a uma IA específica
   const getLinkedWhatsAppConnections = (aiConfigId: string) => {
-    return whatsappConnections.filter(conn => conn.iaId === aiConfigId);
+    return whatsappConnections.filter((conn) => conn.iaId === aiConfigId)
   }
 
   // Função auxiliar para encontrar conexões de WhatsApp não vinculadas a nenhuma IA
   const getAvailableWhatsAppConnections = () => {
-    return whatsappConnections.filter(conn => !conn.iaId);
+    return whatsappConnections.filter((conn) => !conn.iaId)
   }
 
   return (
@@ -343,38 +326,33 @@ export function AIConfigDataTable({ data }: AIConfigDataTable) {
           <Card
             key={aiConfig.id}
             className="relative hover:shadow-md transition-shadow w-[300px]"
+            onMouseEnter={() => setHoveredCardId(aiConfig.id)}
+            onMouseLeave={() => setHoveredCardId(null)}
           >
             <CardContent className="p-4">
               <div className="flex flex-col space-y-4">
-                <div className="flex justify-between items-start">
-                  <h3 className="font-semibold text-lg mb-2">
+                <div className="flex justify-between items-center">
+                  <h3 className="font-semibold text-lg">
                     {aiConfig.nomeAtendenteDigital}
                   </h3>
-                  <Badge
-                    className={`${
-                      aiConfig.isActive
-                        ? 'bg-green-500 text-white'
-                        : 'bg-gray-300 text-gray-700'
-                    } w-20 justify-center`}
-                  >
-                    {aiConfig.isActive ? 'ativo' : 'inativo'}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">{aiConfig.isActive ? 'Ativo' : 'Inativo'}</span>
+                    <Switch 
+                      checked={aiConfig.isActive} 
+                      onCheckedChange={() => handleToggleActiveAIConfig(aiConfig)}
+                      className={aiConfig.isActive ? 'bg-green-500' : ''}
+                    />
+                  </div>
                 </div>
                 <div className="border-t pt-4">
                   {/* Canal unificado - pode ser ManyTalks ou WhatsApp dependendo do tipo de usuário */}
                   <div className="flex items-center gap-2 mt-1">
                     <Popover
                       open={openPopoverId === `canal-${aiConfig.id}`}
-                      onOpenChange={(open) =>
-                        setOpenPopoverId(open ? `canal-${aiConfig.id}` : null)
-                      }
+                      onOpenChange={(open) => setOpenPopoverId(open ? `canal-${aiConfig.id}` : null)}
                     >
                       <PopoverTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 px-2 text-xs hover:bg-muted group"
-                        >
+                        <Button variant="ghost" size="sm" className="h-7 px-2 text-xs hover:bg-muted group">
                           {aiConfig.inboxName ? (
                             <span className="flex items-center gap-2 text-foreground">
                               <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
@@ -403,23 +381,24 @@ export function AIConfigDataTable({ data }: AIConfigDataTable) {
                           />
                           <CommandList>
                             <CommandEmpty>
-                              {isLoadingConnections 
-                                ? "Carregando conexões..." 
-                                : "Nenhuma conexão disponível"}
+                              {isLoadingConnections ? (
+                                "Carregando conexões..."
+                              ) : (
+                                <div className="py-2 px-1 text-center">
+                                  <p className="text-xs text-muted-foreground mb-2">Nenhuma conexão disponível</p>
+                                  <p className="text-[10px] text-muted-foreground">
+                                    Você pode adicionar conexões na página de configurações do WhatsApp
+                                  </p>
+                                </div>
+                              )}
                             </CommandEmpty>
-                            
+
                             {isIntegrationUser ? (
                               // Mostrar inboxes ManyTalks para usuários de integração
                               inboxes.map((inbox) => (
                                 <CommandItem
                                   key={inbox.id}
-                                  onSelect={() =>
-                                    handleInboxSelect(
-                                      aiConfig.id,
-                                      inbox.id,
-                                      inbox.name,
-                                    )
-                                  }
+                                  onSelect={() => handleInboxSelect(aiConfig.id, inbox.id, inbox.name)}
                                   className="text-xs py-1.5 text-foreground"
                                 >
                                   {inbox.name}
@@ -436,11 +415,9 @@ export function AIConfigDataTable({ data }: AIConfigDataTable) {
                                         key={conn.id}
                                         className="text-xs py-1.5 text-foreground flex justify-between items-center"
                                       >
-                                        <span>
-                                          {conn.name || `WhatsApp (${conn.phoneNumber || 'Sem número'})`}
-                                        </span>
-                                        <Button 
-                                          variant="ghost" 
+                                        <span>{conn.name || `WhatsApp (${conn.phoneNumber || "Sem número"})`}</span>
+                                        <Button
+                                          variant="ghost"
                                           size="sm"
                                           className="h-5 w-5 p-0"
                                           onClick={(e) => {
@@ -454,7 +431,7 @@ export function AIConfigDataTable({ data }: AIConfigDataTable) {
                                     ))}
                                   </CommandGroup>
                                 )}
-                                
+
                                 {/* Conexões disponíveis para vincular */}
                                 {getAvailableWhatsAppConnections().length > 0 && (
                                   <CommandGroup heading="Conexões disponíveis">
@@ -464,7 +441,7 @@ export function AIConfigDataTable({ data }: AIConfigDataTable) {
                                         onSelect={() => handleWhatsAppSelect(aiConfig.id, conn.id)}
                                         className="text-xs py-1.5 text-foreground"
                                       >
-                                        {conn.name || `WhatsApp (${conn.phoneNumber || 'Sem número'})`}
+                                        {conn.name || `WhatsApp (${conn.phoneNumber || "Sem número"})`}
                                       </CommandItem>
                                     ))}
                                   </CommandGroup>
@@ -478,56 +455,60 @@ export function AIConfigDataTable({ data }: AIConfigDataTable) {
                   </div>
 
                   {/* Mostrar conexões WhatsApp já vinculadas para usuários não de integração */}
-                  {!isIntegrationUser && getLinkedWhatsAppConnections(aiConfig.id).map((conn) => (
-                    <div key={conn.id} className="flex items-center ml-2 mt-2 text-xs text-foreground">
-                      <div className="w-1.5 h-1.5 rounded-full bg-green-500 mr-2" />
-                      <span className="flex-1">
-                        {conn.name || `WhatsApp (${conn.phoneNumber || 'Sem número'})`}
-                      </span>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100"
-                        onClick={() => handleRemoveWhatsApp(conn.id, aiConfig.id)}
-                      >
-                        <MinusCircledIcon className="h-3 w-3 text-red-500" />
-                      </Button>
-                    </div>
-                  ))}
+                  {!isIntegrationUser &&
+                    getLinkedWhatsAppConnections(aiConfig.id).map((conn) => (
+                      <div key={conn.id} className="flex items-center ml-2 mt-2 text-xs text-foreground">
+                        <div className="w-1.5 h-1.5 rounded-full bg-green-500 mr-2" />
+                        <span className="flex-1">{conn.name || `WhatsApp (${conn.phoneNumber || "Sem número"})`}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100"
+                          onClick={() => handleRemoveWhatsApp(conn.id, aiConfig.id)}
+                        >
+                          <MinusCircledIcon className="h-3 w-3 text-red-500" />
+                        </Button>
+                      </div>
+                    ))}
                 </div>
 
-                <div className="flex gap-2 mt-4">
+                {/* Action buttons at the bottom */}
+                <div className="flex gap-2 mt-4 justify-between">
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() =>
                       router.push(`/app/configuracoes/${aiConfig.id}`)
                     }
-                    className="flex items-center gap-1 text-gray-600 hover:text-blue-600"
+                    className="flex-1 flex items-center justify-center gap-1 text-gray-600 hover:text-blue-600 hover:bg-blue-50"
                   >
                     <Pencil2Icon className="h-4 w-4" />
                     Editar
                   </Button>
 
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleToggleActiveAIConfig(aiConfig)}
-                    className="flex items-center gap-1 text-gray-600 hover:text-yellow-600"
-                  >
-                    {aiConfig.isActive ? (
-                      <MinusCircledIcon className="h-4 w-4" />
-                    ) : (
-                      <PlusCircledIcon className="h-4 w-4" />
-                    )}
-                    {aiConfig.isActive ? 'Desativar' : 'Ativar'}
-                  </Button>
+                  <TestAgentModal 
+                    agentId={aiConfig.id}
+                    agentName={aiConfig.nomeAtendenteDigital}
+                    accountId={aiConfig.userId}
+                    inboxId={aiConfig.inboxId || undefined}
+                    trigger={
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="flex-1 flex items-center justify-center gap-1 text-gray-600 hover:text-purple-600 hover:bg-purple-50 relative"
+                      >
+                        <ChatBubbleIcon className="h-4 w-4" />
+                        <span>Testar</span>
+                        <span className="absolute -top-1 -right-1 text-[9px] bg-purple-100 text-purple-700 px-1 rounded-full font-medium">beta</span>
+                      </Button>
+                    }
+                  />
 
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => handleOpenDeleteModal(aiConfig)}
-                    className="flex items-center gap-1 text-gray-600 hover:text-red-600"
+                    className="flex-1 flex items-center justify-center gap-1 text-red-600 hover:bg-red-50"
                   >
                     <TrashIcon className="h-4 w-4" />
                     Excluir
@@ -545,9 +526,8 @@ export function AIConfigDataTable({ data }: AIConfigDataTable) {
             <DialogTitle>Confirmação de Exclusão</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-gray-500">
-            Tem certeza que deseja excluir a configuração "
-            {configToDelete?.nomeAtendenteDigital}"? Esta ação não pode ser
-            desfeita.
+            Tem certeza que deseja excluir a configuração "{configToDelete?.nomeAtendenteDigital}"? Esta ação não pode
+            ser desfeita.
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={handleCancelDelete}>
