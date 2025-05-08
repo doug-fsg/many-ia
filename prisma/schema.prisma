@@ -85,7 +85,6 @@ model AIConfig {
   comoAtendenteDeve      String
   horarioAtendimento     String
   tempoRetornoAtendimento String?
-  anexarInstrucoesPdf    String?
   condicoesAtendimento   String?
   embedding              Json
   createdAt              DateTime      @default(now())

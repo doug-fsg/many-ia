@@ -15,9 +15,9 @@ export default function Layout({ children }: PropsWithChildren) {
       </DashboardPageHeader>
       <DashboardPageMain>
         <div className="container max-w-screen-lg">
-          <div className="grid grid-cols-[10rem_1fr] gap-12">
+          <div className="flex flex-col md:grid md:grid-cols-[10rem_1fr] gap-6 md:gap-12">
             <SettingsSidebar />
-            <div>{children}</div>
+            <div className="mt-4 md:mt-0">{children}</div>
           </div>
         </div>
       </DashboardPageMain>

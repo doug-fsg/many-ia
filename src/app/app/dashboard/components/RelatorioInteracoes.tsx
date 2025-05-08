@@ -59,8 +59,8 @@ export function RelatorioInteracoes() {
             variant: 'destructive',
           })
         } else {
-          setInteracoes(result.data)
-          setFilteredInteracoes(result.data)
+          setInteracoes(result.data || [])
+          setFilteredInteracoes(result.data || [])
         }
       } catch (error) {
         console.error('Erro ao chamar getUserInteractions:', error)
@@ -81,15 +81,22 @@ export function RelatorioInteracoes() {
 
   React.useEffect(() => {
     const filtered = interacoes.filter((interacao) => {
-      const matchesSearch = 
-      (interacao.name?.toLowerCase()?.includes(searchTerm.toLowerCase()) || false) ||
-      interacao.phoneNumber?.includes(searchTerm) || 
-      (interacao.interesse?.toLowerCase()?.includes(searchTerm.toLowerCase()) || false);
-      const matchesStatus = statusFilter === 'all' || interacao.status === statusFilter // Updated filtering logic
-      return matchesSearch && matchesStatus
-    })
-    setFilteredInteracoes(filtered)
-  }, [interacoes, searchTerm, statusFilter])
+      // Verifica se o termo de busca está presente
+      const matchesSearch = searchTerm === '' || 
+        (
+          (interacao.name?.toLowerCase()?.includes(searchTerm.toLowerCase()) || false) ||
+          (interacao.phoneNumber?.toLowerCase()?.includes(searchTerm.toLowerCase()) || false) ||
+          (interacao.interesse?.toLowerCase()?.includes(searchTerm.toLowerCase()) || false)
+        );
+      
+      // Verifica se o status corresponde ao filtro
+      const matchesStatus = statusFilter === 'all' || interacao.status === statusFilter;
+      
+      return matchesSearch && matchesStatus;
+    });
+    
+    setFilteredInteracoes(filtered);
+  }, [interacoes, searchTerm, statusFilter]);
 
   const uniqueStatuses = Array.from(new Set(interacoes.map(i => i.status)))
 
@@ -166,19 +173,19 @@ export function RelatorioInteracoes() {
               <TableBody>
                 {filteredInteracoes.map((interacao: Interacao) => (
                   <TableRow key={interacao.id}>
-                    <TableCell>{interacao.name}</TableCell>
-                    <TableCell>{interacao.phoneNumber}</TableCell>
-                    <TableCell>{interacao.interesse}</TableCell>
-                    <TableCell>{interacao.interactionsCount}</TableCell>
-                    <TableCell>{interacao.lastMessage}</TableCell>
-                    <TableCell>{interacao.currentlyTalkingTo}</TableCell>
+                    <TableCell>{interacao.name || 'N/A'}</TableCell>
+                    <TableCell>{interacao.phoneNumber || 'N/A'}</TableCell>
+                    <TableCell>{interacao.interesse || 'N/A'}</TableCell>
+                    <TableCell>{interacao.interactionsCount || 0}</TableCell>
+                    <TableCell>{interacao.lastMessage || 'N/A'}</TableCell>
+                    <TableCell>{interacao.currentlyTalkingTo || 'N/A'}</TableCell>
                     <TableCell>
                       {interacao.lastContactAt
                         ? new Date(interacao.lastContactAt).toLocaleString()
                         : 'N/A'}
                     </TableCell>
                     <TableCell>
-                      {interacao.manytalksAccountId ? (
+                      {interacao.manytalksAccountId && interacao.ConversationID ? (
                         <a
                           href={`https://app.manytalks.com.br/app/accounts/${interacao.manytalksAccountId}/conversations/${interacao.ConversationID}`}
                           target="_blank"
@@ -190,8 +197,8 @@ export function RelatorioInteracoes() {
                       ) : (
                         'N/A'
                       )}
-                  </TableCell>
-                    <TableCell>{interacao.status}</TableCell>
+                    </TableCell>
+                    <TableCell>{interacao.status || 'N/A'}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

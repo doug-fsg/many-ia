@@ -16,6 +16,17 @@ import { Loader2 } from 'lucide-react';
 const MotionCard = motion(Card);
 const MotionProgress = motion(Progress);
 
+// Função auxiliar para formatar números
+const formatNumber = (num: number): string => {
+  return new Intl.NumberFormat('pt-BR').format(num);
+};
+
+// Função auxiliar para calcular porcentagem com segurança
+const calculatePercentage = (part: number, total: number): number => {
+  if (total === 0) return 0;
+  return (part / total) * 100;
+};
+
 export const RelatorioTeste: React.FC = () => {
   const [credits, setCredits] = useState<{
     totalCreditsMonth: number;
@@ -74,8 +85,8 @@ export const RelatorioTeste: React.FC = () => {
   const { weeklyInteractions, monthlyInteractions } = interactions;
 
   const totalCredits = totalCreditsMonth + remainingCredits;
-  const porcentagemCreditoUsado = (totalCreditsMonth / totalCredits) * 100;
-  const porcentagemCreditoSemana = (totalCreditsWeek / totalCredits) * 100;
+  const porcentagemCreditoUsado = calculatePercentage(totalCreditsMonth, totalCredits);
+  const porcentagemCreditoSemana = calculatePercentage(totalCreditsWeek, totalCredits);
 
   return (
     <motion.div
@@ -98,8 +109,8 @@ export const RelatorioTeste: React.FC = () => {
         </CardHeader>
         <CardContent>
           <div className="flex justify-between mb-2">
-            <span>Total: {totalCredits}</span>
-            <span>Restante: {remainingCredits}</span>
+            <span>Total: {formatNumber(totalCredits)}</span>
+            <span>Restante: {formatNumber(remainingCredits)}</span>
           </div>
           <MotionProgress
             value={porcentagemCreditoUsado}
@@ -111,7 +122,7 @@ export const RelatorioTeste: React.FC = () => {
             className="h-4"
           />
           <div className="text-sm text-muted-foreground mt-2">
-            {totalCreditsMonth} créditos usados ({porcentagemCreditoUsado.toFixed(2)}%)
+            {formatNumber(totalCreditsMonth)} créditos usados ({porcentagemCreditoUsado.toFixed(2)}%)
           </div>
         </CardContent>
       </MotionCard>
@@ -128,7 +139,7 @@ export const RelatorioTeste: React.FC = () => {
           <CardDescription>Total de créditos gastos na semana</CardDescription>
         </CardHeader>
         <CardContent>
-          <motion.p className="text-3xl font-bold mb-2">{totalCreditsWeek}</motion.p>
+          <motion.p className="text-3xl font-bold mb-2">{formatNumber(totalCreditsWeek)}</motion.p>
           <MotionProgress
             value={porcentagemCreditoSemana}
             aria-label={`Créditos gastos na semana: ${porcentagemCreditoSemana.toFixed(2)}%`}
@@ -155,7 +166,7 @@ export const RelatorioTeste: React.FC = () => {
           <CardTitle>Clientes Atendidos na Semana</CardTitle>
         </CardHeader>
         <CardContent>
-          <motion.p className="text-3xl font-bold">{weeklyInteractions}</motion.p>
+          <motion.p className="text-3xl font-bold">{formatNumber(weeklyInteractions)}</motion.p>
         </CardContent>
       </MotionCard>
 
@@ -170,7 +181,7 @@ export const RelatorioTeste: React.FC = () => {
           <CardTitle>Clientes Atendidos no Mês</CardTitle>
         </CardHeader>
         <CardContent>
-          <motion.p className="text-3xl font-bold">{monthlyInteractions}</motion.p>
+          <motion.p className="text-3xl font-bold">{formatNumber(monthlyInteractions)}</motion.p>
         </CardContent>
       </MotionCard>
     </motion.div>

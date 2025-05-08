@@ -16,7 +16,6 @@ export const aiTemplates = {
     condicoesAtendimento:
       'Quando houver reclamação grave, Quando precisar de aprovação superior, Quando envolver reembolso',
     informacoesEmpresa: '',
-    anexarInstrucoesPdf: null,
   },
   consultorVendas: {
     isActive: true,
@@ -35,7 +34,6 @@ export const aiTemplates = {
     condicoesAtendimento:
       'Quando houver negociação especial, Quando precisar de desconto, Quando for pedido personalizado',
     informacoesEmpresa: '',
-    anexarInstrucoesPdf: null,
   },
   corretor: {
     isActive: true,
@@ -54,7 +52,6 @@ export const aiTemplates = {
     condicoesAtendimento:
       'Quando houver proposta, Quando precisar de visita, Quando solicitar documentação',
     informacoesEmpresa: '',
-    anexarInstrucoesPdf: null,
   },
 } as const
 

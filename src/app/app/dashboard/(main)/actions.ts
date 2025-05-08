@@ -62,8 +62,17 @@ export async function calculateCredits() {
   const now = new Date();
   const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-  const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
-  const endOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + 6));
+  
+  // Corrigindo o cálculo de início e fim da semana
+  const currentDate = new Date(now);
+  const dayOfWeek = currentDate.getDay(); // 0 = domingo, 1 = segunda, etc.
+  const startOfWeek = new Date(currentDate);
+  startOfWeek.setDate(currentDate.getDate() - dayOfWeek);
+  startOfWeek.setHours(0, 0, 0, 0);
+  
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(startOfWeek.getDate() + 6);
+  endOfWeek.setHours(23, 59, 59, 999);
 
   try {
     // Total de Créditos no Mês
@@ -131,8 +140,17 @@ export async function calculateInteractions() {
   const now = new Date();
   const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-  const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
-  const endOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + 6));
+  
+  // Corrigindo o cálculo de início e fim da semana
+  const currentDate = new Date(now);
+  const dayOfWeek = currentDate.getDay(); // 0 = domingo, 1 = segunda, etc.
+  const startOfWeek = new Date(currentDate);
+  startOfWeek.setDate(currentDate.getDate() - dayOfWeek);
+  startOfWeek.setHours(0, 0, 0, 0);
+  
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(startOfWeek.getDate() + 6);
+  endOfWeek.setHours(23, 59, 59, 999);
 
   try {
     // Contagem de atendimentos na semana

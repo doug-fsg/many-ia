@@ -38,6 +38,7 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import * as z from 'zod'
 import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
 
 type AIConfigUpsertDialogProps = {
   children?: React.ReactNode
@@ -64,9 +65,11 @@ export function AIConfigUpsertDialog({
   onSubmit,
 }: AIConfigUpsertDialogProps) {
   const router = useRouter()
+  const { data: session } = useSession()
+  const isIntegrationUser = session?.user?.isIntegrationUser ?? false
   const [paymentLinks, setPaymentLinks] = useState<PaymentLink[]>([])
 
-  const form = useForm<AIConfigFormData>({
+  const form = useForm({
     resolver: zodResolver(upsertAIConfigSchema),
     defaultValues: defaultValue || {
       isActive: true,
@@ -76,7 +79,6 @@ export function AIConfigUpsertDialog({
       instrucoesAtendenteVirtual: '',
       horarioAtendimento: 'Atender 24h por dia',
       tempoRetornoAtendimento: 'Não retornar automaticamente',
-      anexarInstrucoesPdf: null,
       condicoesAtendimento: '',
       linksPagamento: [],
     },
@@ -121,27 +123,8 @@ export function AIConfigUpsertDialog({
   const handleSubmit = async (data: z.infer<typeof upsertAIConfigSchema>) => {
     console.log('handleSubmit chamado', { isEditMode, data, paymentLinks })
     try {
-      let fileUrl = data.anexarInstrucoesPdf
-
-      if (data.anexarInstrucoesPdf instanceof File) {
-        try {
-          fileUrl = await handleFileUpload(data.anexarInstrucoesPdf)
-          console.log('Upload concluído, URL:', fileUrl)
-        } catch (uploadError) {
-          console.error('Erro no upload do arquivo:', uploadError)
-          toast({
-            title: 'Erro',
-            description:
-              'Falha ao fazer upload do arquivo. Por favor, tente novamente.',
-            variant: 'destructive',
-          })
-          return // Interrompe a execução se houver erro no upload
-        }
-      }
-
       const updatedData = {
         ...data,
-        anexarInstrucoesPdf: fileUrl,
         linksPagamento: paymentLinks,
       }
 
@@ -297,6 +280,7 @@ export function AIConfigUpsertDialog({
         )}
       />
 
+      {!isIntegrationUser && (
       <FormField
         control={form.control}
         name="tempoRetornoAtendimento"
@@ -337,173 +321,7 @@ export function AIConfigUpsertDialog({
           </FormItem>
         )}
       />
-
-      <FormField
-        control={form.control}
-        name="anexarInstrucoesPdf"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Anexar Instruções PDF</FormLabel>
-            <FormControl>
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <div className="relative flex-grow">
-                    <Input
-                      type="file"
-                      accept=".pdf"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0]
-                        if (file) {
-                          field.onChange(file)
-                          form.setValue('anexarInstrucoesPdf', file, {
-                            shouldValidate: true,
-                            shouldDirty: true,
-                          })
-                        }
-                      }}
-                      className="pl-10"
-                    />
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth={1.5}
-                      stroke="currentColor"
-                      className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M12 4.5v15m7.5-7.5h-15"
-                      />
-                    </svg>
-                  </div>
-                  {field.value && (
-                    <>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex items-center"
-                        onClick={() => {
-                          if (typeof field.value === 'string') {
-                            window.open(`/api/files/${field.value}`, '_blank')
-                          } else if (field.value instanceof File) {
-                            const url = URL.createObjectURL(field.value)
-                            window.open(url, '_blank')
-                          }
-                        }}
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          strokeWidth={1.5}
-                          stroke="currentColor"
-                          className="w-4 h-4 mr-2"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"
-                          />
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                          />
-                        </svg>
-                        Visualizar
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        className="flex items-center"
-                        onClick={() => {
-                          field.onChange(null)
-                          form.setValue('anexarInstrucoesPdf', null, {
-                            shouldValidate: true,
-                            shouldDirty: true,
-                          })
-                        }}
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          strokeWidth={1.5}
-                          stroke="currentColor"
-                          className="w-4 h-4 mr-2"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
-                          />
-                        </svg>
-                        Remover
-                      </Button>
-                    </>
-                  )}
-                </div>
-                {field.value && (
-                  <p className="text-sm text-gray-500">
-                    {typeof field.value === 'string'
-                      ? `Arquivo atual: ${field.value}`
-                      : `Novo arquivo selecionado: ${field.value.name}`}
-                  </p>
-                )}
-              </div>
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-
-      <FormItem className="flex flex-col rounded-lg border p-4">
-        <div className="flex flex-row items-center justify-between mb-4">
-          <FormLabel className="text-base">Links de Pagamento</FormLabel>
-          <Button type="button" onClick={addPaymentLink} variant="outline">
-            Add URL
-          </Button>
-        </div>
-        {paymentLinks.map((link, index) => (
-          <div key={index} className="space-y-4 mt-4 relative">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="absolute right-0 top-0"
-              onClick={() => removePaymentLink(index)}
-            >
-              &#x2715;
-            </Button>
-            <FormItem>
-              <FormLabel>Link de Pagamento {index + 1}</FormLabel>
-              <FormControl>
-                <Input
-                  placeholder="https://exemplo.com/pagamento"
-                  value={link.url}
-                  onChange={(e) =>
-                    updatePaymentLink(index, 'url', e.target.value)
-                  }
-                />
-              </FormControl>
-            </FormItem>
-            <FormItem>
-              <FormLabel>Objetivo do Link {index + 1}</FormLabel>
-              <FormControl>
-                <Input
-                  placeholder="Descreva o objetivo do link de pagamento"
-                  value={link.objective}
-                  onChange={(e) =>
-                    updatePaymentLink(index, 'objective', e.target.value)
-                  }
-                />
-              </FormControl>
-            </FormItem>
-          </div>
-        ))}
-      </FormItem>
+      )}
 
       <FormField
         control={form.control}

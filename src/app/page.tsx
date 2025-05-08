@@ -9,12 +9,28 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Bot, Zap, Clock, Users, ArrowRight, Star, BarChart3, Settings, Bell, CheckCircle } from "lucide-react"
+import { Bot, Zap, Clock, Users, ArrowRight, Star, BarChart3, Settings, Bell, CheckCircle, Menu, X } from "lucide-react"
 import Image from "next/image"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 
 export default function LandingPage() {
   const [activeTab, setActiveTab] = useState<"ia" | "dashboard">("ia")
+  const [isMobile, setIsMobile] = useState(false)
+
+  // Detectar se estamos em um dispositivo móvel
+  useEffect(() => {
+    const checkIfMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+    
+    checkIfMobile()
+    window.addEventListener('resize', checkIfMobile)
+    
+    return () => {
+      window.removeEventListener('resize', checkIfMobile)
+    }
+  }, [])
 
   // Function to open WhatsApp with the provided number
   const openWhatsApp = () => {
@@ -29,6 +45,8 @@ export default function LandingPage() {
             <Bot className="h-6 w-6 text-primary" />
             <span className="text-xl font-bold">ManyTalks IA</span>
           </div>
+          
+          {/* Desktop Navigation */}
           <nav className="hidden md:flex gap-6">
             <a href="#features" className="text-sm font-medium text-muted-foreground hover:text-primary">
               Recursos
@@ -40,9 +58,45 @@ export default function LandingPage() {
               Demonstração
             </a>
           </nav>
+          
+          {/* Desktop Button */}
           <Button onClick={openWhatsApp} className="hidden sm:flex">
             Fale Conosco <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
+          
+          {/* Mobile Menu */}
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="md:hidden">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[250px] sm:w-[300px]">
+              <nav className="flex flex-col gap-4 py-4">
+                <a 
+                  href="#features" 
+                  className="text-sm font-medium text-foreground hover:text-primary transition-colors px-2 py-1"
+                >
+                  Recursos
+                </a>
+                <a 
+                  href="#how-it-works" 
+                  className="text-sm font-medium text-foreground hover:text-primary transition-colors px-2 py-1"
+                >
+                  Como Funciona
+                </a>
+                <a 
+                  href="#demo" 
+                  className="text-sm font-medium text-foreground hover:text-primary transition-colors px-2 py-1"
+                >
+                  Demonstração
+                </a>
+                <Button onClick={openWhatsApp} className="mt-4">
+                  Fale Conosco <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </nav>
+            </SheetContent>
+          </Sheet>
         </div>
       </header>
 
@@ -66,10 +120,10 @@ export default function LandingPage() {
                   custos operacionais.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3">
-                  <Button size="lg" onClick={openWhatsApp}>
+                  <Button size="lg" onClick={openWhatsApp} className="w-full sm:w-auto">
                     Saiba Mais <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
-                  <Button variant="outline" size="lg" asChild>
+                  <Button variant="outline" size="lg" asChild className="w-full sm:w-auto">
                     <a href="#demo">Ver Demonstração</a>
                   </Button>
                 </div>
@@ -78,7 +132,7 @@ export default function LandingPage() {
                   <span>Mais de 500 empresas já utilizam nossos agentes</span>
                 </div>
               </div>
-              <div className="relative lg:ml-auto">
+              <div className="relative lg:ml-auto mt-8 lg:mt-0">
                 {/* Dashboard Preview */}
                 <div className="rounded-lg border shadow-xl overflow-hidden bg-background">
                   <div className="flex h-12 items-center border-b px-4">
@@ -93,8 +147,8 @@ export default function LandingPage() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex h-[500px]">
-                    <div className="w-[220px] border-r p-2 bg-background">
+                  <div className="flex h-[300px] md:h-[400px] lg:h-[500px] flex-col md:flex-row">
+                    <div className="w-full md:w-[220px] border-b md:border-r md:border-b-0 p-2 bg-background">
                       <nav className="space-y-1">
                         {[
                           { icon: Bot, label: "Inteligência Artificial", active: true },
@@ -126,7 +180,14 @@ export default function LandingPage() {
                           </div>
                         </header>
                         <div className="relative w-full h-full">
-                          <Image src="/images/ia-01.png" alt="Dashboard do Sistema" fill className="object-contain" />
+                          {isMobile ? (
+                            <div className="p-4 text-center text-muted-foreground">
+                              <Bot className="mx-auto h-12 w-12 mb-2 text-primary" />
+                              <p>Painel de controle mobile</p>
+                            </div>
+                          ) : (
+                            <Image src="/images/ia-01.png" alt="Dashboard do Sistema" fill className="object-contain" />
+                          )}
                         </div>
                       </div>
                     </div>
@@ -147,7 +208,7 @@ export default function LandingPage() {
               </p>
             </div>
 
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               <Card>
                 <CardHeader>
                   <Bot className="h-10 w-10 text-primary mb-2" />
@@ -194,7 +255,7 @@ export default function LandingPage() {
               <Badge variant="secondary" className="mb-4 bg-amber-100 text-amber-800 border border-amber-300">
                 <Clock className="mr-1 h-3 w-3" /> Últimas 3 vagas disponíveis
               </Badge>
-              <Button size="lg" onClick={openWhatsApp}>
+              <Button size="lg" onClick={openWhatsApp} className="w-full sm:w-auto">
                 Garanta sua Vaga Agora <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
@@ -284,8 +345,8 @@ export default function LandingPage() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex h-[500px]">
-                    <div className="w-[220px] border-r p-2 bg-background">
+                  <div className="flex h-[400px] md:h-[500px] flex-col md:flex-row">
+                    <div className="w-full md:w-[220px] border-b md:border-r md:border-b-0 p-2 bg-background">
                       <nav className="space-y-1">
                         {[
                           { icon: Bot, label: "Inteligência Artificial", active: true },
@@ -308,13 +369,13 @@ export default function LandingPage() {
                     </div>
                     <div className="flex-1 overflow-auto bg-background">
                       <div className="p-6">
-                        <div className="flex justify-between items-center mb-6">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 mb-6">
                           <h2 className="text-xl font-bold">INTELIGÊNCIA ARTIFICIAL</h2>
                           <Button size="sm">Criar Novo</Button>
                         </div>
 
-                        <div className="flex flex-wrap gap-4">
-                          <Card className="w-full max-w-[300px]">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                          <Card className="w-full">
                             <CardHeader className="pb-2">
                               <div className="flex justify-between items-start">
                                 <CardTitle>Sofia</CardTitle>
@@ -327,7 +388,7 @@ export default function LandingPage() {
                                 <span>Comercial</span>
                               </div>
                             </CardContent>
-                            <CardFooter className="flex gap-2 pt-2">
+                            <CardFooter className="flex flex-wrap gap-2 pt-2">
                               <Button variant="ghost" size="sm" className="text-xs">
                                 Editar
                               </Button>
@@ -340,7 +401,7 @@ export default function LandingPage() {
                             </CardFooter>
                           </Card>
 
-                          <Card className="w-full max-w-[300px]">
+                          <Card className="w-full">
                             <CardHeader className="pb-2">
                               <div className="flex justify-between items-start">
                                 <CardTitle>Suporte</CardTitle>
@@ -353,7 +414,7 @@ export default function LandingPage() {
                                 <span>Atendimento</span>
                               </div>
                             </CardContent>
-                            <CardFooter className="flex gap-2 pt-2">
+                            <CardFooter className="flex flex-wrap gap-2 pt-2">
                               <Button variant="ghost" size="sm" className="text-xs">
                                 Editar
                               </Button>
@@ -366,7 +427,7 @@ export default function LandingPage() {
                             </CardFooter>
                           </Card>
 
-                          <Card className="w-full max-w-[300px]">
+                          <Card className="w-full">
                             <CardHeader className="pb-2">
                               <div className="flex justify-between items-start">
                                 <CardTitle>Vendas</CardTitle>
@@ -379,7 +440,7 @@ export default function LandingPage() {
                                 <span>Vendas</span>
                               </div>
                             </CardContent>
-                            <CardFooter className="flex gap-2 pt-2">
+                            <CardFooter className="flex flex-wrap gap-2 pt-2">
                               <Button variant="ghost" size="sm" className="text-xs">
                                 Editar
                               </Button>
@@ -411,8 +472,8 @@ export default function LandingPage() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex h-[500px]">
-                    <div className="w-[220px] border-r p-2 bg-background">
+                  <div className="flex h-[400px] md:h-[500px] flex-col md:flex-row">
+                    <div className="w-full md:w-[220px] border-b md:border-r md:border-b-0 p-2 bg-background">
                       <nav className="space-y-1">
                         {[
                           { icon: Bot, label: "Inteligência Artificial", active: false },
@@ -435,10 +496,10 @@ export default function LandingPage() {
                     </div>
                     <div className="flex-1 overflow-auto bg-background">
                       <div className="p-6">
-                        <div className="flex justify-between items-center mb-6">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 mb-6">
                           <h2 className="text-xl font-bold">DASHBOARD</h2>
                           <Select defaultValue="7dias">
-                            <SelectTrigger className="w-[180px]">
+                            <SelectTrigger className="w-full sm:w-[180px]">
                               <SelectValue placeholder="Período" />
                             </SelectTrigger>
                             <SelectContent>
@@ -450,7 +511,7 @@ export default function LandingPage() {
                         </div>
 
                         <div className="grid gap-4 mb-6">
-                          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
+                          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
                             <Card>
                               <CardHeader className="pb-2">
                                 <CardDescription>Total de Interações</CardDescription>
@@ -518,7 +579,7 @@ export default function LandingPage() {
                               <div>
                                 <Label htmlFor="status">Filtrar por Status</Label>
                                 <Select defaultValue="all">
-                                  <SelectTrigger id="status" className="w-[180px]">
+                                  <SelectTrigger id="status" className="w-full sm:w-[180px]">
                                     <SelectValue placeholder="Todos" />
                                   </SelectTrigger>
                                   <SelectContent>
@@ -536,60 +597,60 @@ export default function LandingPage() {
                                 <TableHeader>
                                   <TableRow>
                                     <TableHead>Nome</TableHead>
-                                    <TableHead>Telefone</TableHead>
-                                    <TableHead>Interesse</TableHead>
-                                    <TableHead>Interações</TableHead>
-                                    <TableHead>Último Contato</TableHead>
+                                    <TableHead className="hidden sm:table-cell">Telefone</TableHead>
+                                    <TableHead className="hidden md:table-cell">Interesse</TableHead>
+                                    <TableHead className="hidden md:table-cell">Interações</TableHead>
+                                    <TableHead className="hidden lg:table-cell">Último Contato</TableHead>
                                     <TableHead>Status</TableHead>
                                   </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                   <TableRow>
                                     <TableCell>Maria Silva</TableCell>
-                                    <TableCell>+55 11 98765-4321</TableCell>
-                                    <TableCell>Atendimento Automático</TableCell>
-                                    <TableCell>12</TableCell>
-                                    <TableCell>12/04/2025 14:30</TableCell>
+                                    <TableCell className="hidden sm:table-cell">+55 11 98765-4321</TableCell>
+                                    <TableCell className="hidden md:table-cell">Atendimento Automático</TableCell>
+                                    <TableCell className="hidden md:table-cell">12</TableCell>
+                                    <TableCell className="hidden lg:table-cell">12/04/2025 14:30</TableCell>
                                     <TableCell>
                                       <Badge className="bg-green-500 text-white">Convertido</Badge>
                                     </TableCell>
                                   </TableRow>
                                   <TableRow>
                                     <TableCell>João Santos</TableCell>
-                                    <TableCell>+55 21 99876-5432</TableCell>
-                                    <TableCell>Vendas</TableCell>
-                                    <TableCell>8</TableCell>
-                                    <TableCell>11/04/2025 09:15</TableCell>
+                                    <TableCell className="hidden sm:table-cell">+55 21 99876-5432</TableCell>
+                                    <TableCell className="hidden md:table-cell">Vendas</TableCell>
+                                    <TableCell className="hidden md:table-cell">8</TableCell>
+                                    <TableCell className="hidden lg:table-cell">11/04/2025 09:15</TableCell>
                                     <TableCell>
                                       <Badge className="bg-yellow-500 text-white">Interessado</Badge>
                                     </TableCell>
                                   </TableRow>
                                   <TableRow>
                                     <TableCell>Ana Oliveira</TableCell>
-                                    <TableCell>+55 31 97654-3210</TableCell>
-                                    <TableCell>Suporte</TableCell>
-                                    <TableCell>3</TableCell>
-                                    <TableCell>10/04/2025 16:45</TableCell>
+                                    <TableCell className="hidden sm:table-cell">+55 31 97654-3210</TableCell>
+                                    <TableCell className="hidden md:table-cell">Suporte</TableCell>
+                                    <TableCell className="hidden md:table-cell">3</TableCell>
+                                    <TableCell className="hidden lg:table-cell">10/04/2025 16:45</TableCell>
                                     <TableCell>
                                       <Badge className="bg-blue-500 text-white">Novo</Badge>
                                     </TableCell>
                                   </TableRow>
                                   <TableRow>
                                     <TableCell>Carlos Pereira</TableCell>
-                                    <TableCell>+55 41 98765-1234</TableCell>
-                                    <TableCell>Atendimento Automático</TableCell>
-                                    <TableCell>15</TableCell>
-                                    <TableCell>09/04/2025 11:20</TableCell>
+                                    <TableCell className="hidden sm:table-cell">+55 41 98765-1234</TableCell>
+                                    <TableCell className="hidden md:table-cell">Atendimento Automático</TableCell>
+                                    <TableCell className="hidden md:table-cell">15</TableCell>
+                                    <TableCell className="hidden lg:table-cell">09/04/2025 11:20</TableCell>
                                     <TableCell>
                                       <Badge className="bg-green-500 text-white">Convertido</Badge>
                                     </TableCell>
                                   </TableRow>
                                   <TableRow>
                                     <TableCell>Fernanda Lima</TableCell>
-                                    <TableCell>+55 51 99876-2345</TableCell>
-                                    <TableCell>Vendas</TableCell>
-                                    <TableCell>5</TableCell>
-                                    <TableCell>08/04/2025 13:10</TableCell>
+                                    <TableCell className="hidden sm:table-cell">+55 51 99876-2345</TableCell>
+                                    <TableCell className="hidden md:table-cell">Vendas</TableCell>
+                                    <TableCell className="hidden md:table-cell">5</TableCell>
+                                    <TableCell className="hidden lg:table-cell">08/04/2025 13:10</TableCell>
                                     <TableCell>
                                       <Badge className="bg-yellow-500 text-white">Interessado</Badge>
                                     </TableCell>
@@ -607,7 +668,7 @@ export default function LandingPage() {
             </Tabs>
 
             <div className="mt-12 text-center">
-              <Button size="lg" onClick={openWhatsApp}>
+              <Button size="lg" onClick={openWhatsApp} className="w-full sm:w-auto">
                 Quero Conhecer <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
@@ -624,10 +685,10 @@ export default function LandingPage() {
               </p>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-8">
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 flex-wrap">
                     <CheckCircle className="h-5 w-5 text-primary" /> Atendimento 24/7
                   </CardTitle>
                 </CardHeader>
@@ -641,7 +702,7 @@ export default function LandingPage() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 flex-wrap">
                     <CheckCircle className="h-5 w-5 text-primary" /> Redução de Custos
                   </CardTitle>
                 </CardHeader>
@@ -654,7 +715,7 @@ export default function LandingPage() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 flex-wrap">
                     <CheckCircle className="h-5 w-5 text-primary" /> Aumento de Vendas
                   </CardTitle>
                 </CardHeader>
@@ -668,7 +729,7 @@ export default function LandingPage() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 flex-wrap">
                     <CheckCircle className="h-5 w-5 text-primary" /> Escalabilidade
                   </CardTitle>
                 </CardHeader>
@@ -767,7 +828,7 @@ export default function LandingPage() {
                   size="lg"
                   variant="secondary"
                   onClick={openWhatsApp}
-                  className="bg-white text-primary hover:bg-white/90"
+                  className="bg-white text-primary hover:bg-white/90 w-full sm:w-auto"
                 >
                   Saiba Mais <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -775,7 +836,7 @@ export default function LandingPage() {
                   size="lg"
                   variant="outline"
                   onClick={openWhatsApp}
-                  className="border-white text-white hover:bg-white/10"
+                  className="border-white text-white hover:bg-white/10 w-full sm:w-auto"
                 >
                   Agendar Demonstração
                 </Button>
@@ -790,7 +851,7 @@ export default function LandingPage() {
 
       <footer className="border-t bg-muted">
         <div className="container px-4 py-8 md:px-6">
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-8 grid-cols-1 xs:grid-cols-2 md:grid-cols-4">
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <Bot className="h-6 w-6 text-primary" />
@@ -829,13 +890,13 @@ export default function LandingPage() {
             </div>
             <div>
               <h3 className="text-lg font-medium mb-4">Newsletter</h3>
-              <div className="flex gap-2">
+              <div className="flex flex-col xs:flex-row gap-2">
                 <input
                   type="email"
                   placeholder="Seu email"
                   className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                 />
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" className="mt-2 xs:mt-0">
                   Assinar
                 </Button>
               </div>

@@ -15,9 +15,9 @@ export default async function Layout({
   }
   
   return (
-    <div className="flex">
+    <div className="flex flex-col md:flex-row">
       <MainSidebar user={user} />
-      <main className="flex-1 ml-64 min-h-screen">
+      <main className="flex-1 md:ml-64 min-h-screen w-full">
         {children}
       </main>
     </div>

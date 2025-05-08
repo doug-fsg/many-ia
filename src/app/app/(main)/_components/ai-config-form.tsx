@@ -38,6 +38,7 @@ import {
 } from '@/components/ui/dialog'
 import { ExpandIcon, Check, ChevronsUpDown } from 'lucide-react'
 import { aiTemplates, TemplateKeys } from '../templates'
+import { useSession } from 'next-auth/react'
 
 import {
   Command,
@@ -98,6 +99,8 @@ export function AIConfigForm({
   isEditMode = false,
 }: AIConfigFormProps) {
   const router = useRouter()
+  const { data: session } = useSession()
+  const isIntegrationUser = session?.user?.isIntegrationUser ?? false
   const [expandedField, setExpandedField] = useState<string | null>(null)
   const [expandedContent, setExpandedContent] = useState('')
   const [novoTema, setNovoTema] = useState('')
@@ -124,7 +127,6 @@ export function AIConfigForm({
       comoAtendenteDeve: '',
       horarioAtendimento: 'Atender 24h por dia',
       tempoRetornoAtendimento: 'Não retornar automaticamente',
-      anexarInstrucoesPdf: null,
       condicoesAtendimento: '',
       informacoesEmpresa: '',
     },
@@ -336,133 +338,48 @@ export function AIConfigForm({
         )}
       />
 
-      <FormField
-        control={form.control}
-        name="tempoRetornoAtendimento"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Retornar o atendimento em</FormLabel>
-            <Select onValueChange={field.onChange} defaultValue={field.value}>
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o tempo para retorno automático" />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                <SelectItem value="Não retornar automaticamente">
-                  Não retornar automaticamente
-                </SelectItem>
-                <SelectItem value="5min">
-                  5 minutos
-                </SelectItem>
-                <SelectItem value="15min">
-                  15 minutos
-                </SelectItem>
-                <SelectItem value="30min">
-                  30 minutos
-                </SelectItem>
-                <SelectItem value="1h">
-                  1 hora
-                </SelectItem>
-                <SelectItem value="2h">
-                  2 horas
-                </SelectItem>
-              </SelectContent>
-            </Select>
-            <FormDescription>
-              Define em quanto tempo a IA deve retomar o atendimento após intervenção humana
-            </FormDescription>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-
-      <FormField
-        control={form.control}
-        name="anexarInstrucoesPdf"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Anexar Instruções PDF</FormLabel>
-            <FormControl>
-              <div className="space-y-2">
-                <div className="flex items-center space-x-2">
-                  <div className="relative flex-grow">
-                    <Input
-                      type="file"
-                      accept=".pdf"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0]
-                        if (file) {
-                          field.onChange(file)
-                          form.setValue('anexarInstrucoesPdf', file, {
-                            shouldValidate: true,
-                            shouldDirty: true,
-                          })
-                        }
-                      }}
-                      className="pl-10"
-                    />
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth={1.5}
-                      stroke="currentColor"
-                      className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M12 4.5v15m7.5-7.5h-15"
-                      />
-                    </svg>
-                  </div>
-                  {field.value && (
-                    <>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        className="flex items-center"
-                        onClick={() => {
-                          field.onChange(null)
-                          form.setValue('anexarInstrucoesPdf', null, {
-                            shouldValidate: true,
-                            shouldDirty: true,
-                          })
-                        }}
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          strokeWidth={1.5}
-                          stroke="currentColor"
-                          className="w-4 h-4 mr-2"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
-                          />
-                        </svg>
-                        Remover
-                      </Button>
-                    </>
-                  )}
-                </div>
-                {field.value && (
-                  <p className="text-sm text-gray-500">
-                    {typeof field.value === 'string'
-                      ? `Arquivo atual: ${field.value}`
-                      : `Novo arquivo selecionado: ${field.value.name}`}
-                  </p>
-                )}
-              </div>
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+      {!isIntegrationUser && (
+        <FormField
+          control={form.control}
+          name="tempoRetornoAtendimento"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Retornar o atendimento em</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o tempo para retorno automático" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="Não retornar automaticamente">
+                    Não retornar automaticamente
+                  </SelectItem>
+                  <SelectItem value="5min">
+                    5 minutos
+                  </SelectItem>
+                  <SelectItem value="15min">
+                    15 minutos
+                  </SelectItem>
+                  <SelectItem value="30min">
+                    30 minutos
+                  </SelectItem>
+                  <SelectItem value="1h">
+                    1 hora
+                  </SelectItem>
+                  <SelectItem value="2h">
+                    2 horas
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <FormDescription>
+                Define em quanto tempo a IA deve retomar o atendimento após intervenção humana
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
 
       <FormField
         control={form.control}

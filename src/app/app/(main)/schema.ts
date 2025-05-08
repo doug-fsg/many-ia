@@ -24,7 +24,6 @@ export const upsertAIConfigSchema = z.object({
   ]),
   tempoRetornoAtendimento: z.string().optional(),
   informacoesEmpresa: z.string().optional(),
-  anexarInstrucoesPdf: z.union([z.instanceof(File), z.string()]).nullable(),
   condicoesAtendimento: z.string().optional(),
   attachments: z
     .array(
