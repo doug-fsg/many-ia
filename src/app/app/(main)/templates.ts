@@ -32,7 +32,7 @@ export const aiTemplates = {
     horarioAtendimento: 'Dentro do horário de atendimento',
     tempoRetornoAtendimento: 'Não retornar automaticamente',
     condicoesAtendimento:
-      'Quando houver negociação especial, Quando precisar de desconto, Quando for pedido personalizado',
+      'Quando houver negociação especial, Quando for pedido personalizado',
     informacoesEmpresa: '',
   },
   corretor: {

@@ -46,8 +46,32 @@ export async function getUserInteractions() {
   }
 }
 
+// Definição de tipos para melhorar a tipagem
+interface DailyUsage {
+  date: Date;
+  value: number;
+}
+
+interface CreditHistoryItem {
+  date: Date;
+  total: string | number;
+}
+
+interface CreditResult {
+  error: string | null;
+  totalCreditsMonth: number;
+  totalCreditsWeek: number;
+  remainingCredits: number;
+  creditHistory: CreditHistoryItem[];
+  averageDailyUsage: number;
+  estimatedDaysRemaining: number;
+  creditTrend: 'increasing' | 'decreasing' | 'stable';
+  highUsageDays: DailyUsage[];
+  lastUpdated?: string;
+}
+
 // Função para calcular créditos
-export async function calculateCredits() {
+export async function calculateCredits(): Promise<CreditResult> {
   const session = await auth();
   if (!session?.user?.id) {
     return {
@@ -55,6 +79,11 @@ export async function calculateCredits() {
       totalCreditsMonth: 0,
       totalCreditsWeek: 0,
       remainingCredits: 0,
+      creditHistory: [],
+      averageDailyUsage: 0,
+      estimatedDaysRemaining: 0,
+      creditTrend: 'stable',
+      highUsageDays: [],
     };
   }
 
@@ -73,6 +102,10 @@ export async function calculateCredits() {
   const endOfWeek = new Date(startOfWeek);
   endOfWeek.setDate(startOfWeek.getDate() + 6);
   endOfWeek.setHours(23, 59, 59, 999);
+
+  // Data de 30 dias atrás para análise de tendência
+  const thirtyDaysAgo = new Date(now);
+  thirtyDaysAgo.setDate(now.getDate() - 30);
 
   try {
     // Total de Créditos no Mês
@@ -108,11 +141,98 @@ export async function calculateCredits() {
     const creditosRestantes =
       creditosIniciais - (totalMonth._sum.value?.toNumber() || 0);
 
+    // Histórico de uso de créditos por dia nos últimos 30 dias
+    const creditHistory = await prisma.$queryRaw`
+      SELECT 
+        DATE("updatedAt") as date,
+        SUM(CAST(value as DECIMAL(10,2))) as total
+      FROM "Interaction"
+      WHERE "userId" = ${userId}
+        AND "updatedAt" >= ${thirtyDaysAgo}
+      GROUP BY DATE("updatedAt")
+      ORDER BY date ASC
+    ` as CreditHistoryItem[];
+
+    // Calcular média de uso diário (considerando apenas dias com uso)
+    let totalDailyUsage = 0;
+    let daysWithUsage = 0;
+    
+    const highUsageDays: DailyUsage[] = [];
+    
+    creditHistory.forEach((day) => {
+      // Garantir que o valor seja um número, independente do tipo original
+      const totalValue = typeof day.total === 'string' 
+        ? parseFloat(day.total) 
+        : Number(day.total);
+      
+      totalDailyUsage += totalValue;
+      daysWithUsage++;
+      
+      // Identificar dias com uso acima da média (para alerta)
+      if (totalValue > 500) { // Limiar arbitrário, ajuste conforme necessário
+        highUsageDays.push({
+          date: day.date,
+          value: totalValue
+        });
+      }
+    });
+    
+    const averageDailyUsage = daysWithUsage > 0 ? totalDailyUsage / daysWithUsage : 0;
+    
+    // Estimar dias restantes com base na média de uso
+    const estimatedDaysRemaining = averageDailyUsage > 0 
+      ? Math.floor(creditosRestantes / averageDailyUsage)
+      : 30; // Valor padrão se não houver uso
+    
+    // Análise de tendência (comparando primeira e segunda quinzena)
+    const firstHalfUsage = await prisma.interaction.aggregate({
+      _sum: {
+        value: true,
+      },
+      where: {
+        userId,
+        updatedAt: {
+          gte: new Date(thirtyDaysAgo.getTime()),
+          lt: new Date(now.getTime() - 15 * 24 * 60 * 60 * 1000),
+        },
+      },
+    });
+    
+    const secondHalfUsage = await prisma.interaction.aggregate({
+      _sum: {
+        value: true,
+      },
+      where: {
+        userId,
+        updatedAt: {
+          gte: new Date(now.getTime() - 15 * 24 * 60 * 60 * 1000),
+          lte: now,
+        },
+      },
+    });
+    
+    const firstHalfTotal = firstHalfUsage._sum.value?.toNumber() || 0;
+    const secondHalfTotal = secondHalfUsage._sum.value?.toNumber() || 0;
+    
+    // Determinar tendência
+    let creditTrend: 'increasing' | 'decreasing' | 'stable' = 'stable';
+    if (secondHalfTotal > firstHalfTotal * 1.2) {
+      creditTrend = 'increasing'; // Aumento de 20% ou mais
+    } else if (secondHalfTotal < firstHalfTotal * 0.8) {
+      creditTrend = 'decreasing'; // Diminuição de 20% ou mais
+    }
+
     return {
       error: null,
-      totalCreditsMonth: totalMonth._sum.value?.toNumber() || 0, // Converta para número
-      totalCreditsWeek: totalWeek._sum.value?.toNumber() || 0,   // Converta para número
+      totalCreditsMonth: totalMonth._sum.value?.toNumber() || 0,
+      totalCreditsWeek: totalWeek._sum.value?.toNumber() || 0,
       remainingCredits: creditosRestantes,
+      creditHistory,
+      averageDailyUsage,
+      estimatedDaysRemaining,
+      creditTrend,
+      highUsageDays,
+      lastUpdated: new Date().toISOString(),
     };
   } catch (error) {
     console.error('Erro ao calcular créditos:', error);
@@ -121,6 +241,11 @@ export async function calculateCredits() {
       totalCreditsMonth: 0,
       totalCreditsWeek: 0,
       remainingCredits: 0,
+      creditHistory: [],
+      averageDailyUsage: 0,
+      estimatedDaysRemaining: 0,
+      creditTrend: 'stable',
+      highUsageDays: [],
     };
   }
 }

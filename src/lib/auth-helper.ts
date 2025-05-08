@@ -11,8 +11,33 @@ export type AuthUser = {
 
 export async function getAuthenticatedUser(): Promise<AuthUser | null> {
   try {
+    // Verificar se estamos em ambiente de build/estático
+    if (process.env.NODE_ENV === 'production' && typeof window === 'undefined' && !process.env.NEXT_RUNTIME) {
+      // Durante o build estático, retornar null para evitar erros
+      console.log('Ambiente de build detectado, pulando verificação de autenticação');
+      return null;
+    }
+
     // Verificar cookie personalizado primeiro
-    const authJsToken = cookies().get('authjs.session-token')?.value;
+    let cookieStore;
+    try {
+      cookieStore = cookies();
+    } catch (error) {
+      console.error('Erro ao acessar cookies:', error);
+      // Se não conseguir acessar cookies, tenta apenas via NextAuth
+      const nextAuthSession = await auth();
+      if (nextAuthSession?.user) {
+        return {
+          id: nextAuthSession.user.id as string,
+          name: nextAuthSession.user.name,
+          email: nextAuthSession.user.email,
+          image: nextAuthSession.user.image
+        };
+      }
+      return null;
+    }
+    
+    const authJsToken = cookieStore.get('authjs.session-token')?.value;
     
     if (authJsToken) {
       // Buscar sessão pelo token personalizado

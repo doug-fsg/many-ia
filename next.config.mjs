@@ -10,6 +10,12 @@ const nextConfig = {
   },
   // Configurações adicionais de segurança
   reactStrictMode: true,
+  // Configuração para evitar renderização estática de rotas dinâmicas
+  output: 'standalone',
+  // Configuração experimental para pacotes externos do servidor
+  experimental: {
+    serverComponentsExternalPackages: ['@prisma/client'],
+  },
   // Lidar com warnings de build
   webpack: (config, { isServer }) => {
     config.ignoreWarnings = [/Failed to parse source map/]

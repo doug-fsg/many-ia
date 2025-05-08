@@ -39,93 +39,75 @@ async function upsertAIConfig(input: z.infer<typeof upsertAIConfigSchema>) {
       }
     }
 
-    try {
-      console.log('Gerando embedding para:', {
-        quemEhAtendente: restInput.quemEhAtendente,
-        oQueAtendenteFaz: restInput.oQueAtendenteFaz,
-        objetivoAtendente: restInput.objetivoAtendente,
-        comoAtendenteDeve: restInput.comoAtendenteDeve,
+    const { embedding } = await createEmbeddingFromAIConfig({
+      quemEhAtendente: restInput.quemEhAtendente,
+      oQueAtendenteFaz: restInput.oQueAtendenteFaz,
+      objetivoAtendente: restInput.objetivoAtendente,
+      comoAtendenteDeve: restInput.comoAtendenteDeve,
+    })
+
+    if (input.id) {
+      const updatedAIConfig = await prisma.aIConfig.update({
+        where: {
+          id: input.id,
+          userId: user.id,
+        },
+        data: {
+          ...restInput,
+          embedding,
+          temasEvitar: {
+            deleteMany: {},
+            create: temasEvitar.map((tema) => ({
+              tema: typeof tema === 'string' ? tema : tema.tema,
+            })),
+          },
+          attachments: {
+            deleteMany: {},
+            create: attachments.map((attachment) => ({
+              type: attachment.type,
+              content: attachment.content,
+              description: attachment.description,
+            })),
+          },
+        },
+        include: {
+          attachments: true,
+          temasEvitar: true,
+        },
       })
 
-      const { embedding } = await createEmbeddingFromAIConfig({
-        quemEhAtendente: restInput.quemEhAtendente,
-        oQueAtendenteFaz: restInput.oQueAtendenteFaz,
-        objetivoAtendente: restInput.objetivoAtendente,
-        comoAtendenteDeve: restInput.comoAtendenteDeve,
-      })
-
-      if (input.id) {
-        const updatedAIConfig = await prisma.aIConfig.update({
-          where: {
-            id: input.id,
-            userId: user.id,
-          },
-          data: {
-            ...restInput,
-            embedding,
-            temasEvitar: {
-              deleteMany: {},
-              create: temasEvitar.map((tema) => ({
-                tema: typeof tema === 'string' ? tema : tema.tema,
-              })),
-            },
-            attachments: {
-              deleteMany: {},
-              create: attachments.map((attachment) => ({
-                type: attachment.type,
-                content: attachment.content,
-                description: attachment.description,
-              })),
-            },
-          },
-          include: {
-            attachments: true,
-            temasEvitar: true,
-          },
-        })
-
-        return {
-          error: null,
-          data: updatedAIConfig,
-        }
-      } else {
-        const newAIConfig = await prisma.aIConfig.create({
-          data: {
-            ...restInput,
-            embedding,
-            userId: user.id,
-            temasEvitar: {
-              create: temasEvitar.map((tema) => ({
-                tema: typeof tema === 'string' ? tema : tema.tema,
-              })),
-            },
-            attachments: {
-              create: attachments.map((attachment) => ({
-                type: attachment.type,
-                content: attachment.content.split('/').pop() || attachment.content,
-                description: attachment.description,
-              })),
-            },
-          },
-          include: {
-            attachments: true,
-            temasEvitar: true,
-          },
-        })
-
-        return {
-          error: null,
-          data: newAIConfig,
-        }
+      return {
+        error: null,
+        data: updatedAIConfig,
       }
-    } catch (embeddingError) {
-      console.error('Erro ao gerar embedding:', embeddingError)
-      throw embeddingError
     }
 
-    console.log('=== Server Action Concluída com Sucesso ===')
+    const newAIConfig = await prisma.aIConfig.create({
+      data: {
+        ...restInput,
+        embedding,
+        userId: user.id,
+        temasEvitar: {
+          create: temasEvitar.map((tema) => ({
+            tema: typeof tema === 'string' ? tema : tema.tema,
+          })),
+        },
+        attachments: {
+          create: attachments.map((attachment) => ({
+            type: attachment.type,
+            content: attachment.content.split('/').pop() || attachment.content,
+            description: attachment.description,
+          })),
+        },
+      },
+      include: {
+        attachments: true,
+        temasEvitar: true,
+      },
+    })
+
     revalidatePath('/app/configuracoes')
-    return { data: null, error: null }
+    return { error: null, data: newAIConfig }
   } catch (error) {
     console.error('Erro:', error)
     return {

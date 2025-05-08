@@ -3,6 +3,9 @@ import { auth } from '@/services/auth';
 import { cookies } from 'next/headers';
 import { decode } from 'next-auth/jwt';
 
+// Configuração para marcar a rota como dinâmica
+export const dynamic = 'force-dynamic';
+
 // Rota de diagnóstico para verificar a autenticação
 export async function GET(req: NextRequest) {
   try {

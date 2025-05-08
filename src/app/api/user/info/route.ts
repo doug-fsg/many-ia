@@ -1,7 +1,10 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/services/auth';
 import { cookies } from 'next/headers';
 import { prisma } from '@/services/database';
+
+// Configuração para marcar a rota como dinâmica
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {

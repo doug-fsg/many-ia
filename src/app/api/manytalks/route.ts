@@ -1,6 +1,9 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
 const MANYTALKS_API_BASE_URL = process.env.NEXT_PUBLIC_MANYTALKS_API_URL // URL que você usa no Postman
+
+// Configuração para marcar a rota como dinâmica
+export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request) {
   try {
