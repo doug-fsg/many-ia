@@ -1,14 +1,30 @@
-import NextAuth from 'next-auth'
-import EmailProvider from 'next-auth/providers/nodemailer'
+import NextAuth, { DefaultSession, Account, Profile } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { compare } from 'bcrypt'
+import { JWT } from 'next-auth/jwt'
+import { User } from '@prisma/client'
 
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import { prisma } from './database'
 import { createStripeCustomer } from './stripe'
 
+// Extend the built-in session types
+interface ExtendedSession extends DefaultSession {
+  user?: User & {
+    isIntegrationUser: boolean;
+  }
+}
+
+// Extend the built-in request types
+interface ExtendedRequest {
+  headers: {
+    cookie?: string;
+  };
+}
+
 export const authOptions = {
   debug: false,
+  baseUrl: process.env.NEXT_PUBLIC_APP_URL || (process.env.NODE_ENV === 'production' ? undefined : 'http://localhost:3000'),
   pages: {
     signIn: '/auth',
     signOut: '/auth',
@@ -22,10 +38,6 @@ export const authOptions = {
     maxAge: 30 * 24 * 60 * 60,
   },
   providers: [
-    EmailProvider({
-      server: process.env.EMAIL_SERVER,
-      from: process.env.EMAIL_FROM,
-    }),
     CredentialsProvider({
       id: 'credentials',
       name: 'Credentials',
@@ -33,7 +45,7 @@ export const authOptions = {
         email: { label: "Email", type: "email" },
         password: { label: "Senha", type: "password" }
       },
-      async authorize(credentials, req) {
+      async authorize(credentials: Record<string, string> | undefined, req: ExtendedRequest) {
         if (!credentials?.email || !credentials?.password) {
           return null
         }
@@ -41,7 +53,7 @@ export const authOptions = {
         // Verificar se temos cookie de integração do header Cookie
         let integrationUserId = null;
         if (req?.headers?.cookie) {
-          const cookieString = req.headers.cookie as string;
+          const cookieString = req.headers.cookie;
           const cookies = cookieString.split(';');
           const integrationCookie = cookies.find(c => c.trim().startsWith('next-auth.integration-user='));
           if (integrationCookie) {
@@ -65,21 +77,25 @@ export const authOptions = {
           }
         }
 
-        const user = await prisma.user.findUnique({
-          where: {
-            email: credentials.email as string
-          }
-        })
-
-        if (!user || !user.password) {
-          return null
-        }
-
         try {
+          const user = await prisma.user.findUnique({
+            where: {
+              email: credentials.email as string
+            }
+          })
+
+          if (!user) {
+            throw new Error('USER_NOT_FOUND')
+          }
+
+          if (!user.password) {
+            throw new Error('PASSWORD_NOT_SET')
+          }
+
           const passwordMatch = await compare(credentials.password as string, user.password)
 
           if (!passwordMatch) {
-            return null
+            throw new Error('INVALID_PASSWORD')
           }
 
           return {
@@ -90,7 +106,9 @@ export const authOptions = {
             isIntegrationUser: user.isIntegrationUser
           }
         } catch (error) {
-          return null
+          console.error('[AUTH] Erro na autenticação:', error)
+          // Propaga o erro para ser tratado no frontend
+          throw error
         }
       }
     }),
@@ -210,11 +228,11 @@ export const authOptions = {
     }
   },
   callbacks: {
-    signIn: async ({ user, account }) => {
+    signIn: async ({ user, account }: { user: User; account: Account | null }) => {
       return true
     },
     
-    redirect: async ({ url, baseUrl }) => {
+    redirect: async ({ url, baseUrl }: { url: string; baseUrl: string }) => {
       // Verificar se existe cookie de redirecionamento de integração
       const cookies = (typeof window !== 'undefined' ? document.cookie : '') || '';
       const redirectMatch = cookies.match(/next-auth\.integration-redirect=([^;]+)/);
@@ -228,13 +246,28 @@ export const authOptions = {
         return redirectMatch[1];
       }
       
-      if (url.startsWith(baseUrl)) {
-        return url
+      // Usar NEXT_PUBLIC_APP_URL se disponível, caso contrário usar baseUrl
+      const effectiveBaseUrl = process.env.NEXT_PUBLIC_APP_URL || baseUrl;
+      
+      // Se a URL já começa com a base efetiva, use-a diretamente
+      if (url.startsWith(effectiveBaseUrl)) {
+        return url;
       }
-      return `${baseUrl}/app`
+      
+      // Se a URL é um caminho absoluto (começa com /), anexe-o à base
+      if (url.startsWith('/')) {
+        return `${effectiveBaseUrl}${url}`;
+      }
+      
+      // Caso padrão: redirecionar para /app
+      return `${effectiveBaseUrl}/app`;
     },
     
-    session: async ({ session, user, token }) => {
+    session: async ({ session, user, token }: { 
+      session: ExtendedSession; 
+      user: User | null; 
+      token: JWT | null;
+    }) => {
       if (session?.user) {
         if (user) {
           session.user.id = user.id;
@@ -266,7 +299,7 @@ export const authOptions = {
       
       return session;
     },
-    jwt: async ({ token, user }) => {
+    jwt: async ({ token, user }: { token: JWT; user: User | null }) => {
       if (user) {
         token.id = user.id;
         token.isIntegrationUser = (user as any).isIntegrationUser ?? false;

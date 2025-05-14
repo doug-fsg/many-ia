@@ -5,12 +5,15 @@
   "license": "MIT",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
     "format": "npx eslint --fix \"src/**/*.{js,jsx,ts,tsx}\"",
     "lint:fix": "eslint . --fix",
-    "dev:https": "concurrently \"next dev\" \"local-ssl-proxy --source 3001 --target 3000\""
+    "dev:https": "concurrently \"next dev\" \"local-ssl-proxy --source 3001 --target 3000\"",
+    "prisma:generate": "prisma generate",
+    "prisma:push": "prisma db push",
+    "clean": "rm -rf .next"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^1.4.0",

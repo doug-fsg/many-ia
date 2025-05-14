@@ -1,36 +1,119 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# ManyTalks - Plataforma de Criação de Agentes IA
 
-## Getting Started
+## Sobre o Projeto
 
-First, run the development server:
+ManyTalks é uma plataforma SaaS (Software as a Service) que permite a criação e gerenciamento de agentes de Inteligência Artificial personalizados. Com uma interface intuitiva e moderna, os usuários podem criar, treinar e gerenciar seus próprios agentes IA para diferentes propósitos.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Funcionalidades Principais
+
+- **Criação de Agentes IA**: Interface intuitiva para criar agentes personalizados
+- **Gerenciamento de Agentes**: Painel de controle para monitorar e ajustar seus agentes
+- **Autenticação Segura**: Sistema robusto de autenticação com suporte a SSO
+- **Integração com Stripe**: Sistema de pagamento e gerenciamento de assinaturas
+- **API RESTful**: Endpoints para integração com outros sistemas
+
+## Tecnologias Utilizadas
+
+- **Frontend**:
+  - Next.js 14 (App Router)
+  - React
+  - Tailwind CSS
+  - Shadcn/ui
+  - TypeScript
+
+- **Backend**:
+  - Node.js
+  - Prisma (ORM)
+  - PostgreSQL
+  - NextAuth.js
+
+- **Infraestrutura**:
+  - Docker
+  - Vercel/Self-hosted
+
+## Requisitos do Sistema
+
+- Node.js 18+
+- PostgreSQL
+- Yarn
+
+## Variáveis de Ambiente
+
+```env
+# App
+NEXT_PUBLIC_APP_URL=https://seu-dominio.com
+NODE_ENV=production
+
+# Auth
+NEXTAUTH_SECRET=seu-secret-aqui
+JWT_SECRET=seu-jwt-secret-aqui
+
+# Database
+DATABASE_URL=sua-url-do-postgres
+
+# Stripe (opcional)
+STRIPE_PUBLISHABLE_KEY=sua-chave-publica
+STRIPE_SECRET_KEY=sua-chave-secreta
+STRIPE_WEBHOOK_SECRET=seu-webhook-secret
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Instalação
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Clone o repositório
+```bash
+git clone https://github.com/seu-usuario/manytalks.git
+cd manytalks
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+2. Instale as dependências
+```bash
+yarn install
+```
 
-## Learn More
+3. Configure as variáveis de ambiente
+```bash
+cp .env.example .env
+```
 
-To learn more about Next.js, take a look at the following resources:
+4. Execute as migrações do banco de dados
+```bash
+yarn prisma migrate deploy
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+5. Inicie o servidor de desenvolvimento
+```bash
+yarn dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+## Estrutura do Projeto
 
-## Deploy on Vercel
+```
+src/
+├── app/                    # Rotas e componentes da aplicação
+│   ├── api/               # Endpoints da API
+│   ├── app/               # Área autenticada
+│   └── auth/              # Sistema de autenticação
+├── components/            # Componentes reutilizáveis
+├── lib/                   # Utilitários e helpers
+└── services/             # Serviços externos (Stripe, etc)
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Contribuindo
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+1. Faça um fork do projeto
+2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
+3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
+4. Push para a branch (`git push origin feature/AmazingFeature`)
+5. Abra um Pull Request
+
+## Licença
+
+Este projeto está licenciado sob a licença MIT - veja o arquivo [LICENSE.md](LICENSE.md) para mais detalhes.
+
+## Contato
+
+ManyTalks - [suporteinovechat@gmail.com](mailto:suporteinovechat@gmail.com)
+
+---
+
+Desenvolvido com ❤️ pela equipe ManyTalks
