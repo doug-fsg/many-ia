@@ -1,6 +1,6 @@
 export const aiTemplates = {
   suporteCliente: {
-    isActive: true,
+    isActive: false,
     nomeAtendenteDigital: 'Assistente de Suporte',
     enviarParaAtendente: true,
     quemEhAtendente:
@@ -18,7 +18,7 @@ export const aiTemplates = {
     informacoesEmpresa: '',
   },
   consultorVendas: {
-    isActive: true,
+    isActive: false,
     nomeAtendenteDigital: 'Consultor Comercial',
     enviarParaAtendente: true,
     quemEhAtendente:
@@ -36,7 +36,7 @@ export const aiTemplates = {
     informacoesEmpresa: '',
   },
   corretor: {
-    isActive: true,
+    isActive: false,
     nomeAtendenteDigital: 'Consultor Imobiliário',
     enviarParaAtendente: true,
     quemEhAtendente:

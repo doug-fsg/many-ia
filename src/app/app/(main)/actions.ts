@@ -7,6 +7,7 @@ import { deleteAIConfigSchema, upsertAIConfigSchema } from './schema'
 import { createEmbeddingFromAIConfig } from '@/utils/vectorUtils'
 import { revalidatePath } from 'next/cache'
 import { getAuthenticatedUser } from '@/lib/auth-helper'
+import { checkUserSubscription } from '@/lib/subscription-helper'
 
 async function upsertAIConfig(input: z.infer<typeof upsertAIConfigSchema>) {
   try {
@@ -208,6 +209,19 @@ async function toggleAIConfigStatus(configId: string, isActive: boolean) {
         error: 'Não autorizado',
         data: null,
       };
+    }
+
+    if (isActive) {
+      const subscription = await checkUserSubscription(user.id);
+      
+      if (subscription.isBlocked) {
+        return {
+          error: 'Assinatura bloqueada',
+          data: null,
+          subscriptionStatus: subscription.subscriptionStatus,
+          paymentRequired: true
+        };
+      }
     }
 
     const result = await prisma.aIConfig.update({

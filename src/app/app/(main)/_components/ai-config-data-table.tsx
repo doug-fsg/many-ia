@@ -15,6 +15,7 @@ import type { AIConfig } from "../types"
 import { deleteAIConfig, toggleAIConfigStatus, getManytalksAccountId, updateAIConfigInbox } from "../actions"
 import { buscarInboxes } from "@/lib/manytalks"
 import { TestAgentModal } from "@/components/chat/TestAgentModal"
+import { SubscriptionBlockedAlert } from "@/components/ui/subscription-blocked-alert"
 
 type AIConfigDataTable = {
   data: AIConfig[]
@@ -48,6 +49,8 @@ export function AIConfigDataTable({ data }: AIConfigDataTable) {
   const [isLoadingConnections, setIsLoadingConnections] = React.useState(false)
   const [isIntegrationUser, setIsIntegrationUser] = React.useState(false)
   const [hoveredCardId, setHoveredCardId] = React.useState<string | null>(null)
+  const [subscriptionModalOpen, setSubscriptionModalOpen] = React.useState(false)
+  const [subscriptionStatus, setSubscriptionStatus] = React.useState<string | null>(null)
 
   const fetchInboxes = async () => {
     try {
@@ -142,6 +145,12 @@ export function AIConfigDataTable({ data }: AIConfigDataTable) {
       const result = await toggleAIConfigStatus(aiConfig.id, !aiConfig.isActive)
 
       if (result.error) {
+        if (result.paymentRequired) {
+          // Se for erro de pagamento, abre o modal de pagamento
+          setSubscriptionModalOpen(true);
+          setSubscriptionStatus(result.subscriptionStatus);
+          return;
+        }
         throw new Error(result.error)
       }
 
@@ -539,6 +548,12 @@ export function AIConfigDataTable({ data }: AIConfigDataTable) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <SubscriptionBlockedAlert
+        open={subscriptionModalOpen}
+        onOpenChange={setSubscriptionModalOpen}
+        status={subscriptionStatus}
+      />
     </>
   )
 }

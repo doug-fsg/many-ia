@@ -211,6 +211,11 @@ export function AuthForm() {
             placeholder="********"
             {...credentialsForm.register('password')}
           />
+          <div className="text-right">
+            <a href="/auth/forgot-password" className="text-sm text-blue-600 hover:underline">
+              Esqueci minha senha
+            </a>
+          </div>
         </div>
         <Button
           className="w-full relative"

@@ -5,15 +5,15 @@ export const config = {
     webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
     plans: {
       free: {
-        priceId: 'price_1P46BVEdvUsq0VPUGFLxN8PY',
+        priceId: process.env.STRIPE_PRICE_ID || '',
         quota: {
-          TASKS: 5,
+          credits: 0,
         },
       },
       pro: {
-        priceId: 'price_1P46BjEdvUsq0VPUYIXC85y1',
+        priceId: process.env.STRIPE_PRICE_ID || '',
         quota: {
-          TASKS: 100,
+          credits: 10000,
         },
       },
     },

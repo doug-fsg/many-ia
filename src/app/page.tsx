@@ -143,8 +143,33 @@ export default function LandingPage() {
                   <Button size="lg" onClick={openWhatsApp} className="w-full sm:w-auto rounded-full px-8">
                     Saiba Mais <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
-                  <Button variant="outline" size="lg" asChild className="w-full sm:w-auto rounded-full px-8">
-                    <a href="/auth">Começar Agora</a>
+                  <Button 
+                    variant="outline" 
+                    size="lg" 
+                    className="w-full sm:w-auto rounded-full px-8"
+                    onClick={async () => {
+                      try {
+                        const response = await fetch('/api/stripe/checkout', {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                          },
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (data.url) {
+                          window.location.href = data.url;
+                        } else {
+                          throw new Error('URL de checkout não encontrada');
+                        }
+                      } catch (error) {
+                        console.error('Erro ao iniciar checkout:', error);
+                        alert('Erro ao iniciar o processo de pagamento. Por favor, tente novamente.');
+                      }
+                    }}
+                  >
+                    Contratar por R$250/mês
                   </Button>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">

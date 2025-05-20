@@ -119,7 +119,7 @@ export function AIConfigForm({
   const form = useForm<AIConfigFormData>({
     resolver: zodResolver(upsertAIConfigSchema),
     defaultValues: defaultValue || {
-      isActive: true,
+      isActive: false,
       enviarParaAtendente: true,
       quemEhAtendente: '',
       oQueAtendenteFaz: '',
@@ -345,7 +345,10 @@ export function AIConfigForm({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Retornar o atendimento em</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select 
+                value={field.value}
+                onValueChange={field.onChange}
+              >
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o tempo para retorno automático" />
@@ -355,20 +358,26 @@ export function AIConfigForm({
                   <SelectItem value="Não retornar automaticamente">
                     Não retornar automaticamente
                   </SelectItem>
-                  <SelectItem value="5min">
+                  <SelectItem value="300000">
                     5 minutos
                   </SelectItem>
-                  <SelectItem value="15min">
-                    15 minutos
-                  </SelectItem>
-                  <SelectItem value="30min">
+                  <SelectItem value="1800000">
                     30 minutos
                   </SelectItem>
-                  <SelectItem value="1h">
+                  <SelectItem value="3600000">
                     1 hora
                   </SelectItem>
-                  <SelectItem value="2h">
-                    2 horas
+                  <SelectItem value="10800000">
+                    3 horas
+                  </SelectItem>
+                  <SelectItem value="28800000">
+                    8 horas
+                  </SelectItem>
+                  <SelectItem value="43200000">
+                    12 horas
+                  </SelectItem>
+                  <SelectItem value="86400000">
+                    24 horas
                   </SelectItem>
                 </SelectContent>
               </Select>

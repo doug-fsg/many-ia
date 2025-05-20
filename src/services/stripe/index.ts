@@ -138,7 +138,7 @@ export const handleProcessWebhookUpdatedSubscription = async (event: {
 type Plan = {
   priceId: string
   quota: {
-    TASKS: number
+    credits: number
   }
 }
 
@@ -181,24 +181,66 @@ export const getUserCurrentPlan = async (userId: string) => {
 
   const plan = getPlanByPrice(user.stripePriceId)
 
-  const tasksCount = await prisma.todo.count({
+  // Buscar a soma de todas as interactionsCount do usuário no mês atual
+  const interactions = await prisma.interaction.findMany({
     where: {
       userId,
+      createdAt: {
+        gte: new Date(new Date().setDate(1)), // Início do mês atual
+        lt: new Date(new Date().setMonth(new Date().getMonth() + 1)), // Início do próximo mês
+      },
     },
+    select: {
+      interactionsCount: true
+    }
   })
 
-  const availableTasks = plan.quota.TASKS
-  const currentTasks = tasksCount
-  const usage = (currentTasks / availableTasks) * 100
+  // Somar todos os interactionsCount
+  const currentCredits = interactions.reduce((sum, interaction) => {
+    return sum + (interaction.interactionsCount || 0);
+  }, 0);
+
+  const availableCredits = plan.quota.credits
+  const usagePercentage = (currentCredits / availableCredits) * 100;
 
   return {
     name: plan.name,
     quota: {
-      TASKS: {
-        available: availableTasks,
-        current: currentTasks,
-        usage,
-      },
-    },
+      credits: {
+        available: availableCredits,
+        current: currentCredits,
+        usage: usagePercentage
+      }
+    }
+  }
+}
+
+export const createDirectCheckoutSession = async () => {
+  try {
+    const session = await stripe.checkout.sessions.create({
+      mode: 'subscription',
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price: process.env.STRIPE_PRICE_ID,
+          quantity: 1,
+        },
+      ],
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/auth/set-password?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}`,
+      allow_promotion_codes: true,
+      billing_address_collection: 'required',
+      client_reference_id: Date.now().toString(),
+      subscription_data: {
+        metadata: {
+          created_from: 'direct_checkout'
+        }
+      }
+    });
+
+    return { url: session.url };
+  } catch (error) {
+    console.error('Erro ao criar sessão de checkout:', error);
+    throw new Error('Erro ao criar sessão de checkout');
   }
 }

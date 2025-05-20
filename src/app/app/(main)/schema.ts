@@ -8,7 +8,7 @@ import { z } from 'zod'
 
 export const upsertAIConfigSchema = z.object({
   id: z.string().optional(),
-  isActive: z.boolean().default(true),
+  isActive: z.boolean().default(false),
   nomeAtendenteDigital: z
     .string()
     .min(1, 'O nome do atendente digital é obrigatório'),
