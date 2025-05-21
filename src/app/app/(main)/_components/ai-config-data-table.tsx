@@ -16,6 +16,7 @@ import { deleteAIConfig, toggleAIConfigStatus, getManytalksAccountId, updateAICo
 import { buscarInboxes } from "@/lib/manytalks"
 import { TestAgentModal } from "@/components/chat/TestAgentModal"
 import { SubscriptionBlockedAlert } from "@/components/ui/subscription-blocked-alert"
+import { EmptyState } from './empty-state'
 
 type AIConfigDataTable = {
   data: AIConfig[]
@@ -51,6 +52,7 @@ export function AIConfigDataTable({ data }: AIConfigDataTable) {
   const [hoveredCardId, setHoveredCardId] = React.useState<string | null>(null)
   const [subscriptionModalOpen, setSubscriptionModalOpen] = React.useState(false)
   const [subscriptionStatus, setSubscriptionStatus] = React.useState<string | null>(null)
+  const [showEmptyState, setShowEmptyState] = React.useState(false)
 
   const fetchInboxes = async () => {
     try {
@@ -303,15 +305,21 @@ export function AIConfigDataTable({ data }: AIConfigDataTable) {
         if (response.ok) {
           const userData = await response.json()
           setIsIntegrationUser(userData.isIntegrationUser || false)
+          // Só ativa o EmptyState se NÃO for usuário de integração
+          if (!userData.isIntegrationUser) {
+            setShowEmptyState(true)
+          }
         } else {
           // Em caso de erro, assume que não é usuário de integração
           setIsIntegrationUser(false)
+          setShowEmptyState(true)
           console.warn("Não foi possível verificar o tipo de usuário, assumindo usuário regular")
         }
       } catch (error) {
         // Em caso de erro, assume que não é usuário de integração
         console.warn("Erro ao verificar tipo de usuário, assumindo usuário regular:", error)
         setIsIntegrationUser(false)
+        setShowEmptyState(true)
       }
     }
 
@@ -328,206 +336,230 @@ export function AIConfigDataTable({ data }: AIConfigDataTable) {
     return whatsappConnections.filter((conn) => !conn.iaId)
   }
 
+  // Função para determinar se deve mostrar o EmptyState
+  const shouldShowEmptyState = () => {
+    // Não mostra EmptyState para usuários de integração
+    if (isIntegrationUser) return false;
+    
+    if (!showEmptyState) return false;
+
+    // Caso 1: Não tem nenhuma configuração
+    if (data.length === 0) return true;
+
+    // Caso 2: Tem configuração mas não tem WhatsApp
+    if (data.length > 0 && whatsappConnections.length === 0) return true;
+
+    return false;
+  }
+
   return (
     <>
-      <div className="flex flex-wrap gap-4 p-4">
-        {data.map((aiConfig) => (
-          <Card
-            key={aiConfig.id}
-            className="relative hover:shadow-md transition-shadow w-[300px]"
-            onMouseEnter={() => setHoveredCardId(aiConfig.id)}
-            onMouseLeave={() => setHoveredCardId(null)}
-          >
-            <CardContent className="p-4">
-              <div className="flex flex-col space-y-4">
-                <div className="flex justify-between items-center">
-                  <h3 className="font-semibold text-lg">
-                    {aiConfig.nomeAtendenteDigital}
-                  </h3>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">{aiConfig.isActive ? 'Ativo' : 'Inativo'}</span>
-                    <Switch 
-                      checked={aiConfig.isActive} 
-                      onCheckedChange={() => handleToggleActiveAIConfig(aiConfig)}
-                      className={aiConfig.isActive ? 'bg-green-500' : ''}
-                    />
+      {shouldShowEmptyState() ? (
+        <EmptyState 
+          hasConfigs={data.length > 0}
+          hasWhatsApp={whatsappConnections.length > 0}
+          onDismiss={() => setShowEmptyState(false)}
+        />
+      ) : (
+        <div className="flex flex-wrap gap-4 p-4">
+          {data.map((aiConfig) => (
+            <Card
+              key={aiConfig.id}
+              className="relative hover:shadow-md transition-shadow w-[300px]"
+              onMouseEnter={() => setHoveredCardId(aiConfig.id)}
+              onMouseLeave={() => setHoveredCardId(null)}
+            >
+              <CardContent className="p-4">
+                <div className="flex flex-col space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="font-semibold text-lg">
+                      {aiConfig.nomeAtendenteDigital}
+                    </h3>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">{aiConfig.isActive ? 'Ativo' : 'Inativo'}</span>
+                      <Switch 
+                        checked={aiConfig.isActive} 
+                        onCheckedChange={() => handleToggleActiveAIConfig(aiConfig)}
+                        className={aiConfig.isActive ? 'bg-green-500' : ''}
+                      />
+                    </div>
                   </div>
-                </div>
-                <div className="border-t pt-4">
-                  {/* Canal unificado - pode ser ManyTalks ou WhatsApp dependendo do tipo de usuário */}
-                  <div className="flex items-center gap-2 mt-1">
-                    <Popover
-                      open={openPopoverId === `canal-${aiConfig.id}`}
-                      onOpenChange={(open) => setOpenPopoverId(open ? `canal-${aiConfig.id}` : null)}
-                    >
-                      <PopoverTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-7 px-2 text-xs hover:bg-muted group">
-                          {aiConfig.inboxName ? (
-                            <span className="flex items-center gap-2 text-foreground">
-                              <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                              {aiConfig.inboxName}
-                              <MinusCircledIcon
-                                className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 ml-2 hover:text-red-600"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleRemoveInbox(aiConfig)
-                                }}
-                              />
-                            </span>
-                          ) : (
-                            <span className="flex items-center gap-2 text-muted-foreground">
-                              <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40" />
-                              Vincular canal
-                            </span>
-                          )}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[250px] p-0" align="start">
-                        <Command>
-                          <CommandInput
-                            placeholder={isIntegrationUser ? "Buscar canal ManyTalks..." : "Buscar conexão WhatsApp..."}
-                            className="h-8 text-xs text-foreground"
-                          />
-                          <CommandList>
-                            <CommandEmpty>
-                              {isLoadingConnections ? (
-                                "Carregando conexões..."
-                              ) : (
-                                <div className="py-2 px-1 text-center">
-                                  <p className="text-xs text-muted-foreground mb-2">Nenhuma conexão disponível</p>
-                                  <p className="text-[10px] text-muted-foreground">
-                                    Você pode adicionar conexões na página de configurações do WhatsApp
-                                  </p>
-                                </div>
-                              )}
-                            </CommandEmpty>
-
-                            {isIntegrationUser ? (
-                              // Mostrar inboxes ManyTalks para usuários de integração
-                              inboxes.map((inbox) => (
-                                <CommandItem
-                                  key={inbox.id}
-                                  onSelect={() => handleInboxSelect(aiConfig.id, inbox.id, inbox.name)}
-                                  className="text-xs py-1.5 text-foreground"
-                                >
-                                  {inbox.name}
-                                </CommandItem>
-                              ))
+                  <div className="border-t pt-4">
+                    {/* Canal unificado - pode ser ManyTalks ou WhatsApp dependendo do tipo de usuário */}
+                    <div className="flex items-center gap-2 mt-1">
+                      <Popover
+                        open={openPopoverId === `canal-${aiConfig.id}`}
+                        onOpenChange={(open) => setOpenPopoverId(open ? `canal-${aiConfig.id}` : null)}
+                      >
+                        <PopoverTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs hover:bg-muted group">
+                            {aiConfig.inboxName ? (
+                              <span className="flex items-center gap-2 text-foreground">
+                                <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                                {aiConfig.inboxName}
+                                <MinusCircledIcon
+                                  className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 ml-2 hover:text-red-600"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleRemoveInbox(aiConfig)
+                                  }}
+                                />
+                              </span>
                             ) : (
-                              // Mostrar conexões WhatsApp para usuários regulares
-                              <>
-                                {/* Conexões já vinculadas a esta IA */}
-                                {getLinkedWhatsAppConnections(aiConfig.id).length > 0 && (
-                                  <CommandGroup heading="Conexões vinculadas">
-                                    {getLinkedWhatsAppConnections(aiConfig.id).map((conn) => (
-                                      <CommandItem
-                                        key={conn.id}
-                                        className="text-xs py-1.5 text-foreground flex justify-between items-center"
-                                      >
-                                        <span>{conn.name || `WhatsApp (${conn.phoneNumber || "Sem número"})`}</span>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="h-5 w-5 p-0"
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            handleRemoveWhatsApp(conn.id, aiConfig.id)
-                                          }}
-                                        >
-                                          <MinusCircledIcon className="h-3.5 w-3.5 text-red-500" />
-                                        </Button>
-                                      </CommandItem>
-                                    ))}
-                                  </CommandGroup>
-                                )}
-
-                                {/* Conexões disponíveis para vincular */}
-                                {getAvailableWhatsAppConnections().length > 0 && (
-                                  <CommandGroup heading="Conexões disponíveis">
-                                    {getAvailableWhatsAppConnections().map((conn) => (
-                                      <CommandItem
-                                        key={conn.id}
-                                        onSelect={() => handleWhatsAppSelect(aiConfig.id, conn.id)}
-                                        className="text-xs py-1.5 text-foreground"
-                                      >
-                                        {conn.name || `WhatsApp (${conn.phoneNumber || "Sem número"})`}
-                                      </CommandItem>
-                                    ))}
-                                  </CommandGroup>
-                                )}
-                              </>
+                              <span className="flex items-center gap-2 text-muted-foreground">
+                                <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40" />
+                                Vincular canal
+                              </span>
                             )}
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[250px] p-0" align="start">
+                          <Command>
+                            <CommandInput
+                              placeholder={isIntegrationUser ? "Buscar canal ManyTalks..." : "Buscar conexão WhatsApp..."}
+                              className="h-8 text-xs text-foreground"
+                            />
+                            <CommandList>
+                              <CommandEmpty>
+                                {isLoadingConnections ? (
+                                  "Carregando conexões..."
+                                ) : (
+                                  <div className="py-2 px-1 text-center">
+                                    <p className="text-xs text-muted-foreground mb-2">Nenhuma conexão disponível</p>
+                                    <p className="text-[10px] text-muted-foreground">
+                                      Você pode adicionar conexões na página de configurações do WhatsApp
+                                    </p>
+                                  </div>
+                                )}
+                              </CommandEmpty>
+
+                              {isIntegrationUser ? (
+                                // Mostrar inboxes ManyTalks para usuários de integração
+                                inboxes.map((inbox) => (
+                                  <CommandItem
+                                    key={inbox.id}
+                                    onSelect={() => handleInboxSelect(aiConfig.id, inbox.id, inbox.name)}
+                                    className="text-xs py-1.5 text-foreground"
+                                  >
+                                    {inbox.name}
+                                  </CommandItem>
+                                ))
+                              ) : (
+                                // Mostrar conexões WhatsApp para usuários regulares
+                                <>
+                                  {/* Conexões já vinculadas a esta IA */}
+                                  {getLinkedWhatsAppConnections(aiConfig.id).length > 0 && (
+                                    <CommandGroup heading="Conexões vinculadas">
+                                      {getLinkedWhatsAppConnections(aiConfig.id).map((conn) => (
+                                        <CommandItem
+                                          key={conn.id}
+                                          className="text-xs py-1.5 text-foreground flex justify-between items-center"
+                                        >
+                                          <span>{conn.name || `WhatsApp (${conn.phoneNumber || "Sem número"})`}</span>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-5 w-5 p-0"
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              handleRemoveWhatsApp(conn.id, aiConfig.id)
+                                            }}
+                                          >
+                                            <MinusCircledIcon className="h-3.5 w-3.5 text-red-500" />
+                                          </Button>
+                                        </CommandItem>
+                                      ))}
+                                    </CommandGroup>
+                                  )}
+
+                                  {/* Conexões disponíveis para vincular */}
+                                  {getAvailableWhatsAppConnections().length > 0 && (
+                                    <CommandGroup heading="Conexões disponíveis">
+                                      {getAvailableWhatsAppConnections().map((conn) => (
+                                        <CommandItem
+                                          key={conn.id}
+                                          onSelect={() => handleWhatsAppSelect(aiConfig.id, conn.id)}
+                                          className="text-xs py-1.5 text-foreground"
+                                        >
+                                          {conn.name || `WhatsApp (${conn.phoneNumber || "Sem número"})`}
+                                        </CommandItem>
+                                      ))}
+                                    </CommandGroup>
+                                  )}
+                                </>
+                              )}
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    {/* Mostrar conexões WhatsApp já vinculadas para usuários não de integração */}
+                    {!isIntegrationUser &&
+                      getLinkedWhatsAppConnections(aiConfig.id).map((conn) => (
+                        <div key={conn.id} className="flex items-center ml-2 mt-2 text-xs text-foreground">
+                          <div className="w-1.5 h-1.5 rounded-full bg-green-500 mr-2" />
+                          <span className="flex-1">{conn.name || `WhatsApp (${conn.phoneNumber || "Sem número"})`}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100"
+                            onClick={() => handleRemoveWhatsApp(conn.id, aiConfig.id)}
+                          >
+                            <MinusCircledIcon className="h-3 w-3 text-red-500" />
+                          </Button>
+                        </div>
+                      ))}
                   </div>
 
-                  {/* Mostrar conexões WhatsApp já vinculadas para usuários não de integração */}
-                  {!isIntegrationUser &&
-                    getLinkedWhatsAppConnections(aiConfig.id).map((conn) => (
-                      <div key={conn.id} className="flex items-center ml-2 mt-2 text-xs text-foreground">
-                        <div className="w-1.5 h-1.5 rounded-full bg-green-500 mr-2" />
-                        <span className="flex-1">{conn.name || `WhatsApp (${conn.phoneNumber || "Sem número"})`}</span>
+                  {/* Action buttons at the bottom */}
+                  <div className="flex gap-2 mt-4 justify-between">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        router.push(`/app/configuracoes/${aiConfig.id}`)
+                      }
+                      className="flex-1 flex items-center justify-center gap-1 text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                    >
+                      <Pencil2Icon className="h-4 w-4" />
+                      Editar
+                    </Button>
+
+                    <TestAgentModal 
+                      agentId={aiConfig.id}
+                      agentName={aiConfig.nomeAtendenteDigital}
+                      accountId={aiConfig.userId}
+                      inboxId={aiConfig.inboxId || undefined}
+                      trigger={
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100"
-                          onClick={() => handleRemoveWhatsApp(conn.id, aiConfig.id)}
+                          className="flex-1 flex items-center justify-center gap-1 text-gray-600 hover:text-purple-600 hover:bg-purple-50 relative"
                         >
-                          <MinusCircledIcon className="h-3 w-3 text-red-500" />
+                          <ChatBubbleIcon className="h-4 w-4" />
+                          <span>Testar</span>
+                          <span className="absolute -top-1 -right-1 text-[9px] bg-purple-100 text-purple-700 px-1 rounded-full font-medium">beta</span>
                         </Button>
-                      </div>
-                    ))}
+                      }
+                    />
+
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleOpenDeleteModal(aiConfig)}
+                      className="flex-1 flex items-center justify-center gap-1 text-red-600 hover:bg-red-50"
+                    >
+                      <TrashIcon className="h-4 w-4" />
+                      Excluir
+                    </Button>
+                  </div>
                 </div>
-
-                {/* Action buttons at the bottom */}
-                <div className="flex gap-2 mt-4 justify-between">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() =>
-                      router.push(`/app/configuracoes/${aiConfig.id}`)
-                    }
-                    className="flex-1 flex items-center justify-center gap-1 text-gray-600 hover:text-blue-600 hover:bg-blue-50"
-                  >
-                    <Pencil2Icon className="h-4 w-4" />
-                    Editar
-                  </Button>
-
-                  <TestAgentModal 
-                    agentId={aiConfig.id}
-                    agentName={aiConfig.nomeAtendenteDigital}
-                    accountId={aiConfig.userId}
-                    inboxId={aiConfig.inboxId || undefined}
-                    trigger={
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="flex-1 flex items-center justify-center gap-1 text-gray-600 hover:text-purple-600 hover:bg-purple-50 relative"
-                      >
-                        <ChatBubbleIcon className="h-4 w-4" />
-                        <span>Testar</span>
-                        <span className="absolute -top-1 -right-1 text-[9px] bg-purple-100 text-purple-700 px-1 rounded-full font-medium">beta</span>
-                      </Button>
-                    }
-                  />
-
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleOpenDeleteModal(aiConfig)}
-                    className="flex-1 flex items-center justify-center gap-1 text-red-600 hover:bg-red-50"
-                  >
-                    <TrashIcon className="h-4 w-4" />
-                    Excluir
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
         <DialogContent>

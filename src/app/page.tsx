@@ -9,14 +9,39 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Bot, Zap, Clock, Users, ArrowRight, Star, BarChart3, Settings, Bell, CheckCircle, Menu, X } from "lucide-react"
+import { Bot, Zap, Clock, Users, ArrowRight, Star, BarChart3, Settings, Bell, CheckCircle, Menu, X, MessageSquare } from "lucide-react"
 import Image from "next/image"
 import { useState, useEffect } from "react"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { motion } from "framer-motion"
 
 export default function LandingPage() {
   const [activeTab, setActiveTab] = useState<"ia" | "dashboard">("ia")
   const [isMobile, setIsMobile] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
+  
+  const messages = [
+    { text: "Olá! Gostaria de saber sobre o frete grátis", type: "user" },
+    { text: "Claro! Para compras acima de R$ 199 o frete é grátis para todo Brasil", type: "bot" },
+    { text: "E qual o prazo de entrega para São Paulo?", type: "user" },
+    { text: "Para São Paulo capital, o prazo é de 2 dias úteis!", type: "bot" }
+  ];
+
+  const [displayedMessages, setDisplayedMessages] = useState<Array<{ text: string; type: "user" | "bot" }>>([]);
+
+  useEffect(() => {
+    let index = 0;
+    const interval = setInterval(() => {
+      if (index < messages.length) {
+        setDisplayedMessages((prev) => [...prev, messages[index]]);
+        index++;
+      } else {
+        clearInterval(interval);
+      }
+    }, 1500);
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Detectar se estamos em um dispositivo móvel
   useEffect(() => {
@@ -32,6 +57,10 @@ export default function LandingPage() {
     }
   }, [])
 
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
   // Function to open WhatsApp with the provided number
   const openWhatsApp = () => {
     window.open("https://wa.me/5553997002767", "_blank")
@@ -42,8 +71,8 @@ export default function LandingPage() {
       <header className="border-b sticky top-0 bg-background/80 backdrop-blur-md z-10">
         <div className="container flex h-16 items-center justify-between py-4">
           <div className="flex items-center gap-2">
-            <div className="bg-primary/10 p-2 rounded-lg">
-              <Bot className="h-5 w-5 text-primary" />
+            <div className="bg-primary p-2 rounded-lg">
+              <Image src="/images/logo.svg" alt="ManyTalks Logo" width={20} height={20} />
             </div>
             <span className="text-xl font-bold">ManyTalks IA</span>
           </div>
@@ -56,10 +85,6 @@ export default function LandingPage() {
             </a>
             <a href="#how-it-works" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors relative group">
               Como Funciona
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full"></span>
-            </a>
-            <a href="#demo" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors relative group">
-              Demonstração
               <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full"></span>
             </a>
           </nav>
@@ -83,8 +108,8 @@ export default function LandingPage() {
             </SheetTrigger>
             <SheetContent side="right" className="w-[250px] sm:w-[300px]">
               <div className="flex items-center gap-2 mb-8">
-                <div className="bg-primary/10 p-2 rounded-lg">
-                  <Bot className="h-5 w-5 text-primary" />
+                <div className="bg-primary p-2 rounded-lg">
+                  <Image src="/images/logo.svg" alt="ManyTalks Logo" width={20} height={20} />
                 </div>
                 <span className="text-xl font-bold">ManyTalks IA</span>
               </div>
@@ -100,12 +125,6 @@ export default function LandingPage() {
                   className="text-sm font-medium text-foreground hover:text-primary transition-colors px-2 py-1"
                 >
                   Como Funciona
-                </a>
-                <a 
-                  href="#demo" 
-                  className="text-sm font-medium text-foreground hover:text-primary transition-colors px-2 py-1"
-                >
-                  Demonstração
                 </a>
                 <a 
                   href="/auth" 
@@ -130,23 +149,18 @@ export default function LandingPage() {
             <div className="grid gap-12 lg:grid-cols-2 lg:gap-16 items-center">
               <div className="space-y-6">
                 <div className="inline-flex items-center px-3 py-1 rounded-full border border-primary/20 bg-primary/5 text-primary text-sm font-medium">
-                  Inteligência Artificial para WhatsApp
+                  Assistente de WhatsApp com IA
                 </div>
                 <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
-                  Automatize seu <span className="text-primary relative">atendimento<span className="absolute bottom-2 left-0 w-full h-[0.2em] bg-primary/20 rounded-full"></span></span> no WhatsApp
+                  Aumente suas <span className="text-primary relative">Vendas<span className="absolute bottom-2 left-0 w-full h-[0.2em] bg-primary/20 rounded-full"></span></span> com IA no WhatsApp
                 </h1>
                 <p className="text-muted-foreground text-lg md:text-xl max-w-[600px] leading-relaxed">
-                  Crie agentes de IA personalizados que atendem seus clientes 24/7, aumentando suas vendas e reduzindo
-                  custos operacionais.
+                  Transforme seu WhatsApp Business em um assistente virtual inteligente que atende, vende e se relaciona com seus clientes 24/7.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 pt-2">
-                  <Button size="lg" onClick={openWhatsApp} className="w-full sm:w-auto rounded-full px-8">
-                    Saiba Mais <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
                   <Button 
-                    variant="outline" 
                     size="lg" 
-                    className="w-full sm:w-auto rounded-full px-8"
+                    className="w-full sm:w-auto rounded-full px-8 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary shadow-lg hover:shadow-xl transition-all duration-300"
                     onClick={async () => {
                       try {
                         const response = await fetch('/api/stripe/checkout', {
@@ -169,77 +183,93 @@ export default function LandingPage() {
                       }
                     }}
                   >
-                    Contratar por R$250/mês
+                    Comece Agora ✨
+                  </Button>
+                  <Button variant="outline" size="lg" onClick={openWhatsApp} className="w-full sm:w-auto rounded-full px-8">
+                    Fale Conosco <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Users className="h-4 w-4" />
-                  <span>Empresas de diversos segmentos já utilizam nossos agentes</span>
+                  <span>Milhares de mensagens já processadas via WhatsApp</span>
                 </div>
               </div>
               <div className="relative lg:ml-auto mt-8 lg:mt-0">
-                {/* Dashboard Preview */}
-                <div className="rounded-xl border shadow-xl overflow-hidden bg-background relative z-10">
-                  <div className="absolute -top-6 -left-6 w-24 h-24 bg-primary/10 rounded-full blur-xl"></div>
-                  <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-primary/10 rounded-full blur-xl"></div>
-                  <div className="flex h-12 items-center border-b px-4">
-                    <div className="flex items-center gap-2">
-                      <Bot className="h-5 w-5 text-primary" />
-                      <span className="font-semibold">ManyTalks IA</span>
-                    </div>
-                    <div className="ml-auto flex items-center gap-4">
-                      <Bell className="h-5 w-5 text-muted-foreground" />
-                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                        <span className="text-xs font-medium text-primary">AD</span>
+                {/* Chat Preview */}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.8 }}
+                  className="rounded-xl border shadow-xl overflow-hidden bg-background relative z-10 w-[500px] h-[600px] mx-auto lg:mx-0"
+                >
+                  <div className="flex items-center p-4 border-b">
+                    <motion.div
+                      animate={{ scale: [1, 1.2, 1] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                      className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center"
+                    >
+                      <Image
+                        src="/avatar-clara.jpg"
+                        alt="Clara - Assistente Virtual"
+                        width={48}
+                        height={48}
+                        className="w-full h-full object-cover rounded-full"
+                        priority
+                      />
+                    </motion.div>
+                    <div className="ml-4">
+                      <h3 className="text-lg font-semibold">Clara</h3>
+                      <div className="flex items-center text-sm text-green-500">
+                        <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                        Online agora
                       </div>
                     </div>
                   </div>
-                  <div className="flex h-[300px] md:h-[400px] lg:h-[500px] flex-col md:flex-row">
-                    <div className="w-full md:w-[220px] border-b md:border-r md:border-b-0 p-2 bg-background">
-                      <nav className="space-y-1">
-                        {[
-                          { icon: Bot, label: "Inteligência Artificial", active: true },
-                          { icon: BarChart3, label: "Dashboard" },
-                          { icon: Settings, label: "Configurações" },
-                        ].map((item, index) => (
-                          <div
+
+                  <div className="flex flex-col justify-between h-[calc(100%-144px)]">
+                    <div className="space-y-6 overflow-y-auto p-4">
+                      {displayedMessages.map((message, index) => (
+                        message && (
+                          <motion.div
                             key={index}
-                            className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm ${
-                              item.active
-                                ? "bg-primary text-primary-foreground"
-                                : "text-muted-foreground hover:bg-muted"
-                            }`}
+                            initial={{ opacity: 0, x: message?.type === "user" ? 20 : -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.5 }}
+                            className={`flex ${message?.type === "user" ? "justify-end" : "justify-start"}`}
                           >
-                            <item.icon className="h-4 w-4" />
-                            <span>{item.label}</span>
-                          </div>
-                        ))}
-                      </nav>
-                    </div>
-                    <div className="flex-1 overflow-auto bg-background">
-                      <div className="p-6">
-                        <header className="px-6 h-12 border-b border-border flex items-center justify-between mb-6">
-                          <span className="text-xs text-muted-foreground uppercase">Inteligência Artificial</span>
-                          <div className="flex gap-2">
-                            <Button variant="outline" size="sm" className="h-8 text-xs">
-                              Criar Novo Agente
-                            </Button>
-                          </div>
-                        </header>
-                        <div className="relative w-full h-full">
-                          {isMobile ? (
-                            <div className="p-4 text-center text-muted-foreground">
-                              <Bot className="mx-auto h-12 w-12 mb-2 text-primary" />
-                              <p>Painel de controle mobile</p>
+                            <div
+                              className={`w-[280px] p-3 rounded-2xl ${
+                                message?.type === "user"
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-muted text-foreground"
+                              }`}
+                            >
+                              <p className="text-sm">{message.text}</p>
                             </div>
-                          ) : (
-                            <Image src="/images/ia-01.png" alt="Dashboard do Sistema" fill className="object-contain" />
-                          )}
-                        </div>
-                      </div>
+                          </motion.div>
+                        )
+                      ))}
                     </div>
+
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 2 }}
+                      className="p-4 border-t bg-background/80 backdrop-blur-sm"
+                    >
+                      <div className="flex items-center bg-muted rounded-lg p-2">
+                        <input
+                          type="text"
+                          placeholder="Digite sua mensagem..."
+                          className="flex-1 bg-transparent border-none outline-none text-sm text-foreground placeholder:text-muted-foreground px-2"
+                        />
+                        <button className="ml-2 p-2 bg-primary hover:bg-primary/90 rounded-lg transition-colors">
+                          <MessageSquare className="w-5 h-5 text-primary-foreground" />
+                        </button>
+                      </div>
+                    </motion.div>
                   </div>
-                </div>
+                </motion.div>
                 {/* Decorative elements */}
                 <div className="absolute -z-10 -top-4 -right-4 w-64 h-64 bg-primary/5 rounded-full blur-3xl"></div>
                 <div className="absolute -z-10 -bottom-8 -left-8 w-72 h-72 bg-primary/5 rounded-full blur-3xl"></div>
@@ -268,14 +298,14 @@ export default function LandingPage() {
                   <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
                     <Bot className="h-6 w-6 text-primary" />
                   </div>
-                  <CardTitle className="text-xl">Agentes Personalizados</CardTitle>
+                  <CardTitle className="text-xl">WhatsApp Automatizado</CardTitle>
                   <CardDescription className="text-base">
-                    Crie e gerencie agentes de IA com personalidade e conhecimentos específicos
+                    Integração direta com WhatsApp Business API
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-muted-foreground">
-                    Configure agentes para diferentes setores e funções, como vendas, suporte ou agendamento.
+                    Configure respostas automáticas, atendimento personalizado e acompanhe todas as conversas em um só lugar.
                   </p>
                 </CardContent>
               </Card>
@@ -314,6 +344,69 @@ export default function LandingPage() {
             <div className="mt-16 text-center">
               <Button size="lg" onClick={openWhatsApp} className="rounded-full px-8">
                 Conheça Todos os Recursos <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </section>
+
+        {/* Video Demo Section */}
+        <section className="py-16 md:py-24 bg-background relative">
+          <div className="absolute inset-0 bg-grid-pattern opacity-[0.03] pointer-events-none"></div>
+          <div className="container px-4 md:px-6">
+            <div className="text-center space-y-4 mb-16">
+              <div className="inline-flex items-center px-3 py-1 rounded-full border border-primary/20 bg-primary/5 text-primary text-sm font-medium mb-2">
+                Demonstração
+              </div>
+              <h2 className="text-3xl font-bold tracking-tight md:text-4xl lg:text-5xl">Conheça a Plataforma</h2>
+              <p className="text-muted-foreground md:text-xl max-w-[700px] mx-auto">
+                Interface intuitiva para gerenciar seus agentes de IA e acompanhar resultados
+              </p>
+            </div>
+
+            <div className="max-w-4xl mx-auto rounded-xl overflow-hidden shadow-xl">
+              <div className="aspect-video relative bg-muted">
+                {isMounted && (
+                  <video
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="w-full h-full object-cover"
+                  >
+                    <source src="/demo_landingpage.mp4" type="video/mp4" />
+                    Seu navegador não suporta a tag de vídeo.
+                  </video>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-12 text-center">
+              <Button 
+                size="lg" 
+                className="rounded-full px-8 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary shadow-lg hover:shadow-xl transition-all duration-300"
+                onClick={async () => {
+                  try {
+                    const response = await fetch('/api/stripe/checkout', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.url) {
+                      window.location.href = data.url;
+                    } else {
+                      throw new Error('URL de checkout não encontrada');
+                    }
+                  } catch (error) {
+                    console.error('Erro ao iniciar checkout:', error);
+                    alert('Erro ao iniciar o processo de pagamento. Por favor, tente novamente.');
+                  }
+                }}
+              >
+                Comece Agora ✨
               </Button>
             </div>
           </div>
@@ -371,369 +464,6 @@ export default function LandingPage() {
             <div className="mt-16 text-center">
               <Button size="lg" onClick={openWhatsApp} className="rounded-full px-8">
                 Começar Agora <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </section>
-
-        {/* Demo Section */}
-        <section id="demo" className="py-12 md:py-24 bg-background">
-          <div className="container px-4 md:px-6">
-            <div className="text-center space-y-3 mb-12">
-              <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">Conheça a Plataforma</h2>
-              <p className="text-muted-foreground md:text-xl max-w-[700px] mx-auto">
-                Interface intuitiva para gerenciar seus agentes de IA e acompanhar resultados
-              </p>
-            </div>
-
-            <Tabs
-              defaultValue="ia"
-              onValueChange={(value) => setActiveTab(value as "ia" | "dashboard")}
-              className="w-full max-w-5xl mx-auto"
-            >
-              <TabsList className="grid w-full grid-cols-2 mb-8">
-                <TabsTrigger value="ia">Inteligência Artificial</TabsTrigger>
-                <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-              </TabsList>
-              <TabsContent value="ia">
-                <div className="rounded-lg border shadow-lg overflow-hidden bg-background">
-                  <div className="flex h-12 items-center border-b px-4">
-                    <div className="flex items-center gap-2">
-                      <Bot className="h-5 w-5 text-primary" />
-                      <span className="font-semibold">ManyTalks IA</span>
-                    </div>
-                    <div className="ml-auto flex items-center gap-4">
-                      <Bell className="h-5 w-5 text-muted-foreground" />
-                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                        <span className="text-xs font-medium text-primary">AD</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex h-[400px] md:h-[500px] flex-col md:flex-row">
-                    <div className="w-full md:w-[220px] border-b md:border-r md:border-b-0 p-2 bg-background">
-                      <nav className="space-y-1">
-                        {[
-                          { icon: Bot, label: "Inteligência Artificial", active: true },
-                          { icon: BarChart3, label: "Dashboard" },
-                          { icon: Settings, label: "Configurações" },
-                        ].map((item, index) => (
-                          <div
-                            key={index}
-                            className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm ${
-                              item.active
-                                ? "bg-primary text-primary-foreground"
-                                : "text-muted-foreground hover:bg-muted"
-                            }`}
-                          >
-                            <item.icon className="h-4 w-4" />
-                            <span>{item.label}</span>
-                          </div>
-                        ))}
-                      </nav>
-                    </div>
-                    <div className="flex-1 overflow-auto bg-background">
-                      <div className="p-6">
-                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 mb-6">
-                          <h2 className="text-xl font-bold">INTELIGÊNCIA ARTIFICIAL</h2>
-                          <Button size="sm">Criar Novo</Button>
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                          <Card className="w-full">
-                            <CardHeader className="pb-2">
-                              <div className="flex justify-between items-start">
-                                <CardTitle>Sofia</CardTitle>
-                                <Badge className="bg-green-500 text-white">ativo</Badge>
-                              </div>
-                            </CardHeader>
-                            <CardContent className="pb-2">
-                              <div className="flex items-center gap-2 text-sm">
-                                <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                                <span>Comercial</span>
-                              </div>
-                            </CardContent>
-                            <CardFooter className="flex flex-wrap gap-2 pt-2">
-                              <Button variant="ghost" size="sm" className="text-xs">
-                                Editar
-                              </Button>
-                              <Button variant="ghost" size="sm" className="text-xs">
-                                Desativar
-                              </Button>
-                              <Button variant="ghost" size="sm" className="text-xs">
-                                Excluir
-                              </Button>
-                            </CardFooter>
-                          </Card>
-
-                          <Card className="w-full">
-                            <CardHeader className="pb-2">
-                              <div className="flex justify-between items-start">
-                                <CardTitle>Suporte</CardTitle>
-                                <Badge className="bg-green-500 text-white">ativo</Badge>
-                              </div>
-                            </CardHeader>
-                            <CardContent className="pb-2">
-                              <div className="flex items-center gap-2 text-sm">
-                                <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                                <span>Atendimento</span>
-                              </div>
-                            </CardContent>
-                            <CardFooter className="flex flex-wrap gap-2 pt-2">
-                              <Button variant="ghost" size="sm" className="text-xs">
-                                Editar
-                              </Button>
-                              <Button variant="ghost" size="sm" className="text-xs">
-                                Desativar
-                              </Button>
-                              <Button variant="ghost" size="sm" className="text-xs">
-                                Excluir
-                              </Button>
-                            </CardFooter>
-                          </Card>
-
-                          <Card className="w-full">
-                            <CardHeader className="pb-2">
-                              <div className="flex justify-between items-start">
-                                <CardTitle>Vendas</CardTitle>
-                                <Badge className="bg-gray-300 text-gray-700">inativo</Badge>
-                              </div>
-                            </CardHeader>
-                            <CardContent className="pb-2">
-                              <div className="flex items-center gap-2 text-sm">
-                                <div className="w-2 h-2 rounded-full bg-gray-400"></div>
-                                <span>Vendas</span>
-                              </div>
-                            </CardContent>
-                            <CardFooter className="flex flex-wrap gap-2 pt-2">
-                              <Button variant="ghost" size="sm" className="text-xs">
-                                Editar
-                              </Button>
-                              <Button variant="ghost" size="sm" className="text-xs">
-                                Ativar
-                              </Button>
-                              <Button variant="ghost" size="sm" className="text-xs">
-                                Excluir
-                              </Button>
-                            </CardFooter>
-                          </Card>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </TabsContent>
-              <TabsContent value="dashboard">
-                <div className="rounded-lg border shadow-lg overflow-hidden bg-background">
-                  <div className="flex h-12 items-center border-b px-4">
-                    <div className="flex items-center gap-2">
-                      <Bot className="h-5 w-5 text-primary" />
-                      <span className="font-semibold">ManyTalks IA</span>
-                    </div>
-                    <div className="ml-auto flex items-center gap-4">
-                      <Bell className="h-5 w-5 text-muted-foreground" />
-                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                        <span className="text-xs font-medium text-primary">AD</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex h-[400px] md:h-[500px] flex-col md:flex-row">
-                    <div className="w-full md:w-[220px] border-b md:border-r md:border-b-0 p-2 bg-background">
-                      <nav className="space-y-1">
-                        {[
-                          { icon: Bot, label: "Inteligência Artificial", active: false },
-                          { icon: BarChart3, label: "Dashboard", active: true },
-                          { icon: Settings, label: "Configurações" },
-                        ].map((item, index) => (
-                          <div
-                            key={index}
-                            className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm ${
-                              item.active
-                                ? "bg-primary text-primary-foreground"
-                                : "text-muted-foreground hover:bg-muted"
-                            }`}
-                          >
-                            <item.icon className="h-4 w-4" />
-                            <span>{item.label}</span>
-                          </div>
-                        ))}
-                      </nav>
-                    </div>
-                    <div className="flex-1 overflow-auto bg-background">
-                      <div className="p-6">
-                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 mb-6">
-                          <h2 className="text-xl font-bold">DASHBOARD</h2>
-                          <Select defaultValue="7dias">
-                            <SelectTrigger className="w-full sm:w-[180px]">
-                              <SelectValue placeholder="Período" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="7dias">Últimos 7 dias</SelectItem>
-                              <SelectItem value="30dias">Últimos 30 dias</SelectItem>
-                              <SelectItem value="mes">Este mês</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="grid gap-4 mb-6">
-                          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
-                            <Card>
-                              <CardHeader className="pb-2">
-                                <CardDescription>Total de Interações</CardDescription>
-                                <CardTitle className="text-3xl">1.248</CardTitle>
-                              </CardHeader>
-                              <CardContent>
-                                <div className="text-xs text-muted-foreground">+12% em relação à semana anterior</div>
-                              </CardContent>
-                              <CardFooter>
-                                <Progress value={12} aria-label="Aumento de 12%" />
-                              </CardFooter>
-                            </Card>
-
-                            <Card>
-                              <CardHeader className="pb-2">
-                                <CardDescription>Novos Contatos</CardDescription>
-                                <CardTitle className="text-3xl">87</CardTitle>
-                              </CardHeader>
-                              <CardContent>
-                                <div className="text-xs text-muted-foreground">+23% em relação à semana anterior</div>
-                              </CardContent>
-                              <CardFooter>
-                                <Progress value={23} aria-label="Aumento de 23%" />
-                              </CardFooter>
-                            </Card>
-
-                            <Card>
-                              <CardHeader className="pb-2">
-                                <CardDescription>Taxa de Resolução</CardDescription>
-                                <CardTitle className="text-3xl">78%</CardTitle>
-                              </CardHeader>
-                              <CardContent>
-                                <div className="text-xs text-muted-foreground">+5% em relação à semana anterior</div>
-                              </CardContent>
-                              <CardFooter>
-                                <Progress value={5} aria-label="Aumento de 5%" />
-                              </CardFooter>
-                            </Card>
-
-                            <Card>
-                              <CardHeader className="pb-2">
-                                <CardDescription>Tempo Médio</CardDescription>
-                                <CardTitle className="text-3xl">2m 14s</CardTitle>
-                              </CardHeader>
-                              <CardContent>
-                                <div className="text-xs text-muted-foreground">-18% em relação à semana anterior</div>
-                              </CardContent>
-                              <CardFooter>
-                                <Progress value={18} aria-label="Redução de 18%" className="bg-primary/20" />
-                              </CardFooter>
-                            </Card>
-                          </div>
-                        </div>
-
-                        <Card className="mb-6">
-                          <CardHeader>
-                            <CardTitle>Relatório de Interações</CardTitle>
-                          </CardHeader>
-                          <CardContent>
-                            <div className="flex flex-col space-y-4 md:flex-row md:space-x-4 md:space-y-0 mb-4">
-                              <div className="flex-1">
-                                <Label htmlFor="search">Buscar</Label>
-                                <Input id="search" placeholder="Buscar por nome, telefone ou interesse" />
-                              </div>
-                              <div>
-                                <Label htmlFor="status">Filtrar por Status</Label>
-                                <Select defaultValue="all">
-                                  <SelectTrigger id="status" className="w-full sm:w-[180px]">
-                                    <SelectValue placeholder="Todos" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="all">Todos</SelectItem>
-                                    <SelectItem value="novo">Novo</SelectItem>
-                                    <SelectItem value="interessado">Interessado</SelectItem>
-                                    <SelectItem value="convertido">Convertido</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                            </div>
-
-                            <div className="overflow-x-auto">
-                              <Table>
-                                <TableHeader>
-                                  <TableRow>
-                                    <TableHead>Nome</TableHead>
-                                    <TableHead className="hidden sm:table-cell">Telefone</TableHead>
-                                    <TableHead className="hidden md:table-cell">Interesse</TableHead>
-                                    <TableHead className="hidden md:table-cell">Interações</TableHead>
-                                    <TableHead className="hidden lg:table-cell">Último Contato</TableHead>
-                                    <TableHead>Status</TableHead>
-                                  </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                  <TableRow>
-                                    <TableCell>Maria Silva</TableCell>
-                                    <TableCell className="hidden sm:table-cell">+55 11 98765-4321</TableCell>
-                                    <TableCell className="hidden md:table-cell">Atendimento Automático</TableCell>
-                                    <TableCell className="hidden md:table-cell">12</TableCell>
-                                    <TableCell className="hidden lg:table-cell">12/04/2025 14:30</TableCell>
-                                    <TableCell>
-                                      <Badge className="bg-green-500 text-white">Convertido</Badge>
-                                    </TableCell>
-                                  </TableRow>
-                                  <TableRow>
-                                    <TableCell>João Santos</TableCell>
-                                    <TableCell className="hidden sm:table-cell">+55 21 99876-5432</TableCell>
-                                    <TableCell className="hidden md:table-cell">Vendas</TableCell>
-                                    <TableCell className="hidden md:table-cell">8</TableCell>
-                                    <TableCell className="hidden lg:table-cell">11/04/2025 09:15</TableCell>
-                                    <TableCell>
-                                      <Badge className="bg-yellow-500 text-white">Interessado</Badge>
-                                    </TableCell>
-                                  </TableRow>
-                                  <TableRow>
-                                    <TableCell>Ana Oliveira</TableCell>
-                                    <TableCell className="hidden sm:table-cell">+55 31 97654-3210</TableCell>
-                                    <TableCell className="hidden md:table-cell">Suporte</TableCell>
-                                    <TableCell className="hidden md:table-cell">3</TableCell>
-                                    <TableCell className="hidden lg:table-cell">10/04/2025 16:45</TableCell>
-                                    <TableCell>
-                                      <Badge className="bg-blue-500 text-white">Novo</Badge>
-                                    </TableCell>
-                                  </TableRow>
-                                  <TableRow>
-                                    <TableCell>Carlos Pereira</TableCell>
-                                    <TableCell className="hidden sm:table-cell">+55 41 98765-1234</TableCell>
-                                    <TableCell className="hidden md:table-cell">Atendimento Automático</TableCell>
-                                    <TableCell className="hidden md:table-cell">15</TableCell>
-                                    <TableCell className="hidden lg:table-cell">09/04/2025 11:20</TableCell>
-                                    <TableCell>
-                                      <Badge className="bg-green-500 text-white">Convertido</Badge>
-                                    </TableCell>
-                                  </TableRow>
-                                  <TableRow>
-                                    <TableCell>Fernanda Lima</TableCell>
-                                    <TableCell className="hidden sm:table-cell">+55 51 99876-2345</TableCell>
-                                    <TableCell className="hidden md:table-cell">Vendas</TableCell>
-                                    <TableCell className="hidden md:table-cell">5</TableCell>
-                                    <TableCell className="hidden lg:table-cell">08/04/2025 13:10</TableCell>
-                                    <TableCell>
-                                      <Badge className="bg-yellow-500 text-white">Interessado</Badge>
-                                    </TableCell>
-                                  </TableRow>
-                                </TableBody>
-                              </Table>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </TabsContent>
-            </Tabs>
-
-            <div className="mt-12 text-center">
-              <Button size="lg" onClick={openWhatsApp} className="w-full sm:w-auto">
-                Quero Conhecer <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -882,7 +612,7 @@ export default function LandingPage() {
             <div className="max-w-[800px] mx-auto space-y-6">
               <h2 className="text-3xl font-bold tracking-tighter md:text-4xl lg:text-5xl">Transforme seu Atendimento Hoje</h2>
               <p className="text-primary-foreground/90 md:text-xl max-w-[600px] mx-auto">
-                Não perca a oportunidade de automatizar seu atendimento com inteligência artificial!
+                Automatize seu atendimento com inteligência artificial e veja seus resultados crescerem!
               </p>
               <div className="flex flex-col sm:flex-row justify-center gap-4 mt-8">
                 <Button
@@ -891,17 +621,7 @@ export default function LandingPage() {
                   onClick={openWhatsApp}
                   className="bg-white text-primary hover:bg-white/90 w-full sm:w-auto"
                 >
-                  Saiba Mais <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  asChild
-                  className="border-white text-white hover:bg-white/10 w-full sm:w-auto"
-                >
-                  <a href="/auth">
-                    Acessar Plataforma <ArrowRight className="ml-2 h-4 w-4" />
-                  </a>
+                  Começar Agora <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
             </div>
@@ -914,7 +634,9 @@ export default function LandingPage() {
           <div className="grid gap-8 grid-cols-1 xs:grid-cols-2 md:grid-cols-4">
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <Bot className="h-6 w-6 text-primary" />
+                <div className="bg-primary p-2 rounded-lg">
+                  <Image src="/favicon.svg" alt="ManyTalks Logo" width={20} height={20} />
+                </div>
                 <span className="text-xl font-bold">ManyTalks IA</span>
               </div>
               <p className="text-sm text-muted-foreground">

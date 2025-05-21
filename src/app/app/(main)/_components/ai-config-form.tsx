@@ -390,55 +390,57 @@ export function AIConfigForm({
         />
       )}
 
-      <FormField
-        control={form.control}
-        name="enviarParaAtendente"
-        render={({ field }) => (
-          <FormItem className="flex flex-col rounded-lg border p-4">
-            <div className="flex flex-row items-center justify-between">
-              <div className="space-y-0.5">
-                <FormLabel className="text-base">
-                  Enviar para Atendente
-                </FormLabel>
-                <FormDescription>
-                  Defina se o atendimento deve ser enviado para o atendente.
-                </FormDescription>
+      {isIntegrationUser && (
+        <FormField
+          control={form.control}
+          name="enviarParaAtendente"
+          render={({ field }) => (
+            <FormItem className="flex flex-col rounded-lg border p-4">
+              <div className="flex flex-row items-center justify-between">
+                <div className="space-y-0.5">
+                  <FormLabel className="text-base">
+                    Enviar para Atendente
+                  </FormLabel>
+                  <FormDescription>
+                    Defina se o atendimento deve ser enviado para o atendente.
+                  </FormDescription>
+                </div>
+                <FormControl>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
               </div>
-              <FormControl>
-                <Switch
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
+              {field.value && (
+                <FormField
+                  control={form.control}
+                  name="condicoesAtendimento"
+                  render={({ field: condicoesField }) => (
+                    <FormItem className="mt-4">
+                      <FormLabel>Condições de Atendimento</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Separe as condições por vírgula"
+                          {...condicoesField}
+                          onChange={(e) => {
+                            condicoesField.onChange(e.target.value)
+                          }}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Ex: Quando houver problema técnico, Quando houver
+                        reclamação
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </FormControl>
-            </div>
-            {field.value && (
-              <FormField
-                control={form.control}
-                name="condicoesAtendimento"
-                render={({ field: condicoesField }) => (
-                  <FormItem className="mt-4">
-                    <FormLabel>Condições de Atendimento</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Separe as condições por vírgula"
-                        {...condicoesField}
-                        onChange={(e) => {
-                          condicoesField.onChange(e.target.value)
-                        }}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Ex: Quando houver problema técnico, Quando houver
-                      reclamação
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-          </FormItem>
-        )}
-      />
+              )}
+            </FormItem>
+          )}
+        />
+      )}
 
       <div className="space-y-6 border rounded-lg p-6">
         <div className="flex justify-between items-center">

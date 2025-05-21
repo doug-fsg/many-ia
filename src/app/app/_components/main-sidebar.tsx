@@ -12,18 +12,23 @@ import {
   DashboardSidebarFooter,
 } from '@/components/dashboard/sidebar'
 import { usePathname } from 'next/navigation'
-import {
-  HomeIcon,
-  MixerVerticalIcon,
-  DashboardIcon,
-  HamburgerMenuIcon,
-  Cross1Icon,
-} from '@radix-ui/react-icons'
+import { 
+  Sparkles, 
+  LayoutDashboard, 
+  Settings,
+  HelpCircle,
+  Globe,
+  Menu,
+  X
+} from 'lucide-react'
 import { UserDropdown } from './user-dropdown'
 import { Logo } from '@/components/logo'
 import { AuthUser } from '@/lib/auth-helper'
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import Link from 'next/link'
+import React from 'react'
 
 type MainSidebarProps = {
   user: AuthUser
@@ -33,6 +38,40 @@ export function MainSidebar({ user }: MainSidebarProps) {
   const pathname = usePathname()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+
+  const menuItems = [
+    {
+      href: '/app',
+      icon: <Sparkles className="w-4 h-4 mr-3" />,
+      label: 'Atendente',
+      mobileLabel: 'Atendente'
+    },
+    {
+      href: '/app/dashboard',
+      icon: <LayoutDashboard className="w-4 h-4 mr-3" />,
+      label: 'Dashboard',
+      mobileLabel: 'Dashboard'
+    },
+    {
+      href: '/app/settings',
+      icon: <Settings className="w-4 h-4 mr-3" />,
+      label: 'Configurações',
+      mobileLabel: 'Config.'
+    }
+  ]
+
+  const extraLinks = [
+    {
+      href: '/help',
+      icon: <HelpCircle className="w-4 h-4 mr-3" />,
+      label: 'Precisa de ajuda?'
+    },
+    {
+      href: '/',
+      icon: <Globe className="w-4 h-4 mr-3" />,
+      label: 'Site'
+    }
+  ]
 
   // Detectar se estamos em um dispositivo móvel
   useEffect(() => {
@@ -65,82 +104,83 @@ export function MainSidebar({ user }: MainSidebarProps) {
 
   return (
     <>
-      {/* Mobile Menu Button */}
-      <div className="md:hidden fixed top-0 left-0 z-50 p-4">
-        <Button 
-          variant="outline" 
-          size="icon" 
-          onClick={toggleMobileMenu}
-          className="h-10 w-10"
-          aria-label={isMobileMenuOpen ? "Fechar menu" : "Abrir menu"}
-          aria-expanded={isMobileMenuOpen}
-          aria-controls="mobile-sidebar"
-        >
-          {isMobileMenuOpen ? 
-            <Cross1Icon className="w-4 h-4" /> : 
-            <HamburgerMenuIcon className="w-4 h-4" />
-          }
-        </Button>
+      {/* Mobile Bottom Navigation */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-background border-t border-border/40 z-50">
+        <nav className="flex justify-around items-center h-16 px-2">
+          {menuItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "flex flex-col items-center justify-center w-16 py-1 text-xs transition-colors",
+                isActive(item.href) 
+                  ? "text-primary" 
+                  : "text-muted-foreground hover:text-primary"
+              )}
+            >
+              {React.cloneElement(item.icon, { 
+                className: "w-5 h-5 mb-1",
+                strokeWidth: isActive(item.href) ? 2.5 : 1.5
+              })}
+              <span className="text-[10px] text-center">{item.mobileLabel}</span>
+            </Link>
+          ))}
+          <div className="flex flex-col items-center justify-center w-16 py-1">
+            <UserDropdown user={user} isMobile={true} />
+          </div>
+        </nav>
       </div>
 
-      <div 
-        id="mobile-sidebar"
-        aria-hidden={isMobile && !isMobileMenuOpen}
-      >
+      {/* Ajuste para centralizar os cards no mobile */}
+      <style jsx global>{`
+        @media (max-width: 768px) {
+          main > div > div {
+            justify-content: center !important;
+          }
+        }
+      `}</style>
+
+      {/* Desktop Sidebar */}
+      <div className="hidden md:block">
         <DashboardSidebar 
-          className={`${isMobile ? 'fixed left-0 top-0 bottom-0 w-64 z-40 transition-transform duration-300 ease-in-out transform' : 'fixed left-0 top-0 bottom-0 w-64 z-50'} ${
-            isMobile && !isMobileMenuOpen ? '-translate-x-full' : 'translate-x-0'
-          }`}
+          className="fixed left-0 top-0 bottom-0 w-64 z-50"
         >
           <DashboardSidebarHeader>
             <Logo />
-            {isMobile && (
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={toggleMobileMenu}
-                className="absolute top-4 right-4 md:hidden"
-                aria-label="Fechar menu"
-              >
-                <Cross1Icon className="w-4 h-4" />
-              </Button>
-            )}
           </DashboardSidebarHeader>
           <DashboardSidebarMain className="flex flex-col flex-grow overflow-y-auto">
             <DashboardSidebarNav>
               <DashboardSidebarNavMain>
-                <DashboardSidebarNavLink href="/app" active={isActive('/app')}>
-                  <HomeIcon className="w-3 h-3 mr-3" />
-                  Inteligência Artificial
-                </DashboardSidebarNavLink>
-                <DashboardSidebarNavLink
-                  href="/app/dashboard"
-                  active={isActive('/app/dashboard')}
-                >
-                  <DashboardIcon className="w-3 h-3 mr-3" />
-                  Dashboard
-                </DashboardSidebarNavLink>
-                <DashboardSidebarNavLink
-                  href="/app/settings"
-                  active={isActive('/app/settings')}
-                >
-                  <MixerVerticalIcon className="w-3 h-3 mr-3" />
-                  Configurações
-                </DashboardSidebarNavLink>
+                {menuItems.map((item) => (
+                  <DashboardSidebarNavLink 
+                    key={item.href}
+                    href={item.href} 
+                    active={isActive(item.href)}
+                  >
+                    {item.icon}
+                    {item.label}
+                  </DashboardSidebarNavLink>
+                ))}
               </DashboardSidebarNavMain>
             </DashboardSidebarNav>
 
-            <DashboardSidebarNav className="mt-auto">
+            <DashboardSidebarNav className="mt-auto pt-6">
               <DashboardSidebarNavHeader>
                 <DashboardSidebarNavHeaderTitle>
                   Links extras
                 </DashboardSidebarNavHeaderTitle>
               </DashboardSidebarNavHeader>
               <DashboardSidebarNavMain>
-                <DashboardSidebarNavLink href="/">
-                  Precisa de ajuda?
-                </DashboardSidebarNavLink>
-                <DashboardSidebarNavLink href="/">Site</DashboardSidebarNavLink>
+                {extraLinks.map((item) => (
+                  <DashboardSidebarNavLink 
+                    key={item.href}
+                    href={item.href}
+                    active={isActive(item.href)}
+                  >
+                    {item.icon}
+                    {item.label}
+                  </DashboardSidebarNavLink>
+                ))}
               </DashboardSidebarNavMain>
             </DashboardSidebarNav>
           </DashboardSidebarMain>
@@ -149,16 +189,6 @@ export function MainSidebar({ user }: MainSidebarProps) {
           </DashboardSidebarFooter>
         </DashboardSidebar>
       </div>
-
-      {/* Overlay para fechar o menu ao clicar fora em dispositivos móveis */}
-      {isMobile && isMobileMenuOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-30"
-          onClick={toggleMobileMenu}
-          aria-hidden="true"
-          role="presentation"
-        />
-      )}
     </>
   )
 }

@@ -14,7 +14,7 @@ export function DashboardSidebar({
   return (
     <aside
       className={cn([
-        'border-r border-border flex flex-col space-y-6 bg-secondary/5',
+        'border-r border-border/40 flex flex-col space-y-4 bg-card shadow-sm',
         className,
       ])}
     >
@@ -30,7 +30,7 @@ export function DashboardSidebarHeader({
   return (
     <header
       className={cn([
-        'px-6 h-12 flex items-center border-b border-border',
+        'px-6 h-16 flex items-center border-b border-border/40 bg-card/50',
         className,
       ])}
     >
@@ -87,7 +87,7 @@ export function DashboardSidebarNavMain({
   className,
   children,
 }: DashboardSidebarGenericProps) {
-  return <main className={cn(['flex flex-col', className])}>{children}</main>
+  return <main className={cn(['flex flex-col space-y-1', className])}>{children}</main>
 }
 
 type DashboardSidebarNavLinkProps = {
@@ -105,8 +105,10 @@ export function DashboardSidebarNavLink({
     <Link
       href={href}
       className={cn([
-        'flex items-center text-xs px-3 py-2 rounded-md',
-        active && 'bg-secondary',
+        'flex items-center text-sm px-4 py-2.5 rounded-lg transition-all duration-200',
+        'hover:bg-accent/50 hover:text-accent-foreground',
+        active && 'bg-primary/10 text-primary font-medium',
+        !active && 'text-muted-foreground',
         className,
       ])}
     >
@@ -120,7 +122,7 @@ export function DashboardSidebarFooter({
   children,
 }: DashboardSidebarGenericProps) {
   return (
-    <footer className={cn(['p-6 mt-auto border-t border-border', className])}>
+    <footer className={cn(['p-6 mt-auto border-t border-border/40 bg-card/50', className])}>
       {children}
     </footer>
   )

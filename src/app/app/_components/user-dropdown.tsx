@@ -11,15 +11,17 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { signOut } from 'next-auth/react'
-import { LogOutIcon, SettingsIcon } from 'lucide-react'
+import { LogOutIcon, SettingsIcon, UserCircle2 } from 'lucide-react'
 import Link from 'next/link'
 import { AuthUser } from '@/lib/auth-helper'
+import { cn } from '@/lib/utils'
 
 type UserDropdownProps = {
   user: AuthUser
+  isMobile?: boolean
 }
 
-export function UserDropdown({ user }: UserDropdownProps) {
+export function UserDropdown({ user, isMobile = false }: UserDropdownProps) {
   const handleSignOut = async () => {
     try {
       // Chamar o endpoint centralizado de logout
@@ -40,6 +42,50 @@ export function UserDropdown({ user }: UserDropdownProps) {
       await signOut({ callbackUrl: '/auth' });
     }
   };
+
+  if (isMobile) {
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="h-auto p-0">
+            <div className="flex flex-col items-center">
+              <UserCircle2 className="w-5 h-5 mb-1" strokeWidth={1.5} />
+              <span className="text-[10px]">Perfil</span>
+            </div>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-56" align="end" forceMount>
+          <DropdownMenuLabel className="font-normal">
+            <div className="flex flex-col space-y-1">
+              <p className="text-sm font-medium leading-none">{user?.name}</p>
+              {user?.email && (
+                <p className="text-xs leading-none text-muted-foreground">
+                  {user.email}
+                </p>
+              )}
+            </div>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem asChild>
+            <Link href="/app/settings" className="cursor-pointer">
+              <SettingsIcon className="mr-2 h-4 w-4" />
+              Configurações
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem 
+            onSelect={(event) => {
+              event.preventDefault()
+              handleSignOut()
+            }}
+            className="cursor-pointer"
+          >
+            <LogOutIcon className="mr-2 h-4 w-4" />
+            Sair
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    )
+  }
 
   return (
     <DropdownMenu>
