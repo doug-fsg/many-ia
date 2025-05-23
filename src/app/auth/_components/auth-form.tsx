@@ -233,12 +233,6 @@ export function AuthForm() {
             'Entrar'
           )}
         </Button>
-        
-        <div className="text-center text-sm mt-4">
-          <a href="/auth/register" className={`text-blue-600 hover:underline ${isLoading ? 'pointer-events-none opacity-50' : ''}`}>
-            Não tem uma conta? Registre-se
-          </a>
-        </div>
       </form>
     </div>
   )

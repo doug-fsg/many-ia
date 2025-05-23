@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/use-toast';
 import { useForm } from 'react-hook-form';
 
-export default function SetPasswordPage() {
+function SetPasswordForm() {
   const [isLoading, setIsLoading] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -128,5 +128,19 @@ export default function SetPasswordPage() {
         </Button>
       </form>
     </div>
+  );
+}
+
+export default function SetPasswordPage() {
+  return (
+    <Suspense fallback={
+      <div className="mx-auto max-w-sm space-y-8">
+        <div className="space-y-2 text-center">
+          <h1 className="text-3xl font-bold">Carregando...</h1>
+        </div>
+      </div>
+    }>
+      <SetPasswordForm />
+    </Suspense>
   );
 } 
