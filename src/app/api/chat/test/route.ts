@@ -8,6 +8,8 @@ type ChatTestRequest = Array<{
   extra: {
     account: string
     inbox: string | number
+    aiConfig?: any // Adicionado para incluir os dados do aiConfig
+    isTemplate?: boolean // Adicionado para identificar se é um teste de template
   }
   chat: {
     id: string
@@ -83,6 +85,63 @@ export async function POST(request: Request) {
         { error: 'Formato de requisição inválido' }, 
         { status: 400 }
       )
+    }
+
+    // Se for um teste de template, buscar o template ao invés do aiConfig
+    if (chatRequest[0].extra.isTemplate) {
+      const template = await prisma.template.findFirst({
+        where: {
+          id: chatRequest[0].id,
+          OR: [
+            { userId: session.user.id }, // Template do usuário
+            { 
+              sharedWith: {
+                some: { userId: session.user.id } // Template compartilhado com o usuário
+              }
+            }
+          ]
+        },
+        include: {
+          sharedWith: true
+        }
+      })
+
+      if (!template) {
+        return NextResponse.json(
+          { error: 'Template não encontrado ou sem permissão de acesso' },
+          { status: 404 }
+        )
+      }
+
+      // Adicionar os dados do template ao payload
+      chatRequest[0].extra.aiConfig = {
+        ...template,
+        isTemplate: true
+      }
+    } else {
+      // Buscar o aiConfig ativo do usuário
+      const aiConfig = await prisma.aIConfig.findFirst({
+        where: {
+          userId: session.user.id
+        },
+        include: {
+          attachments: true,
+          temasEvitar: true
+        }
+      })
+
+      if (!aiConfig) {
+        return NextResponse.json(
+          { error: 'Nenhuma configuração de IA ativa encontrada' },
+          { status: 404 }
+        )
+      }
+
+      // Remover o campo embedding do aiConfig
+      const { embedding, ...aiConfigWithoutEmbedding } = aiConfig
+      
+      // Adicionar os dados do aiConfig ao payload
+      chatRequest[0].extra.aiConfig = aiConfigWithoutEmbedding
     }
     
     // Se temos um manytalksAccountId, atualizar o payload

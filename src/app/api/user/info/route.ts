@@ -101,7 +101,8 @@ export async function GET() {
     console.log('[USER-INFO] Dados do usuário obtidos do banco de dados:', {
       id: dbUser.id,
       email: dbUser.email,
-      isIntegrationUser: dbUser.isIntegrationUser
+      isIntegrationUser: dbUser.isIntegrationUser,
+      canCreateTemplates: dbUser.canCreateTemplates
     });
     
     // Retornar informações do usuário diretamente do banco de dados
@@ -109,7 +110,8 @@ export async function GET() {
       id: dbUser.id,
       name: dbUser.name,
       email: dbUser.email,
-      isIntegrationUser: dbUser.isIntegrationUser ?? false
+      isIntegrationUser: dbUser.isIntegrationUser ?? false,
+      canCreateTemplates: dbUser.canCreateTemplates ?? false
     });
   } catch (error) {
     console.error('Erro ao buscar informações do usuário:', error);

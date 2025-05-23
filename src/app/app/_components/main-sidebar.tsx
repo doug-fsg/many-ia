@@ -19,7 +19,8 @@ import {
   HelpCircle,
   Globe,
   Menu,
-  X
+  X,
+  FileText
 } from 'lucide-react'
 import { UserDropdown } from './user-dropdown'
 import { Logo } from '@/components/logo'
@@ -38,12 +39,41 @@ export function MainSidebar({ user }: MainSidebarProps) {
   const pathname = usePathname()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  const [userInfo, setUserInfo] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
 
-  const menuItems = [
+  // Buscar informações completas do usuário da API
+  useEffect(() => {
+    const fetchUserInfo = async () => {
+      try {
+        setLoading(true)
+        const response = await fetch('/api/user/info')
+        if (response.ok) {
+          const data = await response.json()
+          setUserInfo(data)
+          console.log('[MAIN-SIDEBAR] Informações do usuário obtidas via API:', data)
+        } else {
+          console.error('[MAIN-SIDEBAR] Erro ao buscar informações do usuário:', await response.text())
+        }
+      } catch (error) {
+        console.error('[MAIN-SIDEBAR] Erro ao buscar informações do usuário:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    fetchUserInfo()
+  }, [])
+
+  // Verifique se o usuário pode criar templates
+  const canCreateTemplates = userInfo?.canCreateTemplates === true
+
+  // Lista de itens de menu básicos (sempre visíveis)
+  const baseMenuItems = [
     {
       href: '/app',
       icon: <Sparkles className="w-4 h-4 mr-3" />,
-      label: 'Atendente',
+      label: 'Personalize sua IA',
       mobileLabel: 'Atendente'
     },
     {
@@ -59,6 +89,19 @@ export function MainSidebar({ user }: MainSidebarProps) {
       mobileLabel: 'Config.'
     }
   ]
+
+  // Item de menu de Templates (condicional)
+  const templatesMenuItem = {
+    href: '/app/templates',
+    icon: <FileText className="w-4 h-4 mr-3" />,
+    label: 'Meus Modelos',
+    mobileLabel: 'Modelos'
+  }
+
+  // Menu final com ou sem o item Templates
+  const menuItems = canCreateTemplates 
+    ? [...baseMenuItems.slice(0, 2), templatesMenuItem, baseMenuItems[2]] 
+    : baseMenuItems
 
   const extraLinks = [
     {

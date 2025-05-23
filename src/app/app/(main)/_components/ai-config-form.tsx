@@ -4,7 +4,7 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
-import { AIConfig } from '../types'
+import { AIConfig, Template } from '../types'
 import { upsertAIConfig } from '../actions'
 import { upsertAIConfigSchema, AIConfigFormData } from '../schema'
 import { toast } from '@/components/ui/use-toast'
@@ -37,7 +37,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { ExpandIcon, Check, ChevronsUpDown } from 'lucide-react'
-import { aiTemplates, TemplateKeys } from '../templates'
 import { useSession } from 'next-auth/react'
 
 import {
@@ -74,25 +73,6 @@ interface TemasEvitar {
   tema: string
 }
 
-// Definição dos templates em formato mais adequado para o combobox
-const templateOptions = [
-  {
-    value: 'suporteCliente',
-    label: 'Suporte ao Cliente',
-    description: 'Ideal para atendimento ao cliente e suporte técnico',
-  },
-  {
-    value: 'consultorVendas',
-    label: 'Consultor de Vendas',
-    description: 'Perfeito para vendas consultivas e negociações',
-  },
-  {
-    value: 'corretor',
-    label: 'Corretor de Imóveis',
-    description: 'Especializado em atendimento imobiliário',
-  },
-]
-
 export function AIConfigForm({
   defaultValue,
   onSuccess,
@@ -115,6 +95,12 @@ export function AIConfigForm({
   const [selectedTemplate, setSelectedTemplate] = useState('')
   const [isCustomized, setIsCustomized] = useState(false)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [templateOptions, setTemplateOptions] = useState<Array<{
+    value: string
+    label: string
+    description: string
+    template: any
+  }>>([])
 
   const form = useForm<AIConfigFormData>({
     resolver: zodResolver(upsertAIConfigSchema),
@@ -139,16 +125,15 @@ export function AIConfigForm({
   }, [defaultValue])
 
   useEffect(() => {
-    const subscription = form.watch((value, { _name, type }) => {
+    const subscription = form.watch((value, { name, type }) => {
       if (selectedTemplate && type === 'change') {
-        const template = aiTemplates[selectedTemplate as TemplateKeys]
-        const currentValues = form.getValues()
+        const template = templateOptions.find(t => t.value === selectedTemplate)?.template
+        if (!template) return
 
+        const currentValues = form.getValues()
         const isDifferent = Object.keys(template).some((key) => {
-          return (
-            template[key as keyof typeof template] !==
-            currentValues[key as keyof typeof currentValues]
-          )
+          if (key === 'id' || key === 'status') return false
+          return template[key as keyof Template] !== currentValues[key as keyof typeof currentValues]
         })
 
         setIsCustomized(isDifferent)
@@ -156,7 +141,37 @@ export function AIConfigForm({
     })
 
     return () => subscription.unsubscribe()
-  }, [form, selectedTemplate])
+  }, [form, selectedTemplate, templateOptions])
+
+  // Carregar templates do banco
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      try {
+        const response = await fetch('/api/templates')
+        if (!response.ok) {
+          throw new Error('Falha ao carregar templates')
+        }
+        const templates = await response.json()
+        // Transformar os templates no formato correto
+        const formattedTemplates = templates.map((template: any) => ({
+          value: template.id,
+          label: template.name,
+          description: template.quemEhAtendente,
+          template: template
+        }))
+        setTemplateOptions(formattedTemplates)
+      } catch (error) {
+        console.error('Erro ao carregar templates:', error)
+        toast({
+          title: 'Erro',
+          description: 'Não foi possível carregar os templates.',
+          variant: 'destructive',
+        })
+      }
+    }
+
+    fetchTemplates()
+  }, [])
 
   const adicionarTema = () => {
     if (novoTema.trim()) {
@@ -252,23 +267,40 @@ export function AIConfigForm({
     setAttachments(attachments.filter((_, i) => i !== index))
   }
 
-  const handleTemplateSelect = (templateKey: TemplateKeys) => {
-    const template = aiTemplates[templateKey]
-
-    if (!template) {
-      console.error('Modelo não encontrado:', templateKey)
+  const handleTemplateSelect = (templateId: string) => {
+    const templateData = templateOptions.find(t => t.value === templateId)?.template
+    
+    if (!templateData) {
+      console.error('Template não encontrado:', templateId)
       return
     }
 
-    Object.entries(template).forEach(([key, value]) => {
-      form.setValue(key as keyof AIConfigFormData, value, {
-        shouldDirty: true,
-        shouldTouch: true,
-        shouldValidate: true,
-      })
+    // Lista de campos que devem ser copiados do template
+    const allowedFields = [
+      'nomeAtendenteDigital',
+      'enviarParaAtendente',
+      'quemEhAtendente',
+      'oQueAtendenteFaz',
+      'objetivoAtendente',
+      'comoAtendenteDeve',
+      'horarioAtendimento',
+      'tempoRetornoAtendimento',
+      'condicoesAtendimento',
+      'informacoesEmpresa'
+    ]
+
+    // Atualizar os campos do formulário com os dados do template
+    allowedFields.forEach(field => {
+      if (templateData[field] !== undefined) {
+        form.setValue(field, templateData[field], {
+          shouldDirty: true,
+          shouldTouch: true,
+          shouldValidate: true,
+        })
+      }
     })
 
-    setSelectedTemplate(templateKey)
+    setSelectedTemplate(templateId)
     setIsCustomized(false)
   }
 
@@ -923,9 +955,7 @@ export function AIConfigForm({
                               key={template.value}
                               value={template.value}
                               onSelect={() => {
-                                handleTemplateSelect(
-                                  template.value as TemplateKeys,
-                                )
+                                handleTemplateSelect(template.value)
                                 setOpen(false)
                               }}
                               className="flex flex-col items-start py-3 px-4 cursor-pointer"

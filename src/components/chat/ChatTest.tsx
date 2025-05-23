@@ -26,27 +26,16 @@ interface ChatTestProps {
   agentName: string
   accountId?: string
   inboxId?: number
+  isTemplate?: boolean
 }
 
-export function ChatTest({ agentId, agentName, accountId, inboxId }: ChatTestProps) {
+export function ChatTest({ agentId, agentName, accountId, inboxId, isTemplate = false }: ChatTestProps) {
   const [messages, setMessages] = useState<Message[]>([])
   const [inputMessage, setInputMessage] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isTyping, setIsTyping] = useState(false)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
   const sessionId = useRef(generateId())
-
-  // Efeito para iniciar o chat com uma mensagem de boas-vindas
-  useEffect(() => {
-    setMessages([
-      {
-        id: generateId(),
-        text: `Olá! Eu sou ${agentName}. Como posso ajudar você hoje?`,
-        isUser: false,
-        timestamp: new Date(),
-      },
-    ])
-  }, [agentName])
 
   // Efeito para rolar automaticamente para a mensagem mais recente
   useEffect(() => {
@@ -76,7 +65,8 @@ export function ChatTest({ agentId, agentName, accountId, inboxId }: ChatTestPro
           fromme: true,
           extra: {
             account: accountId || "testAccount",
-            inbox: inboxId || "testInbox"
+            inbox: inboxId || "testInbox",
+            isTemplate: isTemplate
           },
           chat: {
             id: sessionId.current
@@ -192,6 +182,8 @@ export function ChatTest({ agentId, agentName, accountId, inboxId }: ChatTestPro
         </div>
         <div className="flex items-center gap-2 mt-4">
           <Input
+            id="message-input"
+            name="message"
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
             placeholder="Digite sua mensagem..."
@@ -200,17 +192,16 @@ export function ChatTest({ agentId, agentName, accountId, inboxId }: ChatTestPro
                 handleSendMessage()
               }
             }}
-            disabled={isLoading || isTyping}
           />
           <Button
             onClick={handleSendMessage}
-            disabled={isLoading || isTyping || !inputMessage.trim()}
-            size="icon"
+            disabled={isLoading || !inputMessage.trim()}
+            className="px-3"
           >
             {isLoading ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <SendIcon className="h-5 w-5" />
+              <SendIcon className="h-4 w-4" />
             )}
           </Button>
         </div>

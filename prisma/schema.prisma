@@ -34,24 +34,27 @@ model Session {
 }
 
 model User {
-  id                       String        @id @default(cuid())
+  id                       String               @id @default(cuid())
   name                     String?
-  email                    String?       @unique
+  email                    String?              @unique
   emailVerified            DateTime?
   image                    String?
-  password                 String?
-  isIntegrationUser        Boolean       @default(false)
   stripeCustomerId         String?
   stripePriceId            String?
   stripeSubscriptionId     String?
   stripeSubscriptionStatus String?
   manytalksAccountId       String?
+  isIntegrationUser        Boolean              @default(false)
+  password                 String?
+  canCreateTemplates       Boolean              @default(false)
   aiConfigs                AIConfig[]
   accounts                 Account[]
   inboxes                  Inbox[]
   interactions             Interaction[]
   sessions                 Session[]
   whatsAppConnections      WhatsAppConnection[]
+  templates                Template[]
+  sharedTemplates         TemplateSharing[]
 }
 
 model VerificationToken {
@@ -74,28 +77,27 @@ model Inbox {
 }
 
 model AIConfig {
-  id                     String        @id @default(cuid())
-  userId                 String
-  isActive               Boolean       @default(true)
-  nomeAtendenteDigital   String
-  enviarParaAtendente    Boolean       @default(true)
-  quemEhAtendente        String
-  oQueAtendenteFaz       String
-  objetivoAtendente      String
-  comoAtendenteDeve      String
-  horarioAtendimento     String
+  id                   String        @id @default(cuid())
+  userId               String
+  isActive             Boolean       @default(true)
+  nomeAtendenteDigital String
+  enviarParaAtendente  Boolean       @default(true)
+  quemEhAtendente      String
+  oQueAtendenteFaz     String
+  objetivoAtendente    String
+  comoAtendenteDeve    String
+  horarioAtendimento   String
   tempoRetornoAtendimento String?
-  condicoesAtendimento   String?
-  embedding              Json
-  createdAt              DateTime      @default(now())
-  updatedAt              DateTime      @updatedAt
-  informacoesEmpresa     String
-  user                   User          @relation(fields: [userId], references: [id])
-  attachments            Attachment[]
-  temasEvitar            TemasEvitar[]
-  inboxId                Int?
-  inboxName              String?
-  whatsAppConnections    WhatsAppConnection[]
+  condicoesAtendimento String?
+  embedding            Json
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+  informacoesEmpresa   String
+  inboxId              Int?
+  inboxName            String?
+  user                 User          @relation(fields: [userId], references: [id])
+  attachments          Attachment[]
+  temasEvitar          TemasEvitar[]
 
   @@index([userId])
 }
@@ -133,12 +135,12 @@ model Interaction {
   lastMessage        String?
   lastContactAt      DateTime?
   status             String?
-  interesse          String?
-  value              Decimal?  @db.Decimal(10, 2) // 10 dígitos, 2 decimais para centavos
-  ConversationID     Int?
+  userId             String?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
-  userId             String?
+  interesse          String?
+  value              Decimal?  @db.Decimal(10, 2)
+  ConversationID     Int?
   user               User?     @relation(fields: [userId], references: [id])
 }
 
@@ -153,10 +155,43 @@ model WhatsAppConnection {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   userId            String
-  iaId              String?
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  aiConfig          AIConfig? @relation(fields: [iaId], references: [id])
 
   @@index([userId])
-  @@index([iaId])
+}
+
+model Template {
+  id                      String         @id @default(cuid())
+  name                    String         @unique
+  nomeAtendenteDigital    String
+  quemEhAtendente        String
+  oQueAtendenteFaz       String
+  objetivoAtendente      String
+  comoAtendenteDeve      String
+  horarioAtendimento     String
+  tempoRetornoAtendimento String?
+  condicoesAtendimento   String?
+  informacoesEmpresa     String
+  isPublic               Boolean        @default(true)
+  isPublished            Boolean        @default(false)
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+  userId                 String
+  user                   User           @relation(fields: [userId], references: [id])
+  sharedWith             TemplateSharing[]
+
+  @@index([userId])
+}
+
+model TemplateSharing {
+  id          String   @id @default(cuid())
+  templateId  String
+  userId      String
+  createdAt   DateTime @default(now())
+  template    Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([templateId, userId])
+  @@index([userId])
+  @@index([templateId])
 }
