@@ -9,11 +9,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Bot, Zap, Clock, Users, ArrowRight, Star, BarChart3, Settings, Bell, CheckCircle, Menu, X, MessageSquare } from "lucide-react"
+import { Bot, Zap, Clock, Users, ArrowRight, Star, BarChart3, Settings, Bell, CheckCircle, Menu, X, MessageSquare, Shield, CheckCircle2, MessageCircle } from "lucide-react"
 import Image from "next/image"
 import { useState, useEffect } from "react"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { motion } from "framer-motion"
+import ManyTalksSection from "./_components/ManyTalksSection"
 
 export default function LandingPage() {
   const [activeTab, setActiveTab] = useState<"ia" | "dashboard">("ia")
@@ -151,8 +152,8 @@ export default function LandingPage() {
                 <div className="inline-flex items-center px-3 py-1 rounded-full border border-primary/20 bg-primary/5 text-primary text-sm font-medium">
                   Assistente de WhatsApp com IA
                 </div>
-                <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
-                  Aumente suas <span className="text-primary relative">Vendas<span className="absolute bottom-2 left-0 w-full h-[0.2em] bg-primary/20 rounded-full"></span></span> com IA no WhatsApp
+                <h1 className="text-3xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl max-w-full overflow-hidden">
+                  Aumente suas <span className="text-primary relative">Vendas<span className="absolute bottom-2 left-0 w-full h-[0.2em] bg-primary/20 rounded-full"></span></span> <span className="block sm:inline">com IA no WhatsApp</span>
                 </h1>
                 <p className="text-muted-foreground text-lg md:text-xl max-w-[600px] leading-relaxed">
                   Transforme seu WhatsApp Business em um assistente virtual inteligente que atende, vende e se relaciona com seus clientes 24/7.
@@ -194,82 +195,84 @@ export default function LandingPage() {
                   <span>Milhares de mensagens já processadas via WhatsApp</span>
                 </div>
               </div>
-              <div className="relative lg:ml-auto mt-8 lg:mt-0">
-                {/* Chat Preview */}
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.8 }}
-                  className="rounded-xl border shadow-xl overflow-hidden bg-background relative z-10 w-[500px] h-[600px] mx-auto lg:mx-0"
-                >
-                  <div className="flex items-center p-4 border-b">
-                    <motion.div
-                      animate={{ scale: [1, 1.2, 1] }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                      className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center"
-                    >
-                      <Image
-                        src="/avatar-clara.jpg"
-                        alt="Clara - Assistente Virtual"
-                        width={48}
-                        height={48}
-                        className="w-full h-full object-cover rounded-full"
-                        priority
-                      />
-                    </motion.div>
-                    <div className="ml-4">
-                      <h3 className="text-lg font-semibold">Clara</h3>
-                      <div className="flex items-center text-sm text-green-500">
-                        <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                        Online agora
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col justify-between h-[calc(100%-144px)]">
-                    <div className="space-y-6 overflow-y-auto p-4">
-                      {displayedMessages.map((message, index) => (
-                        message && (
-                          <motion.div
-                            key={index}
-                            initial={{ opacity: 0, x: message?.type === "user" ? 20 : -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.5 }}
-                            className={`flex ${message?.type === "user" ? "justify-end" : "justify-start"}`}
-                          >
-                            <div
-                              className={`w-[280px] p-3 rounded-2xl ${
-                                message?.type === "user"
-                                  ? "bg-primary text-primary-foreground"
-                                  : "bg-muted text-foreground"
-                              }`}
-                            >
-                              <p className="text-sm">{message.text}</p>
-                            </div>
-                          </motion.div>
-                        )
-                      ))}
-                    </div>
-
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 2 }}
-                      className="p-4 border-t bg-background/80 backdrop-blur-sm"
-                    >
-                      <div className="flex items-center bg-muted rounded-lg p-2">
-                        <input
-                          type="text"
-                          placeholder="Digite sua mensagem..."
-                          className="flex-1 bg-transparent border-none outline-none text-sm text-foreground placeholder:text-muted-foreground px-2"
+              <div className="relative lg:ml-auto mt-8 lg:mt-0 max-w-full overflow-hidden">
+                {/* Chat Preview - escondido em dispositivos muito pequenos */}
+                <div className="max-w-full overflow-x-hidden px-2 sm:px-0">
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.8 }}
+                    className="rounded-xl border shadow-xl overflow-hidden bg-background relative z-10 w-full max-w-[500px] h-[400px] sm:h-[500px] md:h-[600px] mx-auto lg:mx-0"
+                  >
+                    <div className="flex items-center p-4 border-b">
+                      <motion.div
+                        animate={{ scale: [1, 1.2, 1] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                        className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center"
+                      >
+                        <Image
+                          src="/avatar-clara.jpg"
+                          alt="Clara - Assistente Virtual"
+                          width={48}
+                          height={48}
+                          className="w-full h-full object-cover rounded-full"
+                          priority
                         />
-                        <button className="ml-2 p-2 bg-primary hover:bg-primary/90 rounded-lg transition-colors">
-                          <MessageSquare className="w-5 h-5 text-primary-foreground" />
-                        </button>
+                      </motion.div>
+                      <div className="ml-4">
+                        <h3 className="text-lg font-semibold">Clara</h3>
+                        <div className="flex items-center text-sm text-green-500">
+                          <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                          Online agora
+                        </div>
                       </div>
-                    </motion.div>
-                  </div>
-                </motion.div>
+                    </div>
+
+                    <div className="flex flex-col justify-between h-[calc(100%-144px)]">
+                      <div className="space-y-6 overflow-y-auto p-4">
+                        {displayedMessages.map((message, index) => (
+                          message && (
+                            <motion.div
+                              key={index}
+                              initial={{ opacity: 0, x: message?.type === "user" ? 20 : -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ duration: 0.5 }}
+                              className={`flex ${message?.type === "user" ? "justify-end" : "justify-start"}`}
+                            >
+                              <div
+                                className={`max-w-[250px] sm:max-w-[280px] p-3 rounded-2xl ${
+                                  message?.type === "user"
+                                    ? "bg-primary text-primary-foreground"
+                                    : "bg-muted text-foreground"
+                                }`}
+                              >
+                                <p className="text-sm break-words">{message.text}</p>
+                              </div>
+                            </motion.div>
+                          )
+                        ))}
+                      </div>
+
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 2 }}
+                        className="p-4 border-t bg-background/80 backdrop-blur-sm"
+                      >
+                        <div className="flex items-center bg-muted rounded-lg p-2">
+                          <input
+                            type="text"
+                            placeholder="Digite sua mensagem..."
+                            className="flex-1 bg-transparent border-none outline-none text-sm text-foreground placeholder:text-muted-foreground px-2"
+                          />
+                          <button className="ml-2 p-2 bg-primary hover:bg-primary/90 rounded-lg transition-colors">
+                            <MessageSquare className="w-5 h-5 text-primary-foreground" />
+                          </button>
+                        </div>
+                      </motion.div>
+                    </div>
+                  </motion.div>
+                </div>
                 {/* Decorative elements */}
                 <div className="absolute -z-10 -top-4 -right-4 w-64 h-64 bg-primary/5 rounded-full blur-3xl"></div>
                 <div className="absolute -z-10 -bottom-8 -left-8 w-72 h-72 bg-primary/5 rounded-full blur-3xl"></div>
@@ -277,6 +280,9 @@ export default function LandingPage() {
             </div>
           </div>
         </section>
+
+        {/* ManyTalks Product Section */}
+        <ManyTalksSection />
 
         {/* Features Section */}
         <section id="features" className="py-16 md:py-24 bg-background relative">
@@ -292,15 +298,15 @@ export default function LandingPage() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-              <Card className="border-none shadow-lg bg-background hover:shadow-xl transition-all duration-300">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 max-w-full overflow-hidden">
+              <Card className="border-none shadow-lg bg-background hover:shadow-xl transition-all duration-300 max-w-full overflow-hidden">
                 <CardHeader className="pb-2">
                   <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
                     <Bot className="h-6 w-6 text-primary" />
                   </div>
                   <CardTitle className="text-xl">WhatsApp Automatizado</CardTitle>
                   <CardDescription className="text-base">
-                    Integração direta com WhatsApp Business API
+                    Integração direta com WhatsApp
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -310,7 +316,7 @@ export default function LandingPage() {
                 </CardContent>
               </Card>
 
-              <Card className="border-none shadow-lg bg-background hover:shadow-xl transition-all duration-300">
+              <Card className="border-none shadow-lg bg-background hover:shadow-xl transition-all duration-300 max-w-full overflow-hidden">
                 <CardHeader className="pb-2">
                   <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
                     <BarChart3 className="h-6 w-6 text-primary" />
@@ -325,7 +331,7 @@ export default function LandingPage() {
                 </CardContent>
               </Card>
 
-              <Card className="border-none shadow-lg bg-background hover:shadow-xl transition-all duration-300">
+              <Card className="border-none shadow-lg bg-background hover:shadow-xl transition-all duration-300 max-w-full overflow-hidden">
                 <CardHeader className="pb-2">
                   <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
                     <Zap className="h-6 w-6 text-primary" />
@@ -426,7 +432,7 @@ export default function LandingPage() {
               </p>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-8 relative">
+            <div className="grid md:grid-cols-3 gap-8 relative max-w-full overflow-hidden">
               {/* Connecting line */}
               <div className="hidden md:block absolute top-1/2 left-[16.67%] right-[16.67%] h-0.5 bg-primary/20"></div>
               
@@ -479,8 +485,8 @@ export default function LandingPage() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-8">
-              <Card>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-8 max-w-full overflow-hidden">
+              <Card className="max-w-full overflow-hidden">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 flex-wrap">
                     <CheckCircle className="h-5 w-5 text-primary" /> Atendimento 24/7
@@ -494,7 +500,7 @@ export default function LandingPage() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="max-w-full overflow-hidden">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 flex-wrap">
                     <CheckCircle className="h-5 w-5 text-primary" /> Redução de Custos
@@ -507,7 +513,7 @@ export default function LandingPage() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="max-w-full overflow-hidden">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 flex-wrap">
                     <CheckCircle className="h-5 w-5 text-primary" /> Aumento de Vendas
@@ -521,7 +527,7 @@ export default function LandingPage() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="max-w-full overflow-hidden">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 flex-wrap">
                     <CheckCircle className="h-5 w-5 text-primary" /> Escalabilidade
@@ -547,8 +553,8 @@ export default function LandingPage() {
               </p>
             </div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <Card>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-full overflow-x-hidden">
+              <Card className="overflow-hidden max-w-full">
                 <CardHeader>
                   <div className="flex items-center gap-2 mb-2">
                     {[1, 2, 3, 4, 5].map((star) => (
@@ -566,7 +572,7 @@ export default function LandingPage() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="overflow-hidden max-w-full">
                 <CardHeader>
                   <div className="flex items-center gap-2 mb-2">
                     {[1, 2, 3, 4, 5].map((star) => (
@@ -584,7 +590,7 @@ export default function LandingPage() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="overflow-hidden max-w-full">
                 <CardHeader>
                   <div className="flex items-center gap-2 mb-2">
                     {[1, 2, 3, 4, 5].map((star) => (
@@ -631,8 +637,8 @@ export default function LandingPage() {
 
       <footer className="border-t bg-muted/50">
         <div className="container px-4 py-12 md:px-6">
-          <div className="grid gap-8 grid-cols-1 xs:grid-cols-2 md:grid-cols-4">
-            <div>
+          <div className="grid gap-8 grid-cols-1 sm:grid-cols-2 md:grid-cols-4 max-w-full overflow-hidden">
+            <div className="max-w-full overflow-hidden">
               <div className="flex items-center gap-2 mb-4">
                 <div className="bg-primary p-2 rounded-lg">
                   <Image src="/favicon.svg" alt="ManyTalks Logo" width={20} height={20} />
@@ -660,7 +666,7 @@ export default function LandingPage() {
                 </Button>
               </div>
             </div>
-            <div>
+            <div className="max-w-full overflow-hidden">
               <h3 className="text-lg font-medium mb-4">Links Rápidos</h3>
               <ul className="space-y-3 text-sm">
                 <li>
@@ -685,20 +691,20 @@ export default function LandingPage() {
                 </li>
               </ul>
             </div>
-            <div>
+            <div className="max-w-full overflow-hidden">
               <h3 className="text-lg font-medium mb-4">Contato</h3>
               <ul className="space-y-3 text-sm">
-                <li className="flex items-center gap-2 text-muted-foreground">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                <li className="flex items-center gap-2 text-muted-foreground overflow-hidden">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" className="flex-shrink-0">
                     <path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232z"/>
                   </svg>
-                  <span>WhatsApp: +55 53 9700-2767</span>
+                  <span className="truncate">WhatsApp: +55 53 9700-2767</span>
                 </li>
-                <li className="flex items-center gap-2 text-muted-foreground">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                <li className="flex items-center gap-2 text-muted-foreground overflow-hidden">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" className="flex-shrink-0">
                     <path d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4Zm2-1a1 1 0 0 0-1 1v.217l7 4.2 7-4.2V4a1 1 0 0 0-1-1H2Zm13 2.383-4.708 2.825L15 11.105V5.383Zm-.034 6.876-5.64-3.471L8 9.583l-1.326-.795-5.64 3.47A1 1 0 0 0 2 13h12a1 1 0 0 0 .966-.741ZM1 11.105l4.708-2.897L1 5.383v5.722Z"/>
                   </svg>
-                  <span>Email: contato@manytalks.com.br</span>
+                  <span className="truncate">Email: contato@manytalks.com.br</span>
                 </li>
                 <li className="pt-2">
                   <Button variant="outline" size="sm" asChild className="w-full">
@@ -707,7 +713,7 @@ export default function LandingPage() {
                 </li>
               </ul>
             </div>
-            <div>
+            <div className="max-w-full overflow-hidden">
               <h3 className="text-lg font-medium mb-4">Newsletter</h3>
               <p className="text-sm text-muted-foreground mb-3">
                 Receba novidades e dicas sobre IA para seu negócio
@@ -729,6 +735,38 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+
+      <style jsx global>{`
+        @media (max-width: 767px) {
+          .container {
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+            width: 100% !important;
+            max-width: 100% !important;
+          }
+          
+          html, body {
+            overflow-x: hidden;
+            width: 100%;
+            position: relative;
+          }
+          
+          h1, h2, h3, p {
+            max-width: 100%;
+            overflow-wrap: break-word;
+            word-wrap: break-word;
+            hyphens: auto;
+          }
+          
+          .card, .card-content {
+            max-width: 100%;
+          }
+          
+          .grid {
+            width: 100%;
+          }
+        }
+      `}</style>
     </div>
   )
 }

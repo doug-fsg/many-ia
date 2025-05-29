@@ -37,7 +37,8 @@ export const checkUserSubscription = async (userId: string) => {
       where: { id: userId },
       select: { 
         stripeSubscriptionStatus: true,
-        stripeSubscriptionId: true
+        stripeSubscriptionId: true,
+        isIntegrationUser: true
       }
     });
 
@@ -49,10 +50,13 @@ export const checkUserSubscription = async (userId: string) => {
       };
     }
 
+    // Usuários com isIntegrationUser=true têm acesso gratuito
+    const hasValidAccess = !!user.stripeSubscriptionId || !!user.isIntegrationUser;
+
     return {
-      isBlocked: isSubscriptionBlocked(user.stripeSubscriptionStatus),
+      isBlocked: !user.isIntegrationUser && isSubscriptionBlocked(user.stripeSubscriptionStatus),
       subscriptionStatus: user.stripeSubscriptionStatus,
-      hasSubscription: !!user.stripeSubscriptionId,
+      hasSubscription: hasValidAccess,
       error: null
     };
   } catch (error) {

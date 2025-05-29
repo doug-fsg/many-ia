@@ -11,7 +11,7 @@ export type AIConfig = {
   objetivoAtendente: string
   comoAtendenteDeve: string
   horarioAtendimento: string
-  tempoRetornoAtendimento: string
+  tempoRetornoAtendimento: string | null
   condicoesAtendimento?: string
   informacoesEmpresa: string
   temasEvitar?: Array<{ tema: string }>
@@ -20,6 +20,8 @@ export type AIConfig = {
     content: string
     description: string
   }>
+  inboxId?: number | null
+  inboxName?: string | null
 }
 
 export type TemplateStatus = 'PUBLIC' | 'PRIVATE'

@@ -3,6 +3,7 @@ import CredentialsProvider from 'next-auth/providers/credentials'
 import { compare } from 'bcrypt'
 import { JWT } from 'next-auth/jwt'
 import { User } from '@prisma/client'
+import { cookies } from 'next/headers'
 
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import { prisma } from './database'
@@ -260,6 +261,8 @@ export const authOptions = {
       }
       
       // Caso padrão: redirecionar para /app
+      // O middleware se encarregará de verificar se o usuário é afiliado sem assinatura
+      // e redirecioná-lo para a página de afiliados, caso necessário
       return `${effectiveBaseUrl}/app`;
     },
     
@@ -308,11 +311,42 @@ export const authOptions = {
     }
   },
   events: {
-    createUser: async (message) => {
+    createUser: async ({ user }) => {
+      // Criar cliente Stripe
       await createStripeCustomer({
-        name: message.user.name as string,
-        email: message.user.email as string,
+        name: user.name as string,
+        email: user.email as string,
       })
+
+      // Processar código de afiliado se existir
+      try {
+        const cookieStore = cookies()
+        const affiliateRef = cookieStore.get('affiliate_ref')?.value
+
+        if (affiliateRef) {
+          console.log(`Processando referência de afiliado: ${affiliateRef}`)
+          
+          // Encontrar o afiliado pelo código
+          const affiliate = await prisma.affiliate.findFirst({
+            where: { referralCode: affiliateRef }
+          })
+
+          if (affiliate) {
+            // Criar referência
+            await prisma.referral.create({
+              data: {
+                affiliateId: affiliate.id,
+                referredUserId: user.id,
+                status: 'pending'
+              }
+            })
+            
+            console.log(`Referência criada: Afiliado ${affiliate.id} → Usuário ${user.id}`)
+          }
+        }
+      } catch (error) {
+        console.error("Erro ao processar referência de afiliado:", error)
+      }
     },
     signIn: async () => {},
     signOut: async () => {},
