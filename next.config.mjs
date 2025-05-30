@@ -13,6 +13,11 @@ const nextConfig = {
   // Configuração experimental para pacotes externos do servidor
   experimental: {
     serverComponentsExternalPackages: ['@prisma/client'],
+    // Adicionar proteção contra version skew
+    serverActions: {
+      allowedOrigins: [process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'],
+      bodySizeLimit: '2mb'
+    }
   },
   // Lidar com warnings de build
   webpack: (config, { isServer }) => {
