@@ -25,19 +25,11 @@ export async function GET() {
       )
     }
     
-    // Buscar todas as conexões do usuário incluindo informação da IA
+    // Buscar todas as conexões do usuário
     const connections = await prisma.whatsAppConnection.findMany({
       where: {
         userId: session.user.id,
         isActive: true,
-      },
-      include: {
-        aiConfig: {
-          select: {
-            id: true,
-            nomeAtendenteDigital: true,
-          },
-        },
       },
       orderBy: {
         createdAt: 'desc',

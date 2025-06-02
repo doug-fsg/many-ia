@@ -100,6 +100,7 @@ model AIConfig {
   user                 User          @relation(fields: [userId], references: [id])
   attachments          Attachment[]
   temasEvitar          TemasEvitar[]
+  whatsappConnections  WhatsAppConnection[]
 
   @@index([userId])
 }
@@ -157,9 +158,12 @@ model WhatsAppConnection {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   userId            String
+  iaId              String?
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  aiConfig          AIConfig? @relation(fields: [iaId], references: [id])
 
   @@index([userId])
+  @@index([iaId])
 }
 
 model Template {
