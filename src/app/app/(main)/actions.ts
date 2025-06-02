@@ -4,7 +4,6 @@ import { auth } from '@/services/auth'
 import { prisma } from '@/services/database'
 import { z } from 'zod'
 import { deleteAIConfigSchema, upsertAIConfigSchema } from './schema'
-import { createEmbeddingFromAIConfig } from '@/utils/vectorUtils'
 import { revalidatePath } from 'next/cache'
 import { getAuthenticatedUser } from '@/lib/auth-helper'
 import { checkUserSubscription } from '@/lib/subscription-helper'
@@ -21,6 +20,9 @@ async function upsertAIConfig(input: z.infer<typeof upsertAIConfigSchema>) {
     }
 
     const { attachments, temasEvitar, id: configId, ...restInput } = input
+
+    // Criar o embedding como um objeto vazio por enquanto
+    const embedding = {}
 
     if (configId) {
       const existingConfig = await prisma.aIConfig.findUnique({
@@ -39,13 +41,6 @@ async function upsertAIConfig(input: z.infer<typeof upsertAIConfigSchema>) {
         return { data: result, error: null }
       }
     }
-
-    const { embedding } = await createEmbeddingFromAIConfig({
-      quemEhAtendente: restInput.quemEhAtendente,
-      oQueAtendenteFaz: restInput.oQueAtendenteFaz,
-      objetivoAtendente: restInput.objetivoAtendente,
-      comoAtendenteDeve: restInput.comoAtendenteDeve,
-    })
 
     if (input.id) {
       const updatedAIConfig = await prisma.aIConfig.update({
@@ -306,8 +301,12 @@ export async function getUserAIConfigs() {
       where: {
         userId: user.id,
       },
+      include: {
+        attachments: true,
+        temasEvitar: true,
+      },
       orderBy: {
-        createdAt: 'desc',
+        updatedAt: 'desc',
       },
     });
 
