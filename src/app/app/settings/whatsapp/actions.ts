@@ -437,28 +437,26 @@ export async function getWhatsAppConnections() {
       }
     }
 
-    // Buscar as conexões do usuário incluindo nome da IA usando SQL Raw
-    const connectionsQuery = `
-      SELECT w.*, a.id as "aiConfigId", a."nomeAtendenteDigital"
-      FROM "WhatsAppConnection" w
-      LEFT JOIN "AIConfig" a ON w."iaId" = a.id
-      WHERE w."userId" = $1
-      ORDER BY w."createdAt" DESC
-    `;
-    
-    const connections = await prisma.$queryRawUnsafe<WhatsAppConnectionWithAI[]>(connectionsQuery, session.user.id);
-    
-    // Transformar os resultados para o formato correto
-    const formattedConnections = connections.map((conn) => ({
-      ...conn,
-      aiConfig: conn.aiConfigId ? {
-        id: conn.aiConfigId,
-        nomeAtendenteDigital: conn.nomeAtendenteDigital || 'IA sem nome'
-      } : null
-    }));
+    // Buscar as conexões do usuário incluindo informações da IA
+    const connections = await prisma.whatsAppConnection.findMany({
+      where: {
+        userId: session.user.id
+      },
+      include: {
+        aiConfig: {
+          select: {
+            id: true,
+            nomeAtendenteDigital: true
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
 
     return {
-      data: formattedConnections,
+      data: connections,
       error: null,
     }
   } catch (error) {

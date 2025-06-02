@@ -77,27 +77,21 @@ model Inbox {
 }
 
 model AIConfig {
-  id                   String        @id @default(cuid())
-  userId               String
-  isActive             Boolean       @default(true)
-  nomeAtendenteDigital String
-  enviarParaAtendente  Boolean       @default(true)
-  quemEhAtendente      String
-  oQueAtendenteFaz     String
-  objetivoAtendente    String
-  comoAtendenteDeve    String
-  horarioAtendimento   String
+  id                     String    @id @default(cuid())
+  nomeAtendenteDigital   String
+  quemEhAtendente       String
+  oQueAtendenteFaz      String
+  objetivoAtendente     String
+  comoAtendenteDeve     String
+  horarioAtendimento    String
   tempoRetornoAtendimento String?
-  condicoesAtendimento String?
-  embedding            Json
-  createdAt            DateTime      @default(now())
-  updatedAt            DateTime      @updatedAt
-  informacoesEmpresa   String
-  inboxId              Int?
-  inboxName            String?
-  user                 User          @relation(fields: [userId], references: [id])
-  attachments          Attachment[]
+  condicoesAtendimento  String?
+  informacoesEmpresa    String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  attachments           Attachment[]
   temasEvitar          TemasEvitar[]
+  whatsappConnections   WhatsAppConnection[]  @relation("AIConfigToWhatsApp")
 
   @@index([userId])
 }
@@ -155,9 +149,12 @@ model WhatsAppConnection {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   userId            String
+  iaId              String?
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  aiConfig          AIConfig? @relation("AIConfigToWhatsApp", fields: [iaId], references: [id])
 
   @@index([userId])
+  @@index([iaId])
 }
 
 model Template {
