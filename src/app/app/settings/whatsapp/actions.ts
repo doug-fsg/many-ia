@@ -390,7 +390,7 @@ export async function configureWebhook(token: string, userId: string) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        url: 'https://n8n.manytalks.com.br/webhook-test/teste-ia',
+        url: 'https://n8n.manytalks.com.br/webhook/manytalksia',
         extra: {
           id: session.user.id,
           isIntegrationUser: "false"

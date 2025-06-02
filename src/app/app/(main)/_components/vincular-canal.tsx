@@ -101,7 +101,7 @@ export function VincularCanal({ iaId, userId, trigger, onSuccess }: VincularCana
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          url: 'https://n8n.manytalks.com.br/webhook-test/teste-ia',
+          url: 'https://n8n.manytalks.com.br/webhook/manytalksia',
           extra: {
             id: userId,
             iaId: iaId,
