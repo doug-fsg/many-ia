@@ -215,7 +215,7 @@ export const getUserCurrentPlan = async (userId: string) => {
   }
 }
 
-export const createDirectCheckoutSession = async () => {
+export const createDirectCheckoutSession = async (cancelUrl?: string) => {
   try {
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
@@ -227,7 +227,7 @@ export const createDirectCheckoutSession = async () => {
         },
       ],
       success_url: `${process.env.NEXT_PUBLIC_APP_URL}/auth/set-password?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}`,
+      cancel_url: cancelUrl || `${process.env.NEXT_PUBLIC_APP_URL}`,
       allow_promotion_codes: true,
       billing_address_collection: 'required',
       client_reference_id: Date.now().toString(),

@@ -74,6 +74,31 @@ export async function POST(req: NextRequest) {
       },
     })
 
+    // Processar código de afiliado se existir
+    const affiliateRef = req.cookies.get('affiliate_ref')?.value
+    if (affiliateRef) {
+      console.log(`[SET-PASSWORD] Processando código de afiliado: ${affiliateRef}`)
+      
+      const affiliate = await prisma.affiliate.findUnique({
+        where: { referralCode: affiliateRef }
+      })
+
+      if (affiliate) {
+        console.log(`[SET-PASSWORD] Afiliado encontrado: ${affiliate.id}`)
+        
+        // Criar referência
+        await prisma.referral.create({
+          data: {
+            affiliateId: affiliate.id,
+            referredUserId: user.id,
+            status: 'pending' // Será atualizado para 'active' quando o pagamento for confirmado
+          }
+        })
+
+        console.log(`[SET-PASSWORD] Referência criada para o usuário ${user.id}`)
+      }
+    }
+
     // Gerar token de recuperação
     const token = randomBytes(32).toString('hex')
     const expires = new Date(Date.now() + 3600000) // 1 hora

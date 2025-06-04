@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server';
 import { createDirectCheckoutSession } from '@/services/stripe';
 
-export async function POST() {
+export async function POST(req: Request) {
   try {
-    const checkoutSession = await createDirectCheckoutSession();
+    // Extrair a URL de cancelamento do corpo da requisição
+    const body = await req.json();
+    const { cancelUrl } = body;
+    
+    const checkoutSession = await createDirectCheckoutSession(cancelUrl);
     
     if (!checkoutSession.url) {
       return NextResponse.json(

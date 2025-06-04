@@ -2,9 +2,29 @@ import { MainSidebar } from './_components/main-sidebar'
 import { redirect } from 'next/navigation'
 import { getAuthenticatedUser } from '@/lib/auth-helper'
 import { CreditAlertWrapper } from './_components/credit-alert-wrapper'
+import { prisma } from '@/services/database'
+import { headers } from 'next/headers'
 
 // Configuração para marcar o layout como dinâmico
 export const dynamic = 'force-dynamic';
+
+// Função para verificar se o usuário é afiliado sem assinatura
+async function isAffiliateWithoutSubscription(userId: string): Promise<boolean> {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { 
+        canCreateTemplates: true,
+        stripeSubscriptionId: true
+      }
+    });
+    
+    return !!(user && user.canCreateTemplates && !user.stripeSubscriptionId);
+  } catch (error) {
+    console.error('[LAYOUT] Erro ao verificar status de afiliado:', error);
+    return false;
+  }
+}
 
 export default async function Layout({
   children,
@@ -17,7 +37,7 @@ export default async function Layout({
   if (!user) {
     redirect('/auth');
   }
-  
+
   return (
     <>
       <CreditAlertWrapper userId={user.id} />

@@ -93,6 +93,7 @@ export function DashboardSidebarNavMain({
 type DashboardSidebarNavLinkProps = {
   href: string
   active?: boolean
+  onClick?: React.MouseEventHandler<HTMLAnchorElement>
 }
 
 export function DashboardSidebarNavLink({
@@ -100,6 +101,7 @@ export function DashboardSidebarNavLink({
   children,
   href,
   active,
+  onClick,
 }: DashboardSidebarGenericProps<DashboardSidebarNavLinkProps>) {
   return (
     <Link
@@ -111,6 +113,7 @@ export function DashboardSidebarNavLink({
         !active && 'text-muted-foreground',
         className,
       ])}
+      onClick={onClick}
     >
       {children}
     </Link>

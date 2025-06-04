@@ -7,10 +7,13 @@ import { Button } from '@/components/ui/button'
 import { useForm } from 'react-hook-form'
 import { signIn } from 'next-auth/react'
 import { toast } from '@/components/ui/use-toast'
+import { usePathname } from 'next/navigation'
 
 export function RegisterForm() {
   const [isLoading, setIsLoading] = useState(false)
   const form = useForm()
+  const pathname = usePathname()
+  const isAffiliateRegistration = pathname === '/afiliados'
 
   const handleSubmit = form.handleSubmit(async (data) => {
     try {
@@ -34,6 +37,7 @@ export function RegisterForm() {
           name: data.name,
           email: data.email,
           password: data.password,
+          isAffiliate: isAffiliateRegistration
         }),
       })
 
@@ -45,13 +49,20 @@ export function RegisterForm() {
 
       toast({
         title: 'Registro concluído',
-        description: 'Sua conta foi criada com sucesso. Agora você pode fazer login.',
+        description: 'Sua conta foi criada com sucesso.',
       })
 
-      // Redirecionar para a página de login após registro bem-sucedido
-      setTimeout(() => {
-        window.location.href = '/auth'
-      }, 2000)
+      // Se tiver link do Stripe, redirecionar para ele
+      if (result.stripeAccountLink) {
+        window.location.href = result.stripeAccountLink
+      } else {
+        // Se não tiver link do Stripe, redirecionar para a página apropriada
+        setTimeout(() => {
+          window.location.href = isAffiliateRegistration 
+            ? '/app/templates/affiliate'
+            : '/auth'
+        }, 2000)
+      }
     } catch (error) {
       console.error('Erro de registro:', error)
       toast({

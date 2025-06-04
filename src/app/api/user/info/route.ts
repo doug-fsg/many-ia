@@ -98,11 +98,23 @@ export async function GET() {
       );
     }
     
+    // Verificar se o usuário é um afiliado (consultando tabela Affiliate)
+    const affiliateAccount = await prisma.affiliate.findUnique({
+      where: { userId: dbUser.id }
+    });
+    
+    const isAffiliate = !!affiliateAccount;
+    
+    // Verificar se tem assinatura ativa
+    const hasActiveSubscription = !!dbUser.stripePriceId;
+    
     console.log('[USER-INFO] Dados do usuário obtidos do banco de dados:', {
       id: dbUser.id,
       email: dbUser.email,
       isIntegrationUser: dbUser.isIntegrationUser,
-      canCreateTemplates: dbUser.canCreateTemplates
+      canCreateTemplates: dbUser.canCreateTemplates,
+      isAffiliate,
+      hasActiveSubscription
     });
     
     // Retornar informações do usuário diretamente do banco de dados
@@ -111,7 +123,10 @@ export async function GET() {
       name: dbUser.name,
       email: dbUser.email,
       isIntegrationUser: dbUser.isIntegrationUser ?? false,
-      canCreateTemplates: dbUser.canCreateTemplates ?? false
+      canCreateTemplates: dbUser.canCreateTemplates ?? false,
+      isAffiliate,
+      hasActiveSubscription,
+      stripePriceId: dbUser.stripePriceId
     });
   } catch (error) {
     console.error('Erro ao buscar informações do usuário:', error);
