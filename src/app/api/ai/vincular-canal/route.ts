@@ -70,7 +70,7 @@ export async function POST(request: Request) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        url: 'https://n8n.manytalks.com.br/webhook-test/teste-ia',
+        url: 'https://n8n.manytalks.com.br/webhook/manytalksia',
         extra: {
           id: session.user.id,
           iaId: iaId,

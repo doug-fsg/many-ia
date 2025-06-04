@@ -390,7 +390,7 @@ export async function configureWebhook(token: string, userId: string) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        url: 'https://n8n.manytalks.com.br/webhook-test/teste-ia',
+        url: 'https://n8n.manytalks.com.br/webhook/manytalksia',
         extra: {
           id: session.user.id,
           isIntegrationUser: "false"
@@ -437,28 +437,18 @@ export async function getWhatsAppConnections() {
       }
     }
 
-    // Buscar as conexões do usuário incluindo nome da IA usando SQL Raw
-    const connectionsQuery = `
-      SELECT w.*, a.id as "aiConfigId", a."nomeAtendenteDigital"
-      FROM "WhatsAppConnection" w
-      LEFT JOIN "AIConfig" a ON w."iaId" = a.id
-      WHERE w."userId" = $1
-      ORDER BY w."createdAt" DESC
-    `;
-    
-    const connections = await prisma.$queryRawUnsafe<WhatsAppConnectionWithAI[]>(connectionsQuery, session.user.id);
-    
-    // Transformar os resultados para o formato correto
-    const formattedConnections = connections.map((conn) => ({
-      ...conn,
-      aiConfig: conn.aiConfigId ? {
-        id: conn.aiConfigId,
-        nomeAtendenteDigital: conn.nomeAtendenteDigital || 'IA sem nome'
-      } : null
-    }));
+    // Buscar as conexões do usuário
+    const connections = await prisma.whatsAppConnection.findMany({
+      where: {
+        userId: session.user.id
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
 
     return {
-      data: formattedConnections,
+      data: connections,
       error: null,
     }
   } catch (error) {
