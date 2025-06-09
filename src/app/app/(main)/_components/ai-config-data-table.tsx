@@ -393,15 +393,22 @@ export function AIConfigDataTable({ data }: AIConfigDataTable) {
                       >
                         <PopoverTrigger asChild>
                           <Button variant="ghost" size="sm" className="h-7 px-2 text-xs hover:bg-muted group">
-                            {aiConfig.inboxName ? (
+                            {aiConfig.inboxName || getLinkedWhatsAppConnections(aiConfig.id).length > 0 ? (
                               <span className="flex items-center gap-2 text-foreground">
                                 <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                                {aiConfig.inboxName}
+                                {aiConfig.inboxName || `${getLinkedWhatsAppConnections(aiConfig.id)[0]?.name || 'WhatsApp'}`}
                                 <MinusCircledIcon
                                   className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 ml-2 hover:text-red-600"
                                   onClick={(e) => {
                                     e.stopPropagation()
-                                    handleRemoveInbox(aiConfig)
+                                    if (aiConfig.inboxName) {
+                                      handleRemoveInbox(aiConfig)
+                                    } else {
+                                      const firstConnection = getLinkedWhatsAppConnections(aiConfig.id)[0]
+                                      if (firstConnection) {
+                                        handleRemoveWhatsApp(firstConnection.id, aiConfig.id)
+                                      }
+                                    }
                                   }}
                                 />
                               </span>
@@ -495,21 +502,26 @@ export function AIConfigDataTable({ data }: AIConfigDataTable) {
                     </div>
 
                     {/* Mostrar conexões WhatsApp já vinculadas para usuários não de integração */}
-                    {!isIntegrationUser &&
-                      getLinkedWhatsAppConnections(aiConfig.id).map((conn) => (
-                        <div key={conn.id} className="flex items-center ml-2 mt-2 text-xs text-foreground">
-                          <div className="w-1.5 h-1.5 rounded-full bg-green-500 mr-2" />
-                          <span className="flex-1">{conn.name || `WhatsApp (${conn.phoneNumber || "Sem número"})`}</span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100"
-                            onClick={() => handleRemoveWhatsApp(conn.id, aiConfig.id)}
-                          >
-                            <MinusCircledIcon className="h-3 w-3 text-red-500" />
-                          </Button>
-                        </div>
-                      ))}
+                    {!isIntegrationUser && getLinkedWhatsAppConnections(aiConfig.id).length > 0 && (
+                      <div className="mt-2">
+                        {getLinkedWhatsAppConnections(aiConfig.id).map((conn, index) => (
+                          index === 0 ? null : (
+                            <div key={conn.id} className="flex items-center ml-2 mt-2 text-xs text-foreground">
+                              <div className="w-1.5 h-1.5 rounded-full bg-green-500 mr-2" />
+                              <span className="flex-1">{conn.name || `WhatsApp (${conn.phoneNumber || "Sem número"})`}</span>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100"
+                                onClick={() => handleRemoveWhatsApp(conn.id, aiConfig.id)}
+                              >
+                                <MinusCircledIcon className="h-3 w-3 text-red-500" />
+                              </Button>
+                            </div>
+                          )
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {/* Action buttons at the bottom */}

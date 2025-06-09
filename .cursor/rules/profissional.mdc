@@ -1,0 +1,30 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Regras Profissionais de Desenvolvimento
+
+## Execução de Comandos
+- NUNCA execute nada no terminal, comandos devem ser executados manualmente pelo usuário
+- Não forneça comandos do PostgreSQL diretamente, estes devem ser executados manualmente pelo usuário
+- Faça apenas o que foi solicitado
+
+## Boas Práticas de Código
+- Evite escrever scripts em arquivos, especialmente se o script provavelmente será executado apenas uma vez
+- Após escrever código, reflita profundamente sobre:
+  - Escalabilidade da mudança
+  - Manutenibilidade do código
+  - Impacto em diferentes ambientes (dev, test, prod)
+  - Possíveis melhorias futuras
+  - Não quero ter problemas ao realizar o yarn build
+
+Estou usando o Yarn, eu uso o yarn dev para local e na minha VPS eu coloco Yarn build e Yarn start.
+Só instale bibliotecas novas se realmente for necessário
+
+
+
+# Your rule content
+
+- You can @ files here
+- You can use markdown but dont have to

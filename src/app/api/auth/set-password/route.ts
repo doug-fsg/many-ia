@@ -44,34 +44,31 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Verificar se o usuário já existe
+    // Verificar se o usuário existe
     const existingUser = await prisma.user.findUnique({
       where: {
         email: customerEmail,
       },
     })
 
-    if (existingUser) {
+    if (!existingUser) {
       return NextResponse.json(
-        { error: 'Este email já está em uso' },
-        { status: 409 }
+        { error: 'Usuário não encontrado' },
+        { status: 404 }
       )
     }
 
     // Hash da senha
     const hashedPassword = await hash(password, 10)
 
-    // Criar o usuário
-    const user = await prisma.user.create({
-      data: {
-        email: customerEmail,
-        name: checkoutSession.customer_details?.name,
-        password: hashedPassword,
-        stripeCustomerId: checkoutSession.customer as string,
-        stripeSubscriptionId: checkoutSession.subscription as string,
-        stripeSubscriptionStatus: 'active',
-        stripePriceId: process.env.STRIPE_PRICE_ID,
+    // Atualizar o usuário existente com a senha
+    const user = await prisma.user.update({
+      where: {
+        email: customerEmail
       },
+      data: {
+        password: hashedPassword
+      }
     })
 
     // Gerar token de recuperação
@@ -90,40 +87,38 @@ export async function POST(req: NextRequest) {
     // Construir a URL de recuperação
     const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/reset-password?token=${token}`
 
-    // Enviar o email
+    // Enviar email com a URL de recuperação
     await transporter.sendMail({
-      from: process.env.EMAIL_FROM,
+      from: 'suporteinovechat@gmail.com',
       to: customerEmail,
-      subject: 'Link para Redefinição de Senha',
+      subject: 'Bem-vindo ao InoveCHAT',
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2>Bem-vindo!</h2>
-          <p>Olá ${checkoutSession.customer_details?.name || ''},</p>
-          <p>Sua conta foi criada com sucesso. Guardamos este link para você caso precise redefinir sua senha no futuro:</p>
-          <p style="margin: 20px 0;">
-            <a href="${resetUrl}" 
-               style="background-color: #0070f3; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
-              Redefinir Senha
-            </a>
-          </p>
-          <p>Este link é válido por 1 hora. Se precisar de um novo link depois, você pode solicitá-lo na página de login.</p>
-          <p>Se o botão não funcionar, copie e cole o link abaixo no seu navegador:</p>
-          <p style="word-break: break-all; color: #666;">${resetUrl}</p>
-        </div>
-      `,
+        <h1>Bem-vindo ao InoveCHAT!</h1>
+        <p>Sua senha foi definida com sucesso.</p>
+        <p>Para acessar sua conta, clique no botão abaixo:</p>
+        <a href="${process.env.NEXT_PUBLIC_APP_URL}/auth" style="background-color: #0070f3; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 20px 0;">
+          Acessar minha conta
+        </a>
+      `
     })
 
-    // Remover a senha do objeto retornado
-    const { password: _, ...userWithoutPassword } = user
+    // Processar código de afiliado se existir
+    const affiliateRef = req.cookies.get('affiliate_ref')?.value
+    console.log('[REFERRAL-SETUP] Verificando cookie affiliate_ref:', affiliateRef || 'não encontrado')
+    
+    if (affiliateRef) {
+      const affiliate = await prisma.affiliate.findUnique({
+        where: { referralCode: affiliateRef }
+      })
+      
+      console.log('[REFERRAL-SETUP] Afiliado encontrado:', affiliate?.id || 'não encontrado')
+    }
 
-    return NextResponse.json(
-      { message: 'Senha definida com sucesso', user: userWithoutPassword },
-      { status: 201 }
-    )
+    return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Erro ao definir senha:', error)
     return NextResponse.json(
-      { error: 'Erro ao processar a solicitação' },
+      { error: 'Erro ao definir senha' },
       { status: 500 }
     )
   }

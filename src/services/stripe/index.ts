@@ -1,11 +1,18 @@
 import Stripe from 'stripe'
+import { cookies } from 'next/headers'
 
 import { config } from '@/config'
 import { prisma } from '../database'
 
-export const stripe = new Stripe(config.stripe.secretKey || '', {
+if (!process.env.STRIPE_SECRET_KEY) {
+  console.error('STRIPE_SECRET_KEY não configurada. O serviço de pagamentos Stripe não funcionará corretamente.')
+}
+
+// Mesmo que não exista a chave, inicializamos com string vazia para evitar erros de compilação
+// Os erros específicos serão tratados nas funções que usam o Stripe
+export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   apiVersion: '2023-10-16',
-  httpClient: Stripe.createFetchHttpClient(),
+  typescript: true,
 })
 
 export const getStripeCustomerByEmail = async (email: string) => {
@@ -20,10 +27,35 @@ export const createStripeCustomer = async (input: {
   const customer = await getStripeCustomerByEmail(input.email)
   if (customer) return customer
 
-  const createdCustomer = await stripe.customers.create({
+  // Verificar se existe um código de afiliado nos cookies
+  const cookieStore = cookies()
+  const affiliateRef = cookieStore.get('affiliate_ref')?.value
+
+  const stripeCustomerData: Stripe.CustomerCreateParams = {
     email: input.email,
     name: input.name,
-  })
+  }
+
+  // Se existir código de afiliado, buscar a conta Stripe Connect do afiliado
+  if (affiliateRef) {
+    const affiliate = await prisma.affiliate.findFirst({
+      where: { referralCode: affiliateRef },
+      select: {
+        stripeConnectAccountId: true,
+        commissionRate: true
+      }
+    })
+
+    if (affiliate?.stripeConnectAccountId) {
+      // Adicionar metadata sobre o afiliado
+      stripeCustomerData.metadata = {
+        affiliate_account: affiliate.stripeConnectAccountId,
+        commission_rate: affiliate.commissionRate?.toString() || '50'
+      }
+    }
+  }
+
+  const createdCustomer = await stripe.customers.create(stripeCustomerData)
 
   const createdCustomerSubscription = await stripe.subscriptions.create({
     customer: createdCustomer.id,
@@ -62,14 +94,14 @@ export const createCheckoutSession = async (
 
     const session = await stripe.billingPortal.sessions.create({
       customer: customer.id,
-      return_url: 'http://localhost:3000/app/settings/billing',
+      return_url: `${process.env.NEXT_PUBLIC_APP_URL}/app/settings/billing`,
       flow_data: {
         type: 'subscription_update_confirm',
         after_completion: {
           type: 'redirect',
           redirect: {
             return_url:
-              'http://localhost:3000/app/settings/billing?success=true',
+              `${process.env.NEXT_PUBLIC_APP_URL}/app/settings/billing?success=true`,
           },
         },
         subscription_update_confirm: {
@@ -94,32 +126,61 @@ export const createCheckoutSession = async (
   }
 }
 
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 export const handleProcessWebhookUpdatedSubscription = async (event: {
   object: Stripe.Subscription
 }) => {
-  const stripeCustomerId = event.object.customer as string
-  const stripeSubscriptionId = event.object.id as string
-  const stripeSubscriptionStatus = event.object.status
-  const stripePriceId = event.object.items.data[0].price.id
+  const stripeCustomerId = event.object.customer as string;
+  const stripeSubscriptionId = event.object.id as string;
+  const stripeSubscriptionStatus = event.object.status;
+  const stripePriceId = event.object.items.data[0].price.id;
 
-  const userExists = await prisma.user.findFirst({
-    where: {
-      OR: [
-        {
-          stripeSubscriptionId,
-        },
-        {
-          stripeCustomerId,
-        },
-      ],
-    },
-    select: {
-      id: true,
-    },
-  })
+  // Tentar encontrar o usuário com até 3 tentativas
+  let userExists = null;
+  let attempts = 0;
+  const maxAttempts = 3;
+  const delayMs = 2000; // 2 segundos entre tentativas
+
+  while (attempts < maxAttempts && !userExists) {
+    console.log(`[STRIPE] Tentativa ${attempts + 1} de ${maxAttempts} para encontrar usuário - CustomerId: ${stripeCustomerId}`);
+    
+    userExists = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { stripeSubscriptionId },
+          { stripeCustomerId },
+        ],
+      },
+      select: {
+        id: true,
+        email: true,
+      },
+    });
+
+    if (!userExists) {
+      attempts++;
+      if (attempts < maxAttempts) {
+        console.log(`[STRIPE] Usuário não encontrado, aguardando ${delayMs}ms antes da próxima tentativa...`);
+        await delay(delayMs);
+      }
+    }
+  }
 
   if (!userExists) {
-    throw new Error('user of stripeCustomerId not found')
+    // Se após todas as tentativas o usuário ainda não existe, buscar informações do customer
+    try {
+      const customer = await stripe.customers.retrieve(stripeCustomerId) as Stripe.Customer;
+      console.log('[STRIPE] Informações do customer no Stripe:', { 
+        email: customer.email, 
+        name: customer.name,
+        metadata: customer.metadata 
+      });
+    } catch (error) {
+      console.error('[STRIPE] Erro ao buscar informações do customer:', error);
+    }
+    
+    throw new Error('user of stripeCustomerId not found');
   }
 
   await prisma.user.update({
@@ -132,8 +193,10 @@ export const handleProcessWebhookUpdatedSubscription = async (event: {
       stripeSubscriptionStatus,
       stripePriceId,
     },
-  })
-}
+  });
+
+  console.log(`[STRIPE] Assinatura atualizada com sucesso para o usuário ${userExists.id}`);
+};
 
 type Plan = {
   priceId: string
@@ -215,8 +278,58 @@ export const getUserCurrentPlan = async (userId: string) => {
   }
 }
 
-export const createDirectCheckoutSession = async () => {
+export const createDirectCheckoutSession = async (cancelUrl?: string) => {
   try {
+    // Verificar se existe um código de afiliado nos cookies
+    const cookieStore = cookies();
+    const affiliateRef = cookieStore.get('affiliate_ref')?.value;
+    
+    // Buscar o afiliado e sua taxa de comissão
+    let subscriptionData: Stripe.Checkout.SessionCreateParams.SubscriptionData = {
+      metadata: {
+        created_from: 'direct_checkout'
+      }
+    };
+    
+    if (affiliateRef) {
+      const affiliate = await prisma.affiliate.findFirst({
+        where: { referralCode: affiliateRef },
+        select: {
+          stripeConnectAccountId: true,
+          commissionRate: true
+        }
+      });
+
+      if (affiliate?.stripeConnectAccountId) {
+        // Calcular a taxa de aplicação (inverso da comissão)
+        const commissionRate = affiliate.commissionRate || 50;
+        const applicationFeePercent = 100 - commissionRate;
+
+        console.log(`[STRIPE] Configurando comissão de ${commissionRate}% para o afiliado no checkout`);
+
+        subscriptionData = {
+          ...subscriptionData,
+          metadata: {
+            ...subscriptionData.metadata,
+            affiliate_ref: affiliateRef,
+            affiliate_account: affiliate.stripeConnectAccountId,
+            commission_rate: commissionRate.toString()
+          },
+          transfer_data: {
+            destination: affiliate.stripeConnectAccountId,
+            amount_percent: commissionRate // Porcentagem que vai para o afiliado
+          }
+        };
+      }
+    }
+    
+    // Construir a URL de sucesso com o código de afiliado, se existir
+    let successUrl = `${process.env.NEXT_PUBLIC_APP_URL}/auth/set-password?session_id={CHECKOUT_SESSION_ID}`;
+    if (affiliateRef) {
+      successUrl += `&affiliate_ref=${affiliateRef}`;
+      console.log(`[STRIPE] Adicionando código de afiliado à URL de sucesso: ${affiliateRef}`);
+    }
+    
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       payment_method_types: ['card'],
@@ -226,16 +339,12 @@ export const createDirectCheckoutSession = async () => {
           quantity: 1,
         },
       ],
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/auth/set-password?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}`,
+      success_url: successUrl,
+      cancel_url: cancelUrl || `${process.env.NEXT_PUBLIC_APP_URL}`,
       allow_promotion_codes: true,
       billing_address_collection: 'required',
       client_reference_id: Date.now().toString(),
-      subscription_data: {
-        metadata: {
-          created_from: 'direct_checkout'
-        }
-      }
+      subscription_data: subscriptionData
     });
 
     return { url: session.url };

@@ -3,6 +3,7 @@ import CredentialsProvider from 'next-auth/providers/credentials'
 import { compare } from 'bcrypt'
 import { JWT } from 'next-auth/jwt'
 import { User } from '@prisma/client'
+import { cookies } from 'next/headers'
 
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import { prisma } from './database'
@@ -308,11 +309,44 @@ export const authOptions = {
     }
   },
   events: {
-    createUser: async (message) => {
+    createUser: async ({ user }) => {
+      console.log('[REFERRAL] Iniciando evento createUser para:', user.email)
+      // Criar cliente Stripe
       await createStripeCustomer({
-        name: message.user.name as string,
-        email: message.user.email as string,
+        name: user.name as string,
+        email: user.email as string,
       })
+
+      // Processar código de afiliado se existir
+      try {
+        const cookieStore = cookies()
+        const affiliateRef = cookieStore.get('affiliate_ref')?.value
+        console.log('[REFERRAL] Cookie affiliate_ref encontrado:', affiliateRef || 'não encontrado')
+
+        if (affiliateRef) {
+          // Encontrar o afiliado pelo código
+          const affiliate = await prisma.affiliate.findFirst({
+            where: { referralCode: affiliateRef }
+          })
+          
+          console.log('[REFERRAL] Afiliado encontrado:', affiliate?.id || 'não encontrado')
+
+          if (affiliate) {
+            // Criar referência
+            await prisma.referral.create({
+              data: {
+                affiliateId: affiliate.id,
+                referredUserId: user.id,
+                status: 'pending'
+              }
+            })
+            
+            console.log(`[REFERRAL] Referência criada com sucesso: ${affiliate.id} → ${user.id}`)
+          }
+        }
+      } catch (error) {
+        console.error("[REFERRAL] Erro ao processar referência:", error)
+      }
     },
     signIn: async () => {},
     signOut: async () => {},

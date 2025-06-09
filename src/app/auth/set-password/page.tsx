@@ -15,6 +15,7 @@ function SetPasswordForm() {
   const form = useForm();
 
   const sessionId = searchParams.get('session_id');
+  const affiliateRef = searchParams.get('affiliate_ref');
 
   if (!sessionId) {
     return (
@@ -49,15 +50,24 @@ function SetPasswordForm() {
         return;
       }
 
+      // Preparar os dados para envio, incluindo o código de afiliado se existir
+      const requestData = {
+        sessionId,
+        password: data.password,
+      };
+      
+      // Se tiver código de afiliado, incluir na requisição
+      if (affiliateRef) {
+        Object.assign(requestData, { affiliateRef });
+        console.log('[SET-PASSWORD] Enviando código de afiliado na requisição:', affiliateRef);
+      }
+
       const response = await fetch('/api/auth/set-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          sessionId,
-          password: data.password,
-        }),
+        body: JSON.stringify(requestData),
       });
 
       if (!response.ok) {

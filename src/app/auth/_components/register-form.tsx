@@ -7,10 +7,13 @@ import { Button } from '@/components/ui/button'
 import { useForm } from 'react-hook-form'
 import { signIn } from 'next-auth/react'
 import { toast } from '@/components/ui/use-toast'
+import { usePathname } from 'next/navigation'
 
 export function RegisterForm() {
   const [isLoading, setIsLoading] = useState(false)
   const form = useForm()
+  const pathname = usePathname()
+  const isAffiliatePage = pathname === '/afiliados'
 
   const handleSubmit = form.handleSubmit(async (data) => {
     try {
@@ -34,6 +37,7 @@ export function RegisterForm() {
           name: data.name,
           email: data.email,
           password: data.password,
+          isAffiliate: isAffiliatePage,
         }),
       })
 
@@ -45,13 +49,20 @@ export function RegisterForm() {
 
       toast({
         title: 'Registro concluído',
-        description: 'Sua conta foi criada com sucesso. Agora você pode fazer login.',
+        description: isAffiliatePage 
+          ? 'Sua conta foi criada. Você será redirecionado para configurar sua conta de afiliado.'
+          : 'Sua conta foi criada com sucesso. Agora você pode fazer login.',
       })
 
-      // Redirecionar para a página de login após registro bem-sucedido
-      setTimeout(() => {
-        window.location.href = '/auth'
-      }, 2000)
+      // Se for afiliado e tiver link do Stripe, redirecionar para ele
+      if (isAffiliatePage && result.stripeAccountLink) {
+        window.location.href = result.stripeAccountLink
+      } else {
+        // Caso contrário, redirecionar para a página de login
+        setTimeout(() => {
+          window.location.href = '/auth'
+        }, 2000)
+      }
     } catch (error) {
       console.error('Erro de registro:', error)
       toast({
@@ -69,7 +80,9 @@ export function RegisterForm() {
       <div className="space-y-2 text-center">
         <h1 className="text-3xl font-bold">Criar Conta</h1>
         <p className="text-gray-500 dark:text-gray-400">
-          Preencha os dados abaixo para criar sua conta. Você usará seu email e senha para login.
+          {isAffiliatePage 
+            ? 'Preencha os dados abaixo para se tornar um afiliado. Você será redirecionado para configurar sua conta de pagamentos.'
+            : 'Preencha os dados abaixo para criar sua conta. Você usará seu email e senha para login.'}
         </p>
       </div>
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -117,7 +130,7 @@ export function RegisterForm() {
           type="submit"
           disabled={isLoading}
         >
-          {isLoading ? 'Registrando...' : 'Registrar'}
+          {isLoading ? 'Registrando...' : isAffiliatePage ? 'Tornar-se Afiliado' : 'Registrar'}
         </Button>
         
         <div className="text-center text-sm">
