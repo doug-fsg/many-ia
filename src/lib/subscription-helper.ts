@@ -80,7 +80,8 @@ export async function checkUserSubscription(userId: string) {
       where: { id: userId },
       select: {
         stripeSubscriptionId: true,
-        stripeSubscriptionStatus: true
+        stripeSubscriptionStatus: true,
+        isIntegrationUser: true
       }
     });
 
@@ -93,8 +94,9 @@ export async function checkUserSubscription(userId: string) {
       };
     }
 
-    const hasSubscription = !!user.stripeSubscriptionId;
-    const isBlocked = isSubscriptionBlocked(user.stripeSubscriptionStatus);
+    // Usuários com isIntegrationUser=true têm acesso gratuito
+    const hasSubscription = !!user.stripeSubscriptionId || !!user.isIntegrationUser;
+    const isBlocked = !user.isIntegrationUser && isSubscriptionBlocked(user.stripeSubscriptionStatus);
 
     return {
       isBlocked,
