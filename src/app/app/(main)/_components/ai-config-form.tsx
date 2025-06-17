@@ -38,6 +38,7 @@ import {
 } from '@/components/ui/dialog'
 import { ExpandIcon, Check, ChevronsUpDown } from 'lucide-react'
 import { useSession } from 'next-auth/react'
+import { StepManager } from './step-manager'
 
 import {
   Command,
@@ -53,6 +54,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
+import { z } from 'zod'
 
 type Attachment = {
   type: 'link' | 'image' | 'pdf'
@@ -104,19 +106,37 @@ export function AIConfigForm({
 
   const form = useForm<AIConfigFormData>({
     resolver: zodResolver(upsertAIConfigSchema),
-    defaultValues: defaultValue || {
-      isActive: false,
-      enviarParaAtendente: true,
-      quemEhAtendente: '',
-      oQueAtendenteFaz: '',
-      objetivoAtendente: '',
-      comoAtendenteDeve: '',
-      horarioAtendimento: 'Atender 24h por dia',
-      tempoRetornoAtendimento: 'Não retornar automaticamente',
-      condicoesAtendimento: '',
-      informacoesEmpresa: '',
+    defaultValues: {
+      isActive: defaultValue?.isActive ?? false,
+      enviarParaAtendente: defaultValue?.enviarParaAtendente ?? true,
+      nomeAtendenteDigital: defaultValue?.nomeAtendenteDigital ?? '',
+      quemEhAtendente: defaultValue?.quemEhAtendente ?? '',
+      oQueAtendenteFaz: defaultValue?.oQueAtendenteFaz ?? '',
+      objetivoAtendente: defaultValue?.objetivoAtendente ?? '',
+      comoAtendenteDeve: defaultValue?.comoAtendenteDeve ?? '',
+      horarioAtendimento: defaultValue?.horarioAtendimento ?? 'Atender 24h por dia',
+      tempoRetornoAtendimento: defaultValue?.tempoRetornoAtendimento ?? 'Não retornar automaticamente',
+      condicoesAtendimento: defaultValue?.condicoesAtendimento ?? '',
+      informacoesEmpresa: defaultValue?.informacoesEmpresa ?? '',
+      temasEvitar: defaultValue?.temasEvitar?.map(tema => typeof tema === 'string' ? tema : tema.tema) ?? [],
+      attachments: defaultValue?.attachments ?? [],
+      inboxId: defaultValue?.inboxId,
+      inboxName: defaultValue?.inboxName,
     },
   })
+
+  // Formata o valor inicial do campo comoAtendenteDeve quando o formulário é carregado para edição
+  useEffect(() => {
+    if (defaultValue?.comoAtendenteDeve && isEditMode) {
+      const lines = defaultValue.comoAtendenteDeve.split('\n').filter(line => line.trim())
+      const formattedSteps = lines.map((line, index) => {
+        const stepNumber = (index + 1).toString().padStart(2, '0')
+        return `#PASSO ${stepNumber}:\n${line}`
+      }).join('\n\n')
+      
+      form.setValue('comoAtendenteDeve', formattedSteps, { shouldValidate: true })
+    }
+  }, [defaultValue, isEditMode, form])
 
   useEffect(() => {
     if (defaultValue?.attachments && defaultValue.attachments.length > 0) {
@@ -587,27 +607,15 @@ export function AIConfigForm({
             name="comoAtendenteDeve"
             render={({ field }) => (
               <FormItem>
-                <div className="flex justify-between items-center">
-                  <FormLabel>Como seu Atendente deve responder?</FormLabel>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleExpandField('comoAtendenteDeve')}
-                    className="h-8 w-8 p-0"
-                  >
-                    <ExpandIcon className="h-4 w-4" />
-                  </Button>
-                </div>
+                <FormLabel>Como seu Atendente deve responder?</FormLabel>
                 <FormControl>
-                  <Textarea
-                    placeholder="Seu tom de comunicação deve ser..."
-                    className="h-36"
-                    {...field}
-                    onChange={(e) => {
-                      field.onChange(e.target.value)
-                    }}
-                  />
+                  <div className="border rounded-md p-4">
+                    <StepManager
+                      value={field.value || ''}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                    />
+                  </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -1047,12 +1055,21 @@ export function AIConfigForm({
             </DialogTitle>
           </DialogHeader>
           <div className="flex-1 h-[calc(100vh-120px)]">
-            <Textarea
-              value={expandedContent}
-              onChange={(e) => setExpandedContent(e.target.value)}
-              className="w-full h-full resize-none p-4 focus:outline-none"
-              placeholder="Digite seu texto aqui..."
-            />
+            {expandedField === 'comoAtendenteDeve' ? (
+              <div className="w-full h-full p-4">
+                <StepManager
+                  value={expandedContent}
+                  onChange={setExpandedContent}
+                />
+              </div>
+            ) : (
+              <Textarea
+                value={expandedContent}
+                onChange={(e) => setExpandedContent(e.target.value)}
+                className="w-full h-full resize-none p-4 focus:outline-none"
+                placeholder="Digite seu texto aqui..."
+              />
+            )}
           </div>
         </DialogContent>
       </Dialog>
