@@ -36,7 +36,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { ExpandIcon, Check, ChevronsUpDown } from 'lucide-react'
+import { ExpandIcon, Check, ChevronsUpDown, PlusIcon } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { StepManager } from './step-manager'
 
@@ -55,12 +55,19 @@ import {
 } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 import { z } from 'zod'
-
-type Attachment = {
-  type: 'link' | 'image' | 'pdf'
-  content: string // URL para links ou fileId para arquivos
-  description: string
-}
+import { LibraryAttachments } from './library-attachments'
+import { ShortcutTextarea } from './shortcut-textarea'
+import { ShortcutInput } from './shortcut-input'
+import { EnhancedTextarea } from './enhanced-textarea'
+import { EnhancedInput } from './enhanced-input'
+import { ShortcutField } from './shortcut-field'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
+import { Badge } from '@/components/ui/badge'
+import { LexicalFullscreenDialog } from './lexical/lexical-fullscreen-dialog'
 
 type AIConfigFormProps = {
   defaultValue?: AIConfig
@@ -73,6 +80,14 @@ type AIConfigFormProps = {
 interface TemasEvitar {
   id: string
   tema: string
+}
+
+// Corrigir o tipo Attachment para remover o tipo 'link'
+type Attachment = {
+  id: string
+  type: 'image' | 'pdf'
+  content: string
+  description: string
 }
 
 export function AIConfigForm({
@@ -103,6 +118,9 @@ export function AIConfigForm({
     description: string
     template: any
   }>>([])
+  const [isEssentialInfoOpen, setIsEssentialInfoOpen] = useState(true)
+  const [isAttachmentsOpen, setIsAttachmentsOpen] = useState(false)
+  const [isTemasOpen, setIsTemasOpen] = useState(false)
 
   const form = useForm<AIConfigFormData>({
     resolver: zodResolver(upsertAIConfigSchema),
@@ -118,8 +136,12 @@ export function AIConfigForm({
       tempoRetornoAtendimento: defaultValue?.tempoRetornoAtendimento ?? 'Não retornar automaticamente',
       condicoesAtendimento: defaultValue?.condicoesAtendimento ?? '',
       informacoesEmpresa: defaultValue?.informacoesEmpresa ?? '',
-      temasEvitar: defaultValue?.temasEvitar?.map(tema => typeof tema === 'string' ? tema : tema.tema) ?? [],
-      attachments: defaultValue?.attachments ?? [],
+      temasEvitar: defaultValue?.temasEvitar?.map((tema: any) => typeof tema === 'string' ? tema : tema.tema) ?? [],
+      attachments: defaultValue?.attachments?.filter(att => att.type === 'image' || att.type === 'pdf').map(att => ({
+        type: att.type as 'image' | 'pdf',
+        content: att.content,
+        description: att.description
+      })) ?? [],
       inboxId: defaultValue?.inboxId,
       inboxName: defaultValue?.inboxName,
     },
@@ -138,11 +160,19 @@ export function AIConfigForm({
     }
   }, [defaultValue, isEditMode, form])
 
+  // Corrigir o setAttachments
   useEffect(() => {
     if (defaultValue?.attachments && defaultValue.attachments.length > 0) {
-      setAttachments(defaultValue.attachments)
+      const filteredAttachments = defaultValue.attachments
+        .filter(att => att.type === 'image' || att.type === 'pdf')
+        .map(att => ({
+          type: att.type as 'image' | 'pdf',
+          content: att.content,
+          description: att.description
+        }));
+      setAttachments(filteredAttachments);
     }
-  }, [defaultValue])
+  }, [defaultValue]);
 
   useEffect(() => {
     const subscription = form.watch((value, { name, type }) => {
@@ -153,7 +183,7 @@ export function AIConfigForm({
         const currentValues = form.getValues()
         const isDifferent = Object.keys(template).some((key) => {
           if (key === 'id' || key === 'status') return false
-          return template[key as keyof Template] !== currentValues[key as keyof typeof currentValues]
+          return template[key as keyof typeof template] !== currentValues[key as keyof typeof currentValues]
         })
 
         setIsCustomized(isDifferent)
@@ -237,56 +267,6 @@ export function AIConfigForm({
     }
   }
 
-  const handleExpandField = (fieldName: string) => {
-    const currentValue = form.getValues(fieldName) as string
-    setExpandedContent(currentValue)
-    setExpandedField(fieldName)
-    setIsDialogOpen(true)
-  }
-
-  const handleCloseExpanded = () => {
-    if (expandedField) {
-      form.setValue(expandedField, expandedContent, {
-        shouldValidate: true,
-        shouldDirty: true,
-      })
-    }
-    setIsDialogOpen(false)
-    setTimeout(() => {
-      setExpandedField(null)
-      setExpandedContent('')
-    }, 200)
-  }
-
-  const addAttachment = () => {
-    setAttachments([
-      ...attachments,
-      { type: 'link', content: '', description: '' },
-    ])
-  }
-
-  const updateAttachment = (
-    index: number,
-    field: keyof Attachment,
-    value: string,
-  ) => {
-    const updatedAttachments = [...attachments]
-    if (field === 'type') {
-      updatedAttachments[index] = {
-        type: value as 'link' | 'image' | 'pdf',
-        content: '',
-        description: '',
-      }
-    } else {
-      updatedAttachments[index][field] = value
-    }
-    setAttachments(updatedAttachments)
-  }
-
-  const removeAttachment = (index: number) => {
-    setAttachments(attachments.filter((_, i) => i !== index))
-  }
-
   const handleTemplateSelect = (templateId: string) => {
     const templateData = templateOptions.find(t => t.value === templateId)?.template
     
@@ -324,8 +304,203 @@ export function AIConfigForm({
     setIsCustomized(false)
   }
 
-  const formContent = (
-    <>
+  const handleExpandField = (fieldName: string) => {
+    setExpandedField(fieldName)
+    setExpandedContent(form.getValues(fieldName))
+    setIsDialogOpen(true)
+  }
+
+  const handleCloseExpanded = () => {
+    if (expandedField && expandedContent) {
+      form.setValue(expandedField, expandedContent, {
+        shouldDirty: true,
+        shouldTouch: true,
+        shouldValidate: true,
+      })
+    }
+    setExpandedField(null)
+    setExpandedContent('')
+    setIsDialogOpen(false)
+  }
+
+  const addAttachment = () => {
+    // Verificar se já existe um anexo com a descrição "#novo"
+    const defaultDescription = '#novo';
+    let newDescription = defaultDescription;
+    let counter = 1;
+    
+    // Enquanto encontrar uma descrição duplicada, incrementa o contador
+    while (attachments.some(att => att.description === newDescription)) {
+      counter++;
+      newDescription = `#novo${counter}`;
+    }
+    
+    // Gerar um ID verdadeiramente único com timestamp e número aleatório
+    const timestamp = new Date().getTime();
+    const random = Math.floor(Math.random() * 10000);
+    const newId = `attachment-${timestamp}-${random}`;
+    
+    const newAttachment: Attachment = {
+      id: newId,
+      type: 'image',
+      content: '',
+      description: newDescription,
+    }
+    setAttachments(prev => [...prev, newAttachment])
+  }
+
+  const updateAttachment = (
+    index: number,
+    field: keyof Attachment,
+    value: string,
+  ) => {
+    const newAttachments = [...attachments]
+    newAttachments[index] = {
+      ...newAttachments[index],
+      id: newAttachments[index]?.id || Math.random().toString(36).substring(2, 15),
+      [field]: value
+    }
+    setAttachments(newAttachments)
+  }
+
+  const removeAttachment = (index: number) => {
+    const newAttachments = [...attachments]
+    newAttachments.splice(index, 1)
+    setAttachments(newAttachments)
+  }
+
+  return (
+    <Card className="border-none shadow-none">
+      <CardContent className="p-6">
+        <Form {...form}>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              const formData = form.getValues()
+              const temasFormatados = temasEvitar.map((tema) => ({ tema }))
+
+              upsertAIConfig({
+                ...formData,
+                attachments,
+                temasEvitar: temasFormatados,
+                id: isEditMode && defaultValue ? defaultValue.id : undefined,
+              })
+                .then((result) => {
+                  if (result.error) {
+                    toast({
+                      title: 'Erro',
+                      description: result.error,
+                      variant: 'destructive',
+                    })
+                  } else {
+                    toast({
+                      title: 'Sucesso',
+                      description: 'Configuração salva com sucesso.',
+                    })
+                    router.refresh()
+                    if (onSuccess) onSuccess()
+                  }
+                })
+                .catch((error) => {
+                  console.error('Erro ao salvar:', error)
+                  toast({
+                    title: 'Erro',
+                    description: 'Falha ao salvar a configuração.',
+                    variant: 'destructive',
+                  })
+                })
+            }}
+            className="space-y-8"
+          >
+            <div className="space-y-6">
+              <div className="group flex items-center justify-between bg-card/50 hover:bg-card rounded-lg p-4 border transition-all duration-200">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl font-semibold tracking-tight">Modelos</h2>
+                    <div className={`h-2 w-2 rounded-full transition-colors duration-200 ${selectedTemplate ? (isCustomized ? "bg-orange-500" : "bg-green-500") : "bg-yellow-500"}`} />
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Comece com um modelo pré-configurado ou personalize do zero
+                  </p>
+                </div>
+
+                <Popover open={open} onOpenChange={setOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={open}
+                      className="w-[250px] justify-between group-hover:border-primary/20 group-hover:bg-background transition-colors duration-200"
+                    >
+                      <div className="flex items-center gap-2">
+                        {selectedTemplate ? (
+                          <>
+                            {isCustomized
+                              ? 'Personalizado'
+                              : templateOptions.find(
+                                  (template) =>
+                                    template.value === selectedTemplate,
+                                )?.label}
+                          </>
+                        ) : (
+                          'Selecione um modelo...'
+                        )}
+                      </div>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-muted-foreground group-hover:text-foreground transition-colors duration-200" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[400px] p-0" align="end">
+                    <Command>
+                      <CommandInput
+                        placeholder="Buscar modelo..."
+                        className="h-9"
+                      />
+                      <CommandList>
+                        <CommandEmpty>Nenhum template encontrado.</CommandEmpty>
+                        <CommandGroup>
+                          {templateOptions.map((template) => (
+                            <CommandItem
+                              key={template.value}
+                              value={template.value}
+                              onSelect={() => {
+                                handleTemplateSelect(template.value)
+                                setOpen(false)
+                              }}
+                              className="flex flex-col items-start py-3 px-4 cursor-pointer hover:bg-accent/50"
+                            >
+                              <div className="flex w-full items-center gap-2">
+                                <div className="flex-1">
+                                  <span className="font-medium flex items-center gap-2">
+                                    {template.label}
+                                    {selectedTemplate === template.value && (
+                                      <div className={`h-2 w-2 rounded-full ${isCustomized ? "bg-orange-500" : "bg-green-500"}`} />
+                                    )}
+                                  </span>
+                                  <p className="text-sm text-muted-foreground">
+                                    {template.description}
+                                  </p>
+                                </div>
+                                {selectedTemplate === template.value && (
+                                  <Check className="h-4 w-4 text-primary" />
+                                )}
+                              </div>
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div className="flex items-center">
+                <div className="flex-grow border-t border-border"></div>
+                <p className="mx-4 text-sm text-muted-foreground">
+                  ou configure manualmente
+                </p>
+                <div className="flex-grow border-t border-border"></div>
+              </div>
+
       <FormField
         control={form.control}
         name="isActive"
@@ -349,7 +524,7 @@ export function AIConfigForm({
         name="nomeAtendenteDigital"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Nome do Atendente Digital</FormLabel>
+            <FormLabel className="ai-config-label">Nome do Atendente Digital</FormLabel>
             <FormControl>
               <Input
                 placeholder="Digite o nome do atendente digital"
@@ -472,17 +647,14 @@ export function AIConfigForm({
                     <FormItem className="mt-4">
                       <FormLabel>Condições de Atendimento</FormLabel>
                       <FormControl>
-                        <Input
-                          placeholder="Separe as condições por vírgula"
+                        <ShortcutField
                           {...condicoesField}
-                          onChange={(e) => {
-                            condicoesField.onChange(e.target.value)
-                          }}
+                          attachments={attachments}
+                          placeholder="Separe as condições por vírgula"
                         />
                       </FormControl>
                       <FormDescription>
-                        Ex: Quando houver problema técnico, Quando houver
-                        reclamação
+                        Informe condições específicas para o atendimento.
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -494,40 +666,53 @@ export function AIConfigForm({
         />
       )}
 
-      <div className="space-y-6 border rounded-lg p-6">
-        <div className="flex justify-between items-center">
-          <h2 className="text-lg font-semibold">Informações Essenciais</h2>
+              <Collapsible
+                open={isEssentialInfoOpen}
+                onOpenChange={setIsEssentialInfoOpen}
+                className="group space-y-4 border rounded-lg transition-all duration-200 bg-card/50 hover:bg-card"
+              >
+                <CollapsibleTrigger asChild>
+                  <div className="flex justify-between items-center p-4 cursor-pointer border-b border-transparent group-hover:border-border">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-xl font-semibold tracking-tight">Informações Essenciais</h2>
+                        <ChevronsUpDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-hover:text-foreground" />
         </div>
+                      <p className="text-sm text-muted-foreground">Configure as informações básicas do atendente digital</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className={`h-2 w-2 rounded-full transition-colors duration-200 ${form.watch("quemEhAtendente") ? "bg-green-500" : "bg-yellow-500"}`} />
+                    </div>
+                  </div>
+                </CollapsibleTrigger>
 
+                <CollapsibleContent className="space-y-6 p-4 pt-2">
         <div className="relative">
           <FormField
             control={form.control}
             name="quemEhAtendente"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="mb-8">
                 <div className="flex justify-between items-center">
-                  <FormLabel>Quem é o seu Atendente?</FormLabel>
+                  <FormLabel className="ai-config-label">Quem é seu Atendente?</FormLabel>
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
                     onClick={() => handleExpandField('quemEhAtendente')}
-                    className="h-8 w-8 p-0"
                   >
                     <ExpandIcon className="h-4 w-4" />
                   </Button>
                 </div>
                 <FormControl>
-                  <Textarea
-                    placeholder="Você é um Sales Development Representative (SDR)..."
-                    className="h-36"
+                  <ShortcutField
                     {...field}
-                    onChange={(e) => {
-                      field.onChange(e.target.value)
-                    }}
+                    attachments={attachments}
+                    placeholder="Ex: Clara é uma atendente digital especializada em vendas..."
+                    className="h-36 shadow-[0_2px_4px_rgba(0,0,0,0.05)]"
+                    multiline={true}
                   />
                 </FormControl>
-                <FormMessage />
               </FormItem>
             )}
           />
@@ -538,30 +723,27 @@ export function AIConfigForm({
             control={form.control}
             name="oQueAtendenteFaz"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="mb-8">
                 <div className="flex justify-between items-center">
-                  <FormLabel>O que seu Atendente faz?</FormLabel>
+                  <FormLabel className="ai-config-label">O que seu Atendente faz?</FormLabel>
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
                     onClick={() => handleExpandField('oQueAtendenteFaz')}
-                    className="h-8 w-8 p-0"
                   >
                     <ExpandIcon className="h-4 w-4" />
                   </Button>
                 </div>
                 <FormControl>
-                  <Textarea
-                    placeholder="Sua principal missão é gerar um fluxo constante..."
-                    className="h-36"
+                  <ShortcutField
                     {...field}
-                    onChange={(e) => {
-                      field.onChange(e.target.value)
-                    }}
+                    attachments={attachments}
+                    placeholder="Ex: Realiza atendimento ao cliente, qualifica leads..."
+                    className="h-36 shadow-[0_2px_4px_rgba(0,0,0,0.05)]"
+                    multiline={true}
                   />
                 </FormControl>
-                <FormMessage />
               </FormItem>
             )}
           />
@@ -572,30 +754,27 @@ export function AIConfigForm({
             control={form.control}
             name="objetivoAtendente"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="mb-8">
                 <div className="flex justify-between items-center">
-                  <FormLabel>Qual o objetivo do seu Atendente?</FormLabel>
+                  <FormLabel className="ai-config-label">Qual o objetivo do seu Atendente?</FormLabel>
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
                     onClick={() => handleExpandField('objetivoAtendente')}
-                    className="h-8 w-8 p-0"
                   >
                     <ExpandIcon className="h-4 w-4" />
                   </Button>
                 </div>
                 <FormControl>
-                  <Textarea
-                    placeholder="Seu objetivo é atrair o interesse dos leads, construir..."
-                    className="h-36"
+                  <ShortcutField
                     {...field}
-                    onChange={(e) => {
-                      field.onChange(e.target.value)
-                    }}
+                    attachments={attachments}
+                    placeholder="O objetivo principal é qualificar leads..."
+                    className="h-36 shadow-[0_2px_4px_rgba(0,0,0,0.05)]"
+                    multiline={true}
                   />
                 </FormControl>
-                <FormMessage />
               </FormItem>
             )}
           />
@@ -606,223 +785,111 @@ export function AIConfigForm({
             control={form.control}
             name="comoAtendenteDeve"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Como seu Atendente deve responder?</FormLabel>
+              <FormItem className="mb-8">
+                <div className="flex justify-between items-center">
+                  <FormLabel className="ai-config-label">Como seu Atendente deve responder?</FormLabel>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleExpandField('comoAtendenteDeve')}
+                  >
+                    <ExpandIcon className="h-4 w-4" />
+                  </Button>
+                </div>
                 <FormControl>
-                  <div className="border rounded-md p-4">
-                    <StepManager
-                      value={field.value || ''}
-                      onChange={field.onChange}
-                      onBlur={field.onBlur}
-                    />
-                  </div>
+                  <StepManager
+                    value={field.value}
+                    onChange={field.onChange}
+                    attachments={attachments}
+                    className="shadow-[0_2px_4px_rgba(0,0,0,0.05)]"
+                  />
                 </FormControl>
-                <FormMessage />
               </FormItem>
             )}
           />
         </div>
-      </div>
 
-      <div className="space-y-6 border rounded-lg p-6">
+                  <div className="relative">
         <FormField
           control={form.control}
           name="informacoesEmpresa"
           render={({ field }) => (
-            <FormItem>
+            <FormItem className="mb-8">
               <div className="flex justify-between items-center">
-                <FormLabel>
-                  Informações sobre a Empresa/Produto/Serviço
-                </FormLabel>
+                            <FormLabel className="ai-config-label">Informações sobre a Empresa/Produto/Serviço</FormLabel>
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
                   onClick={() => handleExpandField('informacoesEmpresa')}
-                  className="h-8 w-8 p-0"
                 >
                   <ExpandIcon className="h-4 w-4" />
                 </Button>
               </div>
               <FormControl>
-                <Textarea
-                  placeholder="Nossa empresa oferece serviços de consultoria financeira para pequenas e médias empresas, oferecemos um sistema de controle financeiro, integrado com análise de métricas em tempo real..."
-                  className="h-36"
+                <ShortcutField
                   {...field}
+                  attachments={attachments}
+                              placeholder="Descreva informações importantes sobre sua empresa..."
+                  className="h-36 shadow-[0_2px_4px_rgba(0,0,0,0.05)]"
+                  multiline={true}
                 />
               </FormControl>
+              <FormDescription>
+                            Forneça informações relevantes sobre a empresa, produtos ou serviços.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
       </div>
+                </CollapsibleContent>
+              </Collapsible>
 
-      <FormItem className="flex flex-col rounded-lg border p-4">
-        <div className="flex flex-row items-center justify-between mb-4">
-          <FormLabel className="text-base">Anexos para IA</FormLabel>
-          <Button type="button" onClick={addAttachment} variant="outline">
-            Adicionar Anexo
-          </Button>
-        </div>
-        {attachments.map((attachment, index) => (
-          <div
-            key={index}
-            className="space-y-4 mt-4 p-4 border rounded-lg relative"
-          >
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="absolute right-2 top-2"
-              onClick={() => removeAttachment(index)}
-            >
-              &#x2715;
-            </Button>
+              <Collapsible className="rounded-lg border p-4">
+                <CollapsibleTrigger className="group w-full">
+                  <div className="flex w-full items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-xl font-semibold tracking-tight">Biblioteca de Anexos</h2>
+                      <Badge variant={attachments.length > 0 ? "success" : "secondary"} className="ml-2">
+                        {attachments.length} {attachments.length === 1 ? 'anexo' : 'anexos'}
+                      </Badge>
+                      <ChevronsUpDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-hover:text-foreground" />
+                    </div>
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pt-4">
+                  <LibraryAttachments
+                    attachments={attachments}
+                    onUpdate={updateAttachment}
+                    onRemove={removeAttachment}
+                    onAdd={addAttachment}
+                  />
+                </CollapsibleContent>
+              </Collapsible>
 
-            <FormItem>
-              <FormLabel>Tipo de Anexo</FormLabel>
-              <Select
-                value={attachment.type}
-                onValueChange={(value) =>
-                  updateAttachment(index, 'type', value)
-                }
+              <Collapsible
+                open={isTemasOpen}
+                onOpenChange={setIsTemasOpen}
+                className="group flex flex-col rounded-lg border transition-all duration-200 bg-card/50 hover:bg-card"
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="link">Link</SelectItem>
-                  <SelectItem value="image">Imagem</SelectItem>
-                  <SelectItem value="pdf">PDF</SelectItem>
-                </SelectContent>
-              </Select>
-            </FormItem>
-
-            {attachment.type === 'link' ? (
-              <FormItem>
-                <FormLabel>URL</FormLabel>
-                <Input
-                  placeholder="https://exemplo.com"
-                  value={attachment.content}
-                  onChange={(e) =>
-                    updateAttachment(index, 'content', e.target.value)
-                  }
-                />
-              </FormItem>
-            ) : (
-              <FormItem>
-                <FormLabel>
-                  {attachment.type === 'image' ? 'Imagem' : 'PDF'}
-                </FormLabel>
-                {attachment.type === 'image' ? (
-                  <FormItem>
-                    {attachment.content ? (
-                      <div className="flex items-center space-x-4 bg-secondary/50 p-3 rounded-lg border">
-                        <div className="relative w-20 h-20 rounded-md overflow-hidden shadow-sm">
-                          <img 
-                            src={`/api/files/${attachment.content}`} 
-                            alt="Uploaded" 
-                            className="object-cover w-full h-full"
-                          />
-                          <div className="absolute inset-0 bg-black/10 hover:bg-black/20 transition-colors"></div>
-                        </div>
-                        <div className="flex-1 space-y-1">
-                          <p className="text-sm font-medium truncate">
-                            {attachment.content}
-                          </p>
-                          <div className="flex space-x-2">
-                            <Button 
-                              type="button" 
-                              variant="outline"
-                              size="sm"
-                              className="hover:bg-primary/10"
-                              onClick={() => window.open(`/api/files/${attachment.content}`, '_blank')}
-                            >
-                              Visualizar
-                            </Button>
-                            <Button 
-                              type="button" 
-                              variant="ghost"
-                              size="sm"
-                              className="text-destructive hover:bg-destructive/10"
-                              onClick={() => updateAttachment(index, 'content', '')}
-                            >
-                              Remover
-                            </Button>
-                          </div>
-                        </div>
+                <CollapsibleTrigger asChild>
+                  <div className="flex justify-between items-center p-4 cursor-pointer border-b border-transparent group-hover:border-border">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-xl font-semibold tracking-tight">Temas a Evitar</h2>
+                        <ChevronsUpDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-hover:text-foreground" />
                       </div>
-                    ) : (
-                      <Input
-                        type="file"
-                        accept="image/*"
-                        className="cursor-pointer file:mr-4 file:rounded-md file:border-0 file:bg-primary/10 file:px-4 file:py-2 file:text-sm file:font-medium hover:file:bg-primary/20 border-input"
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0]
-                          if (file) {
-                            try {
-                              const fileId = await handleFileUpload(file)
-                              updateAttachment(index, 'content', fileId)
-                            } catch (error) {
-                              console.error('Erro no upload:', error)
-                              toast({
-                                title: 'Erro de Upload',
-                                description: 'Não foi possível fazer upload da imagem.',
-                                variant: 'destructive'
-                              })
-                            }
-                          }
-                        }}
-                      />
-                    )}
-                  </FormItem>
-                ) : (
-                  <FormItem>
-                   
-                    <Input
-                      type="file"
-                      accept=".pdf"
-                      className="cursor-pointer file:mr-4 file:rounded-md file:border-0 file:bg-primary/10 file:px-4 file:py-2 file:text-sm file:font-medium hover:file:bg-primary/20 border-input"
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0]
-                        if (file) {
-                          try {
-                            const fileId = await handleFileUpload(file)
-                            updateAttachment(index, 'content', fileId)
-                          } catch (error) {
-                            console.error('Erro no upload:', error)
-                            toast({
-                              title: 'Erro de Upload',
-                              description: 'Não foi possível fazer upload do PDF.',
-                              variant: 'destructive'
-                            })
-                          }
-                        }
-                      }}
-                    />
-                  </FormItem>
-                )}
-              </FormItem>
-            )}
+                      <p className="text-sm text-muted-foreground">Defina os assuntos que o atendente não deve abordar</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className={`h-2 w-2 rounded-full transition-colors duration-200 ${temasEvitar.length > 0 ? "bg-green-500" : "bg-yellow-500"}`} />
+                    </div>
+                  </div>
+                </CollapsibleTrigger>
 
-            <FormItem>
-              <FormLabel>Gatilho</FormLabel>
-              <Input
-                placeholder="Descreva o anexo"
-                value={attachment.description}
-                onChange={(e) =>
-                  updateAttachment(index, 'description', e.target.value)
-                }
-              />
-            </FormItem>
-          </div>
-        ))}
-      </FormItem>
-
-      <FormItem className="flex flex-col rounded-lg border p-4 space-y-2">
-        <FormLabel className="text-base">
-          Quais temas ele deve evitar?
-        </FormLabel>
+                <CollapsibleContent className="p-4 pt-2 space-y-6">
         <div className="flex gap-2">
           <Input
             placeholder="Digite um tema a evitar"
@@ -835,11 +902,11 @@ export function AIConfigForm({
               }
             }}
           />
-          <Button type="button" onClick={adicionarTema}>
+                    <Button type="button" onClick={adicionarTema} size="sm">
             Adicionar
           </Button>
         </div>
-        <div className="flex flex-wrap gap-2 mt-2">
+                  <div className="flex flex-wrap gap-2">
           {temasEvitar.map((tema, index) => (
             <div
               key={index}
@@ -858,166 +925,10 @@ export function AIConfigForm({
             </div>
           ))}
         </div>
-        <FormDescription>
-          Digite um tema e pressione Enter ou clique em Adicionar. Os temas
-          aparecerão como tags abaixo.
-        </FormDescription>
-      </FormItem>
-    </>
-  )
-
-  return (
-    <Card>
-      <CardContent className="p-6">
-        <Form {...form}>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault()
-              const formData = form.getValues()
-              const temasFormatados = temasEvitar.map((tema) => ({ tema }))
-
-              upsertAIConfig({
-                ...formData,
-                attachments,
-                temasEvitar: temasFormatados,
-                id: isEditMode && defaultValue ? defaultValue.id : undefined,
-              })
-                .then((result) => {
-                  if (result.error) {
-                    toast({
-                      title: 'Erro',
-                      description: result.error,
-                      variant: 'destructive',
-                    })
-                  } else {
-                    toast({
-                      title: 'Sucesso',
-                      description: 'Configuração salva com sucesso.',
-                    })
-                    router.refresh()
-                    if (onSuccess) onSuccess()
-                  }
-                })
-                .catch((error) => {
-                  console.error('Erro ao salvar:', error)
-                  toast({
-                    title: 'Erro',
-                    description: 'Falha ao salvar a configuração.',
-                    variant: 'destructive',
-                  })
-                })
-            }}
-            className="space-y-8"
-          >
-            <div className="space-y-6 mb-8">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <h2 className="text-2xl font-bold tracking-tight">Modelos</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Comece com um modelo pré-configurado ou personalize do zero.
-                  </p>
+                </CollapsibleContent>
+              </Collapsible>
                 </div>
 
-                <Popover open={open} onOpenChange={setOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={open}
-                      className="w-[250px] justify-between"
-                    >
-                      <div className="flex items-center gap-2">
-                        {selectedTemplate ? (
-                          <>
-                            <div
-                              className={cn(
-                                'w-2 h-2 rounded-full',
-                                isCustomized ? 'bg-orange-500' : 'bg-primary',
-                              )}
-                            />
-                            {isCustomized
-                              ? 'Personalizado'
-                              : templateOptions.find(
-                                  (template) =>
-                                    template.value === selectedTemplate,
-                                )?.label}
-                          </>
-                        ) : (
-                          'Selecione um modelo...'
-                        )}
-                      </div>
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[400px] p-0" align="end">
-                    <Command>
-                      <CommandInput
-                        placeholder="Buscar modelo..."
-                        className="h-9"
-                      />
-                      <CommandList>
-                        <CommandEmpty>Nenhum template encontrado.</CommandEmpty>
-                        <CommandGroup>
-                          {templateOptions.map((template) => (
-                            <CommandItem
-                              key={template.value}
-                              value={template.value}
-                              onSelect={() => {
-                                handleTemplateSelect(template.value)
-                                setOpen(false)
-                              }}
-                              className="flex flex-col items-start py-3 px-4 cursor-pointer"
-                            >
-                              <div className="flex w-full items-center gap-2">
-                                <div
-                                  className={cn(
-                                    'w-2 h-2 rounded-full',
-                                    selectedTemplate === template.value
-                                      ? isCustomized
-                                        ? 'bg-orange-500'
-                                        : 'bg-primary'
-                                      : 'bg-muted',
-                                  )}
-                                />
-                                <span className="font-medium">
-                                  {template.label}
-                                  {selectedTemplate === template.value &&
-                                    isCustomized && (
-                                      <span className="ml-2 text-sm text-orange-500">
-                                        (Personalizado)
-                                      </span>
-                                    )}
-                                </span>
-                                <Check
-                                  className={cn(
-                                    'ml-auto h-4 w-4',
-                                    selectedTemplate === template.value
-                                      ? 'opacity-100'
-                                      : 'opacity-0',
-                                  )}
-                                />
-                              </div>
-                              <span className="text-sm text-muted-foreground ml-4 mt-1">
-                                {template.description}
-                              </span>
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              <div className="flex items-center">
-                <div className="flex-grow border-t border-border"></div>
-                <p className="mx-4 text-sm text-muted-foreground">
-                  ou configure manualmente
-                </p>
-                <div className="flex-grow border-t border-border"></div>
-              </div>
-            </div>
-            {formContent}
             <div className="flex justify-end gap-4">
               <Button
                 type="button"
@@ -1036,43 +947,15 @@ export function AIConfigForm({
         </Form>
       </CardContent>
 
-      <Dialog
-        open={isDialogOpen}
-        onOpenChange={(open) => !open && handleCloseExpanded()}
-      >
-        <DialogContent className="w-screen h-screen max-w-none m-0 p-6 rounded-none">
-          <DialogHeader>
-            <DialogTitle>
-              {expandedField === 'quemEhAtendente' && 'Quem é o seu Atendente?'}
-              {expandedField === 'oQueAtendenteFaz' &&
-                'O que seu Atendente faz?'}
-              {expandedField === 'objetivoAtendente' &&
-                'Qual o objetivo do seu Atendente?'}
-              {expandedField === 'comoAtendenteDeve' &&
-                'Como seu Atendente deve responder?'}
-              {expandedField === 'informacoesEmpresa' &&
-                'Informações sobre a Empresa/Produto/Serviço'}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="flex-1 h-[calc(100vh-120px)]">
-            {expandedField === 'comoAtendenteDeve' ? (
-              <div className="w-full h-full p-4">
-                <StepManager
-                  value={expandedContent}
-                  onChange={setExpandedContent}
-                />
-              </div>
-            ) : (
-              <Textarea
-                value={expandedContent}
-                onChange={(e) => setExpandedContent(e.target.value)}
-                className="w-full h-full resize-none p-4 focus:outline-none"
-                placeholder="Digite seu texto aqui..."
-              />
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+      {expandedField && (
+        <LexicalFullscreenDialog
+          isOpen={isDialogOpen}
+          onClose={handleCloseExpanded}
+          value={expandedContent}
+          onChange={setExpandedContent}
+          attachments={attachments}
+        />
+      )}
     </Card>
   )
 }

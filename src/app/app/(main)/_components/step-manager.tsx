@@ -1,165 +1,270 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, forwardRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { cn } from '@/lib/utils'
-import { toast } from '@/components/ui/use-toast'
+import { DragHandleDots2Icon } from '@radix-ui/react-icons'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { ShortcutField } from './shortcut-field'
 
-type Step = {
-  number: number
-  content: string
+interface Step {
+  id: string
+  numero: number
+  conteudo: string
+  isExpanded: boolean
 }
 
-type StepManagerProps = {
+interface Attachment {
+  id: string
+  type: 'image' | 'pdf'
+  content: string
+  description: string
+}
+
+interface StepManagerProps {
   value: string
   onChange: (value: string) => void
   onBlur?: () => void
   className?: string
+  attachments: Attachment[]
 }
 
-export function StepManager({ value, onChange, onBlur, className }: StepManagerProps) {
+const MAX_STEPS = 20
+const MAX_CHARS = 2000
+
+function SortableStep({ 
+  step, 
+  onRemove, 
+  onChange, 
+  onToggleExpand,
+  onBlur,
+  attachments 
+}: {
+  step: Step
+  onRemove: (id: string) => void
+  onChange: (id: string, content: string) => void
+  onToggleExpand: (id: string) => void
+  onBlur?: () => void
+  attachments: Attachment[]
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: step.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 1 : 0,
+  }
+
+  return (
+    <Collapsible
+      key={step.id}
+      open={step.isExpanded}
+      onOpenChange={() => onToggleExpand(step.id)}
+      className={cn(
+        "border rounded-md p-2",
+        isDragging && "opacity-50 cursor-grabbing"
+      )}
+      style={style}
+      ref={setNodeRef}
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div {...attributes} {...listeners}>
+            <DragHandleDots2Icon className="h-4 w-4 cursor-grab" />
+          </div>
+          <CollapsibleTrigger asChild>
+            <Button type="button" variant="ghost" className="font-medium">
+              PASSO {String(step.numero).padStart(2, '0')}
+            </Button>
+          </CollapsibleTrigger>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-500">
+            {step.conteudo.length}/{MAX_CHARS}
+          </span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => onRemove(step.id)}
+            disabled={step.numero === 1}
+          >
+            Remover
+          </Button>
+        </div>
+      </div>
+
+      <CollapsibleContent className="mt-2">
+        <ShortcutField
+          value={step.conteudo}
+          onChange={(value) => onChange(step.id, value)}
+          onBlur={onBlur}
+          placeholder={`Digite o conteúdo do passo ${step.numero}...`}
+          className="min-h-[100px]"
+          attachments={attachments}
+          multiline={true}
+        />
+      </CollapsibleContent>
+    </Collapsible>
+  )
+}
+
+export const StepManager = forwardRef<HTMLDivElement, StepManagerProps>(
+  ({ value, onChange, onBlur, className, attachments }, ref) => {
   const [steps, setSteps] = useState<Step[]>(() => {
-    // Parse initial value into steps
-    if (!value) return []
-
-    // Primeiro, tenta encontrar passos no formato "#PASSO XX: conteudo"
-    const stepRegex = /#PASSO\s+(\d+):\s*(.*?)(?=#PASSO\s+\d+:|$)/gs
-    const matches = Array.from(value.matchAll(stepRegex))
-
-    if (matches.length > 0) {
-      return matches.map(match => ({
-        number: parseInt(match[1], 10),
-        content: match[2].trim()
-      })).sort((a, b) => a.number - b.number)
+    try {
+      const parsed = JSON.parse(value || '[]')
+      return Array.isArray(parsed) ? parsed.map((p, idx) => ({
+        id: `step-${idx}`,
+        numero: idx + 1,
+        conteudo: p.conteudo || '',
+        isExpanded: true
+      })) : [{ id: 'step-0', numero: 1, conteudo: '', isExpanded: true }]
+    } catch {
+      return [{ id: 'step-0', numero: 1, conteudo: '', isExpanded: true }]
     }
-
-    // Se não encontrou no formato direto, tenta o formato com quebras de linha
-    return value
-      .split('\n\n')
-      .filter(step => step.trim())
-      .map((step, index) => {
-        const [header, ...content] = step.split('\n')
-        return {
-          number: index + 1,
-          content: content.length > 0 ? content.join('\n').trim() : header.replace(/#PASSO\s+\d+:\s*/, '').trim()
-        }
-      })
   })
 
-  // Update form value when steps change
+  const [allExpanded, setAllExpanded] = useState(true)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
+
   useEffect(() => {
-    const formattedSteps = steps
-      .map(step => {
-        const stepNumber = step.number.toString().padStart(2, '0')
-        return `#PASSO ${stepNumber}:\n${step.content}`
-      })
-      .join('\n\n')
-    onChange(formattedSteps)
+    const jsonValue = JSON.stringify(
+      steps.map(({ numero, conteudo }) => ({ numero, conteudo }))
+    )
+    onChange(jsonValue)
   }, [steps, onChange])
 
-  const addStep = () => {
-    setSteps(currentSteps => [
-      ...currentSteps,
+  const handleStepChange = (id: string, newContent: string) => {
+    setSteps(prev => prev.map(step => 
+      step.id === id ? { ...step, conteudo: newContent.slice(0, MAX_CHARS) } : step
+    ))
+  }
+
+  const handleAddStep = () => {
+    if (steps.length >= MAX_STEPS) return
+    setSteps(prev => [
+      ...prev,
       {
-        number: currentSteps.length + 1,
-        content: ''
+        id: `step-${Date.now()}`,
+        numero: prev.length + 1,
+        conteudo: '',
+        isExpanded: true
       }
     ])
   }
 
-  const removeStep = (index: number) => {
-    setSteps(currentSteps => {
-      const newSteps = currentSteps.filter((_, i) => i !== index)
-      // Renumber remaining steps
-      return newSteps.map((step, i) => ({
-        ...step,
-        number: i + 1
-      }))
+  const handleRemoveStep = (id: string) => {
+    if (steps.length <= 1) return
+    setSteps(prev => {
+      const filtered = prev.filter(step => step.id !== id)
+      return filtered.map((step, idx) => ({ ...step, numero: idx + 1 }))
     })
   }
 
-  const updateStep = (index: number, content: string) => {
-    // Remove ou substitui qualquer ocorrência de #PASSO XX: do conteúdo
-    const cleanContent = content.replace(/#PASSO\s+\d+:\s*/g, '')
-    
-    if (content !== cleanContent) {
-      toast({
-        title: "Aviso",
-        description: "O texto '#PASSO XX:' é reservado para a numeração automática dos passos.",
-      })
-    }
-
-    setSteps(currentSteps => {
-      const newSteps = [...currentSteps]
-      newSteps[index] = {
-        ...newSteps[index],
-        content: cleanContent
-      }
-      return newSteps
-    })
+  const toggleExpand = (id: string) => {
+    setSteps(prev => prev.map(step =>
+      step.id === id ? { ...step, isExpanded: !step.isExpanded } : step
+    ))
   }
 
-  // Função para ajustar a altura do textarea
-  const adjustTextareaHeight = (textarea: HTMLTextAreaElement) => {
-    if (textarea) {
-      textarea.style.height = 'auto' // Reset para calcular a altura correta
-      textarea.style.height = `${textarea.scrollHeight}px`
-    }
+  const toggleAllExpand = () => {
+    const newState = !allExpanded
+    setSteps(prev => prev.map(step => ({ ...step, isExpanded: newState })))
+    setAllExpanded(newState)
+  }
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+
+    setSteps(prev => {
+      const oldIndex = prev.findIndex(step => step.id === active.id)
+      const newIndex = prev.findIndex(step => step.id === over.id)
+      const reordered = arrayMove(prev, oldIndex, newIndex)
+      return reordered.map((step, idx) => ({ ...step, numero: idx + 1 }))
+    })
   }
 
   return (
-    <div className={cn('space-y-4', className)}>
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-sm font-medium">Passos do Atendimento</h3>
-        <Button type="button" onClick={addStep} variant="outline">
+    <div className={cn('space-y-4', className)} ref={ref}>
+      <div className="flex justify-between items-center">
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={handleAddStep}
+          disabled={steps.length >= MAX_STEPS}
+        >
           Adicionar Passo
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={toggleAllExpand}
+        >
+          {allExpanded ? 'Contrair Todos' : 'Expandir Todos'}
         </Button>
       </div>
 
-      {steps.map((step, index) => (
-        <div
-          key={index}
-          className="space-y-4 p-4 border rounded-lg relative"
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext
+          items={steps}
+          strategy={verticalListSortingStrategy}
         >
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="absolute right-2 top-2"
-            onClick={() => removeStep(index)}
-          >
-            &#x2715;
-          </Button>
-
-          <div>
-            <h4 className="text-sm font-medium mb-2">
-              PASSO {step.number.toString().padStart(2, '0')}
-            </h4>
-            <Textarea
-              value={step.content}
-              onChange={(e) => {
-                updateStep(index, e.target.value)
-                adjustTextareaHeight(e.target)
-              }}
-              onBlur={onBlur}
-              placeholder="Descreva o passo..."
-              className="min-h-[100px] overflow-hidden resize-none"
-              ref={(textarea) => {
-                if (textarea) {
-                  adjustTextareaHeight(textarea)
-                }
-              }}
-            />
+          <div className="space-y-2">
+            {steps.map((step) => (
+              <SortableStep
+                key={step.id}
+                step={step}
+                onRemove={handleRemoveStep}
+                onChange={handleStepChange}
+                onToggleExpand={toggleExpand}
+                onBlur={onBlur}
+                attachments={attachments}
+              />
+            ))}
           </div>
-        </div>
-      ))}
-
-      {steps.length === 0 && (
-        <div className="text-center py-8 text-muted-foreground">
-          Nenhum passo adicionado. Clique em "Adicionar Passo" para começar.
-        </div>
-      )}
+        </SortableContext>
+      </DndContext>
     </div>
   )
-} 
+})
+
+StepManager.displayName = 'StepManager' 
