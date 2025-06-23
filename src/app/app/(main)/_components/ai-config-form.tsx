@@ -147,18 +147,7 @@ export function AIConfigForm({
     },
   })
 
-  // Formata o valor inicial do campo comoAtendenteDeve quando o formulário é carregado para edição
-  useEffect(() => {
-    if (defaultValue?.comoAtendenteDeve && isEditMode) {
-      const lines = defaultValue.comoAtendenteDeve.split('\n').filter(line => line.trim())
-      const formattedSteps = lines.map((line, index) => {
-        const stepNumber = (index + 1).toString().padStart(2, '0')
-        return `#PASSO ${stepNumber}:\n${line}`
-      }).join('\n\n')
-      
-      form.setValue('comoAtendenteDeve', formattedSteps, { shouldValidate: true })
-    }
-  }, [defaultValue, isEditMode, form])
+  // Não é mais necessário formatar o valor do comoAtendenteDeve pois o StepManager já lida com isso
 
   // Corrigir o setAttachments
   useEffect(() => {
@@ -324,17 +313,6 @@ export function AIConfigForm({
   }
 
   const addAttachment = () => {
-    // Verificar se já existe um anexo com a descrição "#novo"
-    const defaultDescription = '#novo';
-    let newDescription = defaultDescription;
-    let counter = 1;
-    
-    // Enquanto encontrar uma descrição duplicada, incrementa o contador
-    while (attachments.some(att => att.description === newDescription)) {
-      counter++;
-      newDescription = `#novo${counter}`;
-    }
-    
     // Gerar um ID verdadeiramente único com timestamp e número aleatório
     const timestamp = new Date().getTime();
     const random = Math.floor(Math.random() * 10000);
@@ -344,7 +322,7 @@ export function AIConfigForm({
       id: newId,
       type: 'image',
       content: '',
-      description: newDescription,
+      description: '#',
     }
     setAttachments(prev => [...prev, newAttachment])
   }

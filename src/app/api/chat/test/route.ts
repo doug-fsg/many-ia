@@ -119,9 +119,10 @@ export async function POST(request: Request) {
         isTemplate: true
       }
     } else {
-      // Buscar o aiConfig ativo do usuário
+      // Buscar o aiConfig específico pelo ID enviado no payload
       const aiConfig = await prisma.aIConfig.findFirst({
         where: {
+          id: chatRequest[0].id,
           userId: session.user.id
         },
         include: {
@@ -132,7 +133,7 @@ export async function POST(request: Request) {
 
       if (!aiConfig) {
         return NextResponse.json(
-          { error: 'Nenhuma configuração de IA ativa encontrada' },
+          { error: 'Configuração de IA não encontrada ou sem permissão de acesso' },
           { status: 404 }
         )
       }

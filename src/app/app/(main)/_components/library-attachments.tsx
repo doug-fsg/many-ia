@@ -152,9 +152,9 @@ export function LibraryAttachments({ attachments, onUpdate, onRemove, onAdd }: L
   }
 
   const validateShortcut = (value: string): string => {
-    // Se estiver vazio, retorna #novo
+    // Se estiver vazio, retorna #
     if (!value || value.trim() === '') {
-      return '#novo';
+      return '#';
     }
     
     // Remove espaços e caracteres especiais, mantém apenas letras, números e underscore
@@ -173,11 +173,6 @@ export function LibraryAttachments({ attachments, onUpdate, onRemove, onAdd }: L
     // Se após adicionar # exceder 20 caracteres, ajusta novamente
     if (cleanValue.length > 20) {
       cleanValue = cleanValue.substring(0, 20);
-    }
-    
-    // Se ficou apenas # (sem texto), adiciona "novo"
-    if (cleanValue === '#') {
-      cleanValue = '#novo';
     }
     
     return cleanValue;
