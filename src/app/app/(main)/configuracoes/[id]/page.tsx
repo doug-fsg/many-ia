@@ -11,7 +11,8 @@ import {
   DashboardPageHeaderTitle,
   DashboardPageMain,
 } from '@/components/dashboard/page'
-import { SpinnerLoader } from '@/components/SpinnerLoader' // Atualize o caminho conforme a localização do SpinnerLoader
+import { SpinnerLoader } from '@/components/SpinnerLoader'
+import { ConfigTutorial } from '@/app/app/(main)/_components/config-tutorial'
 
 export default function EditAIConfigPage({
   params,
@@ -32,15 +33,18 @@ export default function EditAIConfigPage({
   }, [params.id])
 
   if (!aiConfig) {
-    return <SpinnerLoader /> // Substituído pelo componente de carregamento
+    return <SpinnerLoader />
   }
 
   return (
     <DashboardPage>
-      <DashboardPageHeader>
-        <DashboardPageHeaderTitle>
-          Editar Configuração de IA
-        </DashboardPageHeaderTitle>
+      <DashboardPageHeader className="tutorial-header">
+        <div className="flex items-center justify-between">
+          <DashboardPageHeaderTitle>
+            Editar Configuração de IA
+          </DashboardPageHeaderTitle>
+          <ConfigTutorial />
+        </div>
       </DashboardPageHeader>
       <DashboardPageMain>
         <AIConfigForm

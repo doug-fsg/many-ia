@@ -413,7 +413,7 @@ export function AIConfigForm({
             className="space-y-8"
           >
             <div className="space-y-6">
-              <div className="group flex items-center justify-between bg-card/50 hover:bg-card rounded-lg p-4 border transition-all duration-200">
+              <div className="group flex items-center justify-between bg-card/50 hover:bg-card rounded-lg p-4 border transition-all duration-200 tutorial-models">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <h2 className="text-xl font-semibold tracking-tight">Modelos</h2>
@@ -523,7 +523,7 @@ export function AIConfigForm({
         control={form.control}
         name="nomeAtendenteDigital"
         render={({ field }) => (
-          <FormItem>
+          <FormItem className="tutorial-nome-atendente">
             <FormLabel className="ai-config-label">Nome do Atendente Digital</FormLabel>
             <FormControl>
               <Input
@@ -540,7 +540,7 @@ export function AIConfigForm({
         control={form.control}
         name="horarioAtendimento"
         render={({ field }) => (
-          <FormItem>
+          <FormItem className="tutorial-horario">
             <FormLabel>Horário de Atendimento</FormLabel>
             <Select onValueChange={field.onChange} defaultValue={field.value}>
               <FormControl>
@@ -570,7 +570,7 @@ export function AIConfigForm({
           control={form.control}
           name="tempoRetornoAtendimento"
           render={({ field }) => (
-            <FormItem>
+            <FormItem className="tutorial-tempo-retorno">
               <FormLabel>Retornar o atendimento em</FormLabel>
               <Select 
                 value={field.value}
@@ -669,8 +669,7 @@ export function AIConfigForm({
               <Collapsible
                 open={isEssentialInfoOpen}
                 onOpenChange={setIsEssentialInfoOpen}
-                className="group space-y-4 border rounded-lg transition-all duration-200 bg-card/50 hover:bg-card"
-              >
+                className="space-y-4 rounded-lg border p-4 tutorial-essential">
                 <CollapsibleTrigger asChild>
                   <div className="flex justify-between items-center p-4 cursor-pointer border-b border-transparent group-hover:border-border">
                     <div>
@@ -692,7 +691,7 @@ export function AIConfigForm({
             control={form.control}
             name="quemEhAtendente"
             render={({ field }) => (
-              <FormItem className="mb-8">
+              <FormItem className="tutorial-quem-eh mb-8">
                 <div className="flex justify-between items-center">
                   <FormLabel className="ai-config-label">Quem é seu Atendente?</FormLabel>
                   <Button
@@ -723,7 +722,7 @@ export function AIConfigForm({
             control={form.control}
             name="oQueAtendenteFaz"
             render={({ field }) => (
-              <FormItem className="mb-8">
+              <FormItem className="tutorial-o-que-faz mb-8">
                 <div className="flex justify-between items-center">
                   <FormLabel className="ai-config-label">O que seu Atendente faz?</FormLabel>
                   <Button
@@ -754,7 +753,7 @@ export function AIConfigForm({
             control={form.control}
             name="objetivoAtendente"
             render={({ field }) => (
-              <FormItem className="mb-8">
+              <FormItem className="tutorial-objetivo mb-8">
                 <div className="flex justify-between items-center">
                   <FormLabel className="ai-config-label">Qual o objetivo do seu Atendente?</FormLabel>
                   <Button
@@ -785,7 +784,7 @@ export function AIConfigForm({
             control={form.control}
             name="comoAtendenteDeve"
             render={({ field }) => (
-              <FormItem className="mb-8">
+              <FormItem className="tutorial-como-deve mb-8">
                 <div className="flex justify-between items-center">
                   <FormLabel className="ai-config-label">Como seu Atendente deve responder?</FormLabel>
                   <Button
@@ -815,7 +814,7 @@ export function AIConfigForm({
           control={form.control}
           name="informacoesEmpresa"
           render={({ field }) => (
-            <FormItem className="mb-8">
+            <FormItem className="tutorial-informacoes-empresa mb-8">
               <div className="flex justify-between items-center">
                             <FormLabel className="ai-config-label">Informações sobre a Empresa/Produto/Serviço</FormLabel>
                 <Button
@@ -847,7 +846,7 @@ export function AIConfigForm({
                 </CollapsibleContent>
               </Collapsible>
 
-              <Collapsible className="rounded-lg border p-4">
+              <Collapsible className="rounded-lg border p-4 tutorial-attachments">
                 <CollapsibleTrigger className="group w-full">
                   <div className="flex w-full items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -872,8 +871,7 @@ export function AIConfigForm({
               <Collapsible
                 open={isTemasOpen}
                 onOpenChange={setIsTemasOpen}
-                className="group flex flex-col rounded-lg border transition-all duration-200 bg-card/50 hover:bg-card"
-              >
+                className="space-y-4 rounded-lg border p-4 tutorial-temas">
                 <CollapsibleTrigger asChild>
                   <div className="flex justify-between items-center p-4 cursor-pointer border-b border-transparent group-hover:border-border">
                     <div>
@@ -937,7 +935,11 @@ export function AIConfigForm({
               >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={form.formState.isSubmitting}>
+              <Button 
+                type="submit" 
+                className="tutorial-submit"
+                disabled={form.formState.isSubmitting}
+              >
                 {form.formState.isSubmitting
                   ? 'Salvando...'
                   : 'Salvar Alterações'}
