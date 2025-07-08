@@ -121,6 +121,8 @@ export function AIConfigForm({
   const [isEssentialInfoOpen, setIsEssentialInfoOpen] = useState(true)
   const [isAttachmentsOpen, setIsAttachmentsOpen] = useState(false)
   const [isTemasOpen, setIsTemasOpen] = useState(false)
+  // Adicionar um estado para forçar a atualização do StepManager
+  const [stepManagerKey, setStepManagerKey] = useState(0)
 
   const form = useForm<AIConfigFormData>({
     resolver: zodResolver(upsertAIConfigSchema),
@@ -271,7 +273,7 @@ export function AIConfigForm({
       'quemEhAtendente',
       'oQueAtendenteFaz',
       'objetivoAtendente',
-      'comoAtendenteDeve',
+      // 'comoAtendenteDeve', // Removido da lista geral para tratamento especial
       'horarioAtendimento',
       'tempoRetornoAtendimento',
       'condicoesAtendimento',
@@ -288,6 +290,23 @@ export function AIConfigForm({
         })
       }
     })
+
+    // Tratamento especial para o campo comoAtendenteDeve
+    if (templateData.comoAtendenteDeve !== undefined) {
+      try {
+        // Definir o valor no formulário
+        form.setValue('comoAtendenteDeve', templateData.comoAtendenteDeve, {
+          shouldDirty: true,
+          shouldTouch: true,
+          shouldValidate: true,
+        });
+        
+        // Forçar o rerender do componente StepManager incrementando a key
+        setStepManagerKey(prev => prev + 1);
+      } catch (e) {
+        console.error('Erro ao processar comoAtendenteDeve:', e);
+      }
+    }
 
     setSelectedTemplate(templateId)
     setIsCustomized(false)
@@ -776,6 +795,7 @@ export function AIConfigForm({
                 </div>
                 <FormControl>
                   <StepManager
+                    key={stepManagerKey} // Adicionar a key para forçar o rerender
                     value={field.value}
                     onChange={field.onChange}
                     attachments={attachments}
