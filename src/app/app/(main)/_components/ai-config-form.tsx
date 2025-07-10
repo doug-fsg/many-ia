@@ -925,23 +925,28 @@ export function AIConfigForm({
               </Collapsible>
                 </div>
 
-            <div className="flex justify-end gap-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => router.back()}
-              >
-                Cancelar
-              </Button>
-              <Button 
-                type="submit" 
-                className="tutorial-submit"
-                disabled={form.formState.isSubmitting}
-              >
-                {form.formState.isSubmitting
-                  ? 'Salvando...'
-                  : 'Salvar Alterações'}
-              </Button>
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] text-muted-foreground/60">
+                A IA pode cometer erros. Considere realizar testes antes de ativar para seus clientes.
+              </p>
+              <div className="flex gap-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => router.back()}
+                >
+                  Cancelar
+                </Button>
+                <Button 
+                  type="submit" 
+                  className="tutorial-submit"
+                  disabled={form.formState.isSubmitting}
+                >
+                  {form.formState.isSubmitting
+                    ? 'Salvando...'
+                    : 'Salvar Alterações'}
+                </Button>
+              </div>
             </div>
           </form>
         </Form>
