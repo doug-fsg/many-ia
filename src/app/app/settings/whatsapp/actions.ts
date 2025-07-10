@@ -542,7 +542,27 @@ export async function deleteWhatsAppConnection(connectionId: string) {
       }
     }
 
-    // Excluir a conexão
+    const connection = connections[0];
+
+    // Fazer a requisição para deletar a conexão na API externa
+    try {
+      const response = await fetch('http://173.249.22.227:31000/info', {
+        method: 'DELETE',
+        headers: {
+          'X-QUEPASA-TOKEN': connection.token,
+        },
+      });
+
+      if (!response.ok) {
+        console.error('Erro ao deletar conexão na API externa:', response.statusText);
+        // Continua com a deleção no banco mesmo se falhar na API externa
+      }
+    } catch (error) {
+      console.error('Erro ao fazer requisição para API externa:', error);
+      // Continua com a deleção no banco mesmo se falhar na API externa
+    }
+
+    // Excluir a conexão do banco
     await prisma.$executeRaw`
       DELETE FROM "WhatsAppConnection"
       WHERE "id" = ${connectionId}
