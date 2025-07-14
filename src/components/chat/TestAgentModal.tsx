@@ -1,10 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { MessageSquare } from 'lucide-react'
 import { ChatTest } from './ChatTest'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
 
 interface TestAgentModalProps {
   agentId: string
@@ -29,19 +31,25 @@ export function TestAgentModal({ agentId, agentName, accountId, inboxId, trigger
       <DialogTrigger asChild>
         {trigger || defaultTrigger}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh]">
-        <DialogHeader>
-          <DialogTitle>Testar Agente: {agentName}</DialogTitle>
-          <DialogDescription>
-            Use este chat para testar seu agente antes de ativá-lo.
-          </DialogDescription>
-        </DialogHeader>
-        <ChatTest 
-          agentId={agentId} 
-          agentName={agentName} 
-          accountId={accountId}
-          inboxId={inboxId}
-        />
+      <DialogContent className="sm:max-w-[800px] md:max-w-[900px] lg:max-w-[1000px] max-h-[95vh] p-0 overflow-hidden">
+        <div className="h-10 bg-muted/20 relative flex items-center px-4">
+          <Badge variant="default" className="px-2 py-0 text-xs h-5">
+          {agentName}
+          </Badge>
+          <div className="w-full flex justify-center">
+            <div className="w-12 h-1 bg-muted rounded-full" />
+          </div>
+        </div>
+        <Separator className="m-0" />
+        <div className="p-2">
+          <ChatTest 
+            agentId={agentId} 
+            agentName={agentName} 
+            accountId={accountId}
+            inboxId={inboxId}
+            helpText="Use este chat para testar seu agente antes de ativá-lo."
+          />
+        </div>
       </DialogContent>
     </Dialog>
   )
