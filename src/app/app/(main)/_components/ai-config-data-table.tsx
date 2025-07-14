@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { Pencil2Icon, TrashIcon, ChatBubbleIcon, DotsHorizontalIcon, MinusCircledIcon } from "@radix-ui/react-icons"
+import { Pencil2Icon, TrashIcon, ChatBubbleIcon, DotsHorizontalIcon, MinusCircledIcon, CopyIcon } from "@radix-ui/react-icons"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Card, CardContent } from "@/components/ui/card"
@@ -12,7 +12,7 @@ import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover
 import { Command, CommandList, CommandItem, CommandInput, CommandEmpty, CommandGroup } from "@/components/ui/command"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import type { AIConfig } from "../types"
-import { deleteAIConfig, toggleAIConfigStatus, getManytalksAccountId, updateAIConfigInbox } from "../actions"
+import { deleteAIConfig, toggleAIConfigStatus, getManytalksAccountId, updateAIConfigInbox, upsertAIConfig } from "../actions"
 import { buscarInboxes } from "@/lib/manytalks"
 import { TestAgentModal } from "@/components/chat/TestAgentModal"
 import { SubscriptionBlockedAlert } from "@/components/ui/subscription-blocked-alert"
@@ -144,7 +144,7 @@ export function AIConfigDataTable({ data }: AIConfigDataTable) {
 
   const handleToggleActiveAIConfig = async (aiConfig: AIConfig) => {
     try {
-      const result = await toggleAIConfigStatus(aiConfig.id, !aiConfig.isActive)
+      const result = await toggleAIConfigStatus(aiConfig.id!, !aiConfig.isActive)
 
       if (result.error) {
         if (result.paymentRequired) {
@@ -292,6 +292,38 @@ export function AIConfigDataTable({ data }: AIConfigDataTable) {
     }
   }
 
+  const handleDuplicate = async (aiConfig: AIConfig) => {
+    try {
+      // Remove o ID para criar uma nova configuração
+      const { id, ...configToDuplicate } = aiConfig as any
+      
+      // Adiciona "(Cópia)" ao nome
+      configToDuplicate.nomeAtendenteDigital = `${configToDuplicate.nomeAtendenteDigital} (Cópia)`
+      
+      // Cria a nova configuração
+      // @ts-ignore – ignorar verificação estrita do schema neste contexto de duplicação
+      const result = await upsertAIConfig(configToDuplicate as any)
+      
+      if (result.error) {
+        throw new Error(result.error)
+      }
+
+      toast({
+        title: 'Sucesso',
+        description: 'Configuração duplicada com sucesso.',
+      })
+
+      router.refresh()
+    } catch (error) {
+      console.error('Erro ao duplicar configuração:', error)
+      toast({
+        title: 'Erro',
+        description: 'Falha ao duplicar a configuração.',
+        variant: 'destructive',
+      })
+    }
+  }
+
   React.useEffect(() => {
     fetchInboxes()
     fetchWhatsAppConnections()
@@ -365,8 +397,10 @@ export function AIConfigDataTable({ data }: AIConfigDataTable) {
           {data.map((aiConfig) => (
             <Card
               key={aiConfig.id}
-              className="relative hover:shadow-md transition-shadow w-[300px]"
-              onMouseEnter={() => setHoveredCardId(aiConfig.id)}
+              className={`relative hover:shadow-md transition-all duration-200 w-[300px] ${
+                aiConfig.isActive ? 'bg-green-100/10' : ''
+              }`}
+              onMouseEnter={() => setHoveredCardId(aiConfig.id || null)}
               onMouseLeave={() => setHoveredCardId(null)}
             >
               <CardContent className="p-4">
@@ -382,6 +416,32 @@ export function AIConfigDataTable({ data }: AIConfigDataTable) {
                         onCheckedChange={() => handleToggleActiveAIConfig(aiConfig)}
                         className={aiConfig.isActive ? 'bg-green-500' : ''}
                       />
+
+                      {/* Menu de contexto com ações */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className={`text-muted-foreground hover:text-foreground transition-opacity duration-200 ${
+                              hoveredCardId === aiConfig.id ? 'opacity-100' : 'opacity-0'
+                            }`}
+                          >
+                            <DotsHorizontalIcon className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onSelect={() => router.push(`/app/configuracoes/${aiConfig.id!}`)}>
+                            Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => handleDuplicate(aiConfig)}>
+                            Duplicar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="text-red-600" onSelect={() => handleOpenDeleteModal(aiConfig)}>
+                            Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </div>
                   <div className="border-t pt-4">
@@ -530,41 +590,34 @@ export function AIConfigDataTable({ data }: AIConfigDataTable) {
                       variant="ghost"
                       size="sm"
                       onClick={() =>
-                        router.push(`/app/configuracoes/${aiConfig.id}`)
+                        router.push(`/app/configuracoes/${aiConfig.id || ''}`)
                       }
-                      className="flex-1 flex items-center justify-center gap-1 text-gray-600 hover:text-blue-600 hover:bg-blue-50"
+                      className={`flex-1 flex items-center justify-center gap-1 text-gray-600 hover:text-blue-600 hover:bg-blue-100/70 transition-all duration-200 border border-gray-200 ${
+                        hoveredCardId === aiConfig.id ? 'opacity-100 scale-105 shadow-sm' : 'opacity-75'
+                      }`}
                     >
                       <Pencil2Icon className="h-4 w-4" />
                       Editar
                     </Button>
 
                     <TestAgentModal 
-                      agentId={aiConfig.id}
-                      agentName={aiConfig.nomeAtendenteDigital}
-                      accountId={aiConfig.userId}
-                      inboxId={aiConfig.inboxId || undefined}
+                      agentId={aiConfig.id || ''}
+                      agentName={aiConfig.nomeAtendenteDigital || ''}
+                      accountId={(aiConfig as any).userId as string || ''}
+                      inboxId={(aiConfig as any).inboxId as string | undefined}
                       trigger={
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="flex-1 flex items-center justify-center gap-1 text-gray-600 hover:text-purple-600 hover:bg-purple-50 relative"
+                          className={`flex-1 flex items-center justify-center gap-1 text-gray-600 hover:text-purple-600 hover:bg-purple-100 relative transition-all duration-200 border border-gray-200 ${
+                            hoveredCardId === aiConfig.id ? 'opacity-100 scale-105 shadow-sm' : 'opacity-75'
+                          }`}
                         >
                           <ChatBubbleIcon className="h-4 w-4" />
                           <span>Testar</span>
-                          <span className="absolute -top-1 -right-1 text-[9px] bg-purple-100 text-purple-700 px-1 rounded-full font-medium">beta</span>
                         </Button>
                       }
                     />
-
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleOpenDeleteModal(aiConfig)}
-                      className="flex-1 flex items-center justify-center gap-1 text-red-600 hover:bg-red-50"
-                    >
-                      <TrashIcon className="h-4 w-4" />
-                      Excluir
-                    </Button>
                   </div>
                 </div>
               </CardContent>

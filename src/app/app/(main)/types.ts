@@ -14,6 +14,9 @@ export type AIConfig = {
   tempoRetornoAtendimento: string
   condicoesAtendimento?: string
   informacoesEmpresa: string
+  inboxId?: number
+  inboxName?: string
+  userId?: string
   temasEvitar?: Array<{ tema: string }>
   attachments?: Array<{
     type: 'link' | 'image' | 'pdf'

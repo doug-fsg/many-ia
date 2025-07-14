@@ -8,7 +8,7 @@ import { revalidatePath } from 'next/cache'
 import { getAuthenticatedUser } from '@/lib/auth-helper'
 import { checkUserSubscription } from '@/lib/subscription-helper'
 
-async function upsertAIConfig(input: z.infer<typeof upsertAIConfigSchema>) {
+export async function upsertAIConfig(input: z.infer<typeof upsertAIConfigSchema>) {
   try {
     const user = await getAuthenticatedUser();
     
@@ -113,7 +113,7 @@ async function upsertAIConfig(input: z.infer<typeof upsertAIConfigSchema>) {
   }
 }
 
-async function deleteAIConfig(input: z.infer<typeof deleteAIConfigSchema>) {
+export async function deleteAIConfig(input: z.infer<typeof deleteAIConfigSchema>) {
   const user = await getAuthenticatedUser();
 
   if (!user?.id) {
@@ -153,7 +153,7 @@ async function deleteAIConfig(input: z.infer<typeof deleteAIConfigSchema>) {
   }
 }
 
-async function fetchFullAIConfig(id: string) {
+export async function fetchFullAIConfig(id: string) {
   const user = await getAuthenticatedUser();
 
   if (!user?.id) {
@@ -195,7 +195,7 @@ async function fetchFullAIConfig(id: string) {
   }
 }
 
-async function toggleAIConfigStatus(configId: string, isActive: boolean) {
+export async function toggleAIConfigStatus(configId: string, isActive: boolean) {
   try {
     const user = await getAuthenticatedUser();
     
@@ -235,7 +235,7 @@ async function toggleAIConfigStatus(configId: string, isActive: boolean) {
   }
 }
 
-async function getManytalksAccountId() {
+export async function getManytalksAccountId() {
   try {
     const user = await getAuthenticatedUser();
     
@@ -306,7 +306,7 @@ export async function getUserAIConfigs() {
         temasEvitar: true,
       },
       orderBy: {
-        updatedAt: 'desc',
+        createdAt: 'asc',  // Alterado de updatedAt: 'desc' para createdAt: 'asc'
       },
     });
 
@@ -321,12 +321,4 @@ export async function getUserAIConfigs() {
       data: null,
     };
   }
-}
-
-export {
-  upsertAIConfig,
-  deleteAIConfig,
-  toggleAIConfigStatus,
-  getManytalksAccountId,
-  fetchFullAIConfig,
 }
