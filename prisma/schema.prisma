@@ -57,6 +57,7 @@ model User {
   sharedTemplates         TemplateSharing[]
   referralsReceived       Referral[]           @relation("ReferredUser")
   affiliate               Affiliate?
+  googleCalendarIntegration GoogleCalendarIntegration?
 }
 
 model VerificationToken {
@@ -101,6 +102,19 @@ model AIConfig {
   attachments          Attachment[]
   temasEvitar          TemasEvitar[]
   whatsappConnections  WhatsAppConnection[]
+
+  // Campos para Google Calendar
+  googleCalendarEnabled Boolean       @default(false)
+  calendarId           String?       // ID do calendário selecionado
+  defaultEventDuration  Int?
+  workingHoursStart    String?
+  workingHoursEnd      String?
+  allowedDays          String[]      @default([])
+  minAdvanceTime       Int?
+  maxAdvanceTime       Int?
+  defaultReminder      Int?
+  reminderMessage      String?       // Mensagem personalizada para o lembrete
+  autoCreateEvents     Boolean       @default(false)
 
   @@index([userId])
 }
@@ -231,4 +245,17 @@ model Referral {
   @@unique([affiliateId, referredUserId])
   @@index([affiliateId])
   @@index([referredUserId])
+}
+
+model GoogleCalendarIntegration {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  accessToken   String
+  refreshToken  String?
+  expiresAt     DateTime
+  email         String?
+  calendarId    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

@@ -9,17 +9,34 @@ import { getAuthenticatedUser } from '@/lib/auth-helper'
 import { checkUserSubscription } from '@/lib/subscription-helper'
 
 export async function upsertAIConfig(input: z.infer<typeof upsertAIConfigSchema>) {
+  console.log('Ação `upsertAIConfig` recebida no servidor - ' + new Date().toISOString());
+  console.log('Dados recebidos:', JSON.stringify(input, null, 2));
+
   try {
     const user = await getAuthenticatedUser();
     
     if (!user?.id) {
+      console.error('Erro de autorização: Usuário não encontrado.');
       return {
         error: 'Não autorizado',
         data: null,
       };
     }
 
-    const { attachments, temasEvitar, id: configId, ...restInput } = input
+    // Fazendo uma cópia segura dos dados de entrada para evitar referências não desejadas
+    const inputCopy = JSON.parse(JSON.stringify(input));
+    
+    // Extraindo os dados de forma segura com valores padrão
+    const attachments = inputCopy.attachments || [];
+    const temasEvitar = inputCopy.temasEvitar || [];
+    const configId = inputCopy.id;
+    
+    // Removendo propriedades que serão tratadas separadamente
+    delete inputCopy.attachments;
+    delete inputCopy.temasEvitar;
+    delete inputCopy.id;
+    
+    const restInput = inputCopy;
 
     // Criar o embedding como um objeto vazio por enquanto
     const embedding = {}
@@ -105,9 +122,16 @@ export async function upsertAIConfig(input: z.infer<typeof upsertAIConfigSchema>
     revalidatePath('/app/configuracoes')
     return { error: null, data: newAIConfig }
   } catch (error) {
-    console.error('Erro:', error)
+    console.error('Erro CRÍTICO na ação `upsertAIConfig`:', error);
+    if (error instanceof z.ZodError) {
+      console.error('Erros de validação Zod:', error.errors);
+      return {
+        error: 'Erro de validação nos dados enviados.',
+        data: null,
+      };
+    }
     return {
-      error: error instanceof Error ? error.message : 'Erro desconhecido',
+      error: error instanceof Error ? error.message : 'Erro desconhecido no servidor',
       data: null,
     }
   }

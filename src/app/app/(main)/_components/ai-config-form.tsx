@@ -68,6 +68,7 @@ import {
 } from "@/components/ui/collapsible"
 import { Badge } from '@/components/ui/badge'
 import { LexicalFullscreenDialog } from './lexical/lexical-fullscreen-dialog'
+import { GoogleCalendarSettings } from './integrations/google-calendar-settings'
 
 type AIConfigFormProps = {
   defaultValue?: AIConfig
@@ -123,6 +124,21 @@ export function AIConfigForm({
   const [isTemasOpen, setIsTemasOpen] = useState(false)
   // Adicionar um estado para forçar a atualização do StepManager
   const [stepManagerKey, setStepManagerKey] = useState(0)
+
+  // Adicionar um novo estado para as configurações do Google Calendar
+  const [googleCalendarConfig, setGoogleCalendarConfig] = useState<any>({
+    googleCalendarEnabled: defaultValue?.googleCalendarEnabled ?? false,
+    calendarId: defaultValue?.calendarId ?? '',
+    defaultEventDuration: defaultValue?.defaultEventDuration ?? 60,
+    workingHoursStart: defaultValue?.workingHoursStart ?? '09:00',
+    workingHoursEnd: defaultValue?.workingHoursEnd ?? '18:00',
+    allowedDays: defaultValue?.allowedDays ?? ['1', '2', '3', '4', '5'],
+    minAdvanceTime: defaultValue?.minAdvanceTime ?? 1,
+    maxAdvanceTime: defaultValue?.maxAdvanceTime ?? 30,
+    defaultReminder: defaultValue?.defaultReminder ?? null,
+    reminderMessage: defaultValue?.reminderMessage ?? '',
+    autoCreateEvents: defaultValue?.autoCreateEvents ?? false,
+  });
 
   const form = useForm<AIConfigFormData>({
     resolver: zodResolver(upsertAIConfigSchema),
@@ -366,46 +382,67 @@ export function AIConfigForm({
     setAttachments(newAttachments)
   }
 
+  const onSubmit = async (data: AIConfigFormData) => {
+    console.log('Função onSubmit executada');
+    
+    // Mostrar feedback visual imediato
+    toast({
+      title: 'Processando',
+      description: 'Salvando suas configurações...',
+    });
+    
+    try {
+      // Versão simples e direta com apenas os dados essenciais
+      const simpleData = {
+        ...data,
+        attachments,
+        temasEvitar: temasEvitar.map(tema => ({ tema })),
+        id: isEditMode && defaultValue ? defaultValue.id : undefined
+      };
+      
+      console.log('Dados básicos para envio:', simpleData);
+      
+      // Chama a action do servidor com dados simplificados
+      const result = await upsertAIConfig(simpleData);
+      console.log('Resposta da API:', result);
+      
+      if (result && result.error) {
+        toast({
+          title: 'Erro',
+          description: result.error,
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Sucesso',
+          description: 'Configuração salva com sucesso.',
+        });
+        
+        router.refresh();
+        if (onSuccess) onSuccess();
+      }
+    } catch (error) {
+      console.error('Erro na submissão:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível salvar a configuração.',
+        variant: 'destructive',
+      });
+    }
+  }
+
   return (
     <Card className="border-none shadow-none">
       <CardContent className="p-6">
         <Form {...form}>
           <form
+            id="ai-config-form"
             onSubmit={(e) => {
-              e.preventDefault()
-              const formData = form.getValues()
-              const temasFormatados = temasEvitar.map((tema) => ({ tema }))
-
-              upsertAIConfig({
-                ...formData,
-                attachments,
-                temasEvitar: temasFormatados,
-                id: isEditMode && defaultValue ? defaultValue.id : undefined,
-              })
-                .then((result) => {
-                  if (result.error) {
-                    toast({
-                      title: 'Erro',
-                      description: result.error,
-                      variant: 'destructive',
-                    })
-                  } else {
-                    toast({
-                      title: 'Sucesso',
-                      description: 'Configuração salva com sucesso.',
-                    })
-                    router.refresh()
-                    if (onSuccess) onSuccess()
-                  }
-                })
-                .catch((error) => {
-                  console.error('Erro ao salvar:', error)
-                  toast({
-                    title: 'Erro',
-                    description: 'Falha ao salvar a configuração.',
-                    variant: 'destructive',
-                  })
-                })
+              e.preventDefault();
+              console.log('Formulário submetido via onSubmit do form');
+              const formData = form.getValues();
+              console.log('Valores do formulário:', formData);
+              onSubmit(formData);
             }}
             className="space-y-8"
           >
@@ -866,6 +903,40 @@ export function AIConfigForm({
                 </CollapsibleContent>
               </Collapsible>
 
+              <Collapsible className="rounded-lg border p-4">
+                <CollapsibleTrigger asChild>
+                  <div className="flex w-full items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-xl font-semibold tracking-tight">Integrações</h2>
+                      <ChevronsUpDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-hover:text-foreground" />
+                    </div>
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pt-4 space-y-4">
+                  <GoogleCalendarSettings 
+                    onChange={(config) => {
+                      // Quando o botão "Salvar Alterações" do GoogleCalendarSettings for clicado,
+                      // atualizamos o estado googleCalendarConfig
+                      console.log('Atualizando configurações do Google Calendar:', config);
+                      setGoogleCalendarConfig(config);
+                    }}
+                    defaultConfig={{
+                      googleCalendarEnabled: defaultValue?.googleCalendarEnabled ?? false,
+                      calendarId: defaultValue?.calendarId ?? '',
+                      defaultEventDuration: defaultValue?.defaultEventDuration ?? 60,
+                      workingHoursStart: defaultValue?.workingHoursStart ?? '09:00',
+                      workingHoursEnd: defaultValue?.workingHoursEnd ?? '18:00',
+                      allowedDays: defaultValue?.allowedDays ?? ['1', '2', '3', '4', '5'],
+                      minAdvanceTime: defaultValue?.minAdvanceTime ?? 1,
+                      maxAdvanceTime: defaultValue?.maxAdvanceTime ?? 30,
+                      defaultReminder: defaultValue?.defaultReminder ?? null,
+                      reminderMessage: defaultValue?.reminderMessage ?? '',
+                      autoCreateEvents: defaultValue?.autoCreateEvents ?? false,
+                    }}
+                  />
+                </CollapsibleContent>
+              </Collapsible>
+
               <Collapsible
                 open={isTemasOpen}
                 onOpenChange={setIsTemasOpen}
@@ -938,29 +1009,69 @@ export function AIConfigForm({
                   Cancelar
                 </Button>
                 <Button 
-                  type="submit" 
+                  type="button" 
                   className="tutorial-submit"
-                  disabled={form.formState.isSubmitting}
+                  onClick={async () => {
+                    try {
+                      console.log('Tentando salvar diretamente');
+                      
+                      const formData = {
+                        ...form.getValues(),
+                        ...googleCalendarConfig, // Adiciona as configs do Calendar
+                        attachments,
+                        temasEvitar: temasEvitar.map(tema => ({ tema })),
+                        id: isEditMode && defaultValue ? defaultValue.id : undefined
+                      };
+                      
+                      toast({
+                        title: 'Processando',
+                        description: 'Salvando configuração...'
+                      });
+                      
+                      const result = await upsertAIConfig(formData);
+                      
+                      if (result.error) {
+                        toast({
+                          title: 'Erro',
+                          description: result.error,
+                          variant: 'destructive'
+                        });
+                      } else {
+                        toast({
+                          title: 'Sucesso',
+                          description: 'Configuração salva!'
+                        });
+                        
+                        router.refresh();
+                        if (onSuccess) onSuccess();
+                      }
+                    } catch (err) {
+                      console.error('Erro ao salvar:', err);
+                      toast({
+                        title: 'Erro',
+                        description: 'Falha ao salvar',
+                        variant: 'destructive'
+                      });
+                    }
+                  }}
                 >
-                  {form.formState.isSubmitting
-                    ? 'Salvando...'
-                    : 'Salvar Alterações'}
+                  Salvar Alterações
                 </Button>
               </div>
             </div>
           </form>
         </Form>
-      </CardContent>
 
-      {expandedField && (
-        <LexicalFullscreenDialog
-          isOpen={isDialogOpen}
-          onClose={handleCloseExpanded}
-          value={expandedContent}
-          onChange={setExpandedContent}
-          attachments={attachments}
-        />
-      )}
+        {expandedField && (
+          <LexicalFullscreenDialog
+            isOpen={isDialogOpen}
+            onClose={handleCloseExpanded}
+            value={expandedContent}
+            onChange={setExpandedContent}
+            attachments={attachments}
+          />
+        )}
+      </CardContent>
     </Card>
   )
 }

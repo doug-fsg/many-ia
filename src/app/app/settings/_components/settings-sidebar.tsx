@@ -114,6 +114,13 @@ export function SettingsSidebar() {
               WhatsApp
             </DashboardSidebarNavLink>
           )}
+          {/* Nova opção de Integrações */}
+          <DashboardSidebarNavLink
+            href="/app/settings/integrations"
+            active={isActive('/app/settings/integrations')}
+          >
+            Integrações
+          </DashboardSidebarNavLink>
           {loading && (
             <div className="py-2 px-3 text-xs text-muted-foreground">
               Verificando permissões...

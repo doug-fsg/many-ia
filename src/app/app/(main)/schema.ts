@@ -37,6 +37,18 @@ export const upsertAIConfigSchema = z.object({
     )
     .default([]),
   temasEvitar: z.array(z.union([z.string(), z.object({ tema: z.string() })])).default([]),
+  // Campos para Google Calendar - todos verdadeiramente opcionais
+  googleCalendarEnabled: z.boolean().optional(),
+  calendarId: z.string().optional(),
+  defaultEventDuration: z.number().optional(),
+  workingHoursStart: z.string().optional(),
+  workingHoursEnd: z.string().optional(),
+  allowedDays: z.array(z.string()).optional(),
+  minAdvanceTime: z.number().optional(),
+  maxAdvanceTime: z.number().optional(),
+  defaultReminder: z.number().nullable().optional(),
+  reminderMessage: z.string().optional(),
+  autoCreateEvents: z.boolean().optional()
 })
 
 export const deleteAIConfigSchema = z.object({

@@ -71,12 +71,10 @@ export function MainSidebar({ user }: MainSidebarProps) {
   useEffect(() => {
     const fetchUserInfo = async () => {
       try {
-        console.log('[MAIN-SIDEBAR] Iniciando busca de informações do usuário')
         setLoading(true)
         const response = await fetch('/api/user/info')
         if (response.ok) {
           const data = await response.json()
-          console.log('[MAIN-SIDEBAR] Dados recebidos da API:', data)
           setUserInfo(data)
         } else {
           console.error('[MAIN-SIDEBAR] Erro na resposta da API:', await response.text())
@@ -99,8 +97,6 @@ export function MainSidebar({ user }: MainSidebarProps) {
 
   // Verifique se o usuário pode criar templates
   const canCreateTemplates = userInfo?.canCreateTemplates === true
-  console.log('[MAIN-SIDEBAR] canCreateTemplates:', canCreateTemplates)
-  console.log('[MAIN-SIDEBAR] userInfo:', userInfo)
 
   // Lista de itens de menu básicos (sempre visíveis)
   const baseMenuItems: MenuItem[] = [
@@ -156,7 +152,6 @@ export function MainSidebar({ user }: MainSidebarProps) {
     ? [...baseMenuItems.slice(0, 2), templatesMenuItem, baseMenuItems[2]] 
     : baseMenuItems
 
-  console.log('[MAIN-SIDEBAR] Menu items:', menuItems)
 
   const extraLinks = [
     {
