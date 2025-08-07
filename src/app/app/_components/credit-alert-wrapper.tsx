@@ -7,19 +7,42 @@ export async function CreditAlertWrapper({ userId }: { userId: string }) {
     // Verifica créditos
     const plan = await getUserCurrentPlan(userId)
     const creditsUsed = plan.quota.credits?.current || 0
-    const totalCredits = plan.quota.credits?.available || 10000
+    const totalCredits = plan.quota.credits?.available
+    
+    // Se não conseguir obter o limite de créditos, não mostrar alerta
+    if (!totalCredits) {
+      return null
+    }
+    
     const isOutOfCredits = creditsUsed >= totalCredits
+
+    // Se créditos excedidos, desativar todas as configurações automaticamente
+    if (isOutOfCredits) {
+      const { deactivateUserAIConfigs } = await import('@/lib/subscription-helper')
+      const deactivateResult = await deactivateUserAIConfigs(userId)
+      console.log(`[AUTO-DEACTIVATE] Créditos excedidos - ${deactivateResult.deactivatedCount} configurações desativadas`)
+    }
 
     // Verifica fatura vencida
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: { 
-        stripeSubscriptionStatus: true
+        stripeSubscriptionStatus: true,
+        email: true // Adicionado para log
       }
     })
 
     const hasOverdueInvoice = user?.stripeSubscriptionStatus === 'past_due' || 
                              user?.stripeSubscriptionStatus === 'unpaid'
+
+    // Log no servidor
+    console.log(`[SERVER] Status do usuário ${user?.email}:`, {
+      creditsUsed,
+      totalCredits,
+      isOutOfCredits: creditsUsed >= totalCredits,
+      hasOverdueInvoice,
+      stripeStatus: user?.stripeSubscriptionStatus
+    });
 
     return <CreditAlert 
       isOutOfCredits={isOutOfCredits} 

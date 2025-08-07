@@ -1,4 +1,5 @@
 import { prisma } from '@/services/database';
+import { getUserCurrentPlan } from '@/services/stripe';
 
 /**
  * Verifica se o status da assinatura indica que ela está bloqueada
@@ -110,6 +111,59 @@ export async function checkUserSubscription(userId: string) {
       isBlocked: true,
       hasSubscription: false,
       subscriptionStatus: null,
+      error: error instanceof Error ? error.message : 'Erro desconhecido'
+    };
+  }
+} 
+
+/**
+ * Verifica se o usuário excedeu o limite de créditos e desativa configurações se necessário
+ * @param userId ID do usuário
+ * @returns Um objeto indicando o resultado da operação
+ */
+export async function checkAndEnforceCreditLimit(userId: string) {
+  try {
+    console.log(`[CREDIT-LIMIT] Verificando limite de créditos para usuário: ${userId}`);
+    
+    // Obter plano e créditos atuais
+    const plan = await getUserCurrentPlan(userId);
+    const creditsUsed = plan.quota.credits?.current || 0;
+    const totalCredits = plan.quota.credits?.available || 10000;
+    const isOutOfCredits = creditsUsed >= totalCredits;
+
+    console.log(`[CREDIT-LIMIT] Status: ${creditsUsed}/${totalCredits} créditos usados. Excedido: ${isOutOfCredits}`);
+
+    if (isOutOfCredits) {
+      // Desativar todas as configurações de IA do usuário
+      const result = await deactivateUserAIConfigs(userId);
+      console.log(`[CREDIT-LIMIT] Configurações desativadas: ${result.deactivatedCount}`);
+      
+      return {
+        success: true,
+        isOutOfCredits: true,
+        creditsUsed,
+        totalCredits,
+        deactivatedCount: result.deactivatedCount,
+        message: `Limite de ${totalCredits} créditos excedido. ${result.deactivatedCount} configurações desativadas.`
+      };
+    }
+
+    return {
+      success: true,
+      isOutOfCredits: false,
+      creditsUsed,
+      totalCredits,
+      deactivatedCount: 0,
+      message: 'Dentro do limite de créditos'
+    };
+  } catch (error) {
+    console.error('[CREDIT-LIMIT] Erro ao verificar limite de créditos:', error);
+    return {
+      success: false,
+      isOutOfCredits: false,
+      creditsUsed: 0,
+      totalCredits: 0,
+      deactivatedCount: 0,
       error: error instanceof Error ? error.message : 'Erro desconhecido'
     };
   }

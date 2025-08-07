@@ -59,7 +59,7 @@ export const createStripeCustomer = async (input: {
 
   const createdCustomerSubscription = await stripe.subscriptions.create({
     customer: createdCustomer.id,
-    items: [{ price: config.stripe.plans.free.priceId }],
+    items: [{ price: config.stripe.plans.pro.priceId }],
   })
 
   await prisma.user.update({
@@ -70,7 +70,7 @@ export const createStripeCustomer = async (input: {
       stripeCustomerId: createdCustomer.id,
       stripeSubscriptionId: createdCustomerSubscription.id,
       stripeSubscriptionStatus: createdCustomerSubscription.status,
-      stripePriceId: config.stripe.plans.free.priceId,
+      stripePriceId: config.stripe.plans.pro.priceId,
     },
   })
 
@@ -235,42 +235,61 @@ export const getUserCurrentPlan = async (userId: string) => {
     },
     select: {
       stripePriceId: true,
+      isIntegrationUser: true,
+      email: true, // Adicionado para log
     },
   })
 
-  if (!user || !user.stripePriceId) {
-    throw new Error('User or user stripePriceId not found')
+  if (!user) {
+    console.log(`[SERVER] Usuário não encontrado: ${userId}`);
+    throw new Error('User not found')
   }
 
-  const plan = getPlanByPrice(user.stripePriceId)
+  // Log no servidor
+  console.log(`[SERVER] Plano do usuário ${user.email}:`, {
+    stripePriceId: user.stripePriceId,
+    isIntegrationUser: user.isIntegrationUser
+  });
 
-  // Buscar a soma de todas as interactionsCount do usuário no mês atual
+  // TODOS os usuários devem ter limite de 10000 - não importa o stripePriceId
+  console.log(`[SERVER] Calculando créditos para usuário ${user.email} (stripePriceId: ${user.stripePriceId})`);
+  
+  const now = new Date();
+  const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  
   const interactions = await prisma.interaction.findMany({
     where: {
       userId,
-      createdAt: {
-        gte: new Date(new Date().setDate(1)), // Início do mês atual
-        lt: new Date(new Date().setMonth(new Date().getMonth() + 1)), // Início do próximo mês
+      updatedAt: {
+        gte: firstDayOfMonth,
+        lte: lastDayOfMonth,
       },
     },
     select: {
-      interactionsCount: true
+      value: true
     }
   })
 
-  // Somar todos os interactionsCount
   const currentCredits = interactions.reduce((sum, interaction) => {
-    return sum + (interaction.interactionsCount || 0);
+    return sum + (interaction.value?.toNumber() || 0);
   }, 0);
 
-  const availableCredits = plan.quota.credits
-  const usagePercentage = (currentCredits / availableCredits) * 100;
+  const usagePercentage = (currentCredits / 10000) * 100;
+
+  console.log(`[SERVER] Créditos calculados para usuário ${user.email}:`, {
+    currentCredits,
+    usagePercentage,
+    interactionsCount: interactions.length,
+    totalValueSum: interactions.reduce((sum, i) => sum + (i.value?.toNumber() || 0), 0),
+    isOutOfCredits: currentCredits >= 10000
+  });
 
   return {
-    name: plan.name,
+    name: 'pro',
     quota: {
       credits: {
-        available: availableCredits,
+        available: 10000,
         current: currentCredits,
         usage: usagePercentage
       }

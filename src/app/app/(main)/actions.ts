@@ -207,6 +207,19 @@ export async function toggleAIConfigStatus(configId: string, isActive: boolean) 
     }
 
     if (isActive) {
+      // Verificar limite de créditos ANTES de permitir ativação
+      const { checkAndEnforceCreditLimit } = await import('@/lib/subscription-helper')
+      const creditCheck = await checkAndEnforceCreditLimit(user.id)
+      
+      if (creditCheck.isOutOfCredits) {
+        console.log(`[TOGGLE-AI] Bloqueando ativação - créditos excedidos: ${creditCheck.creditsUsed}/${creditCheck.totalCredits}`)
+        return {
+          error: `Limite de ${creditCheck.totalCredits} créditos excedido (${creditCheck.creditsUsed} usados). Não é possível ativar configurações.`,
+          data: null,
+          creditsExceeded: true
+        };
+      }
+
       const subscription = await checkUserSubscription(user.id);
       
       if (subscription.isBlocked) {

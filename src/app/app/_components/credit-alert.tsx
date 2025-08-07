@@ -1,6 +1,6 @@
 'use client'
 
-import { AlertTriangle, X, CreditCard } from 'lucide-react'
+import { AlertTriangle, X, CreditCard, BarChart3 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { useState } from 'react'
@@ -12,7 +12,12 @@ interface AlertContentProps {
 }
 
 function AlertContent({ isVisible, onClose, type }: AlertContentProps) {
-  if (!isVisible) return null;
+  console.log('[ALERT-CONTENT] Renderizando AlertContent:', { isVisible, type });
+  
+  if (!isVisible) {
+    console.log('[ALERT-CONTENT] Alerta não está visível');
+    return null;
+  }
 
   const alertContent = {
     credits: {
@@ -20,14 +25,18 @@ function AlertContent({ isVisible, onClose, type }: AlertContentProps) {
       title: 'Créditos Esgotados:',
       message: 'Você atingiu o limite de créditos do mês.',
       actionText: 'Recarregar Agora',
-      actionLink: '/app/settings/billing'
+      actionLink: '/app/settings/billing',
+      secondaryActionText: 'Ver Relatório',
+      secondaryActionLink: '/app/dashboard'
     },
     invoice: {
       icon: <CreditCard className="h-4 w-4 text-yellow-300" />,
       title: 'Fatura Vencida:',
       message: 'Sua fatura está pendente de pagamento.',
       actionText: 'Pagar Agora',
-      actionLink: '/app/settings/billing'
+      actionLink: '/app/settings/billing',
+      secondaryActionText: 'Ver Relatório',
+      secondaryActionLink: '/app/dashboard'
     }
   }
 
@@ -48,13 +57,25 @@ function AlertContent({ isVisible, onClose, type }: AlertContentProps) {
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            {/* Botão secundário - Ver Relatório */}
+            <Link 
+              href={content.secondaryActionLink}
+              className="text-sm bg-transparent border border-white/30 hover:bg-white/10 text-white px-3 py-1 rounded-md font-medium transition-colors flex items-center gap-1"
+            >
+              <BarChart3 className="h-3 w-3" />
+              {content.secondaryActionText}
+            </Link>
+            
+            {/* Botão principal */}
             <Link 
               href={content.actionLink}
               className="text-sm bg-yellow-500 hover:bg-yellow-400 text-gray-900 px-3 py-1 rounded-md font-medium transition-colors"
             >
               {content.actionText}
             </Link>
+            
+            {/* Botão fechar */}
             <Button 
               variant="ghost" 
               size="icon" 
@@ -77,12 +98,18 @@ interface CreditAlertProps {
 }
 
 export default function CreditAlert({ isOutOfCredits = false, hasOverdueInvoice = false }: CreditAlertProps) {
+  console.log('[ALERT] Renderizando CreditAlert:', { isOutOfCredits, hasOverdueInvoice });
+  
   const [isVisible, setIsVisible] = useState(true);
 
-  if (!isOutOfCredits && !hasOverdueInvoice) return null;
+  if (!isOutOfCredits && !hasOverdueInvoice) {
+    console.log('[ALERT] Nenhuma condição para mostrar alerta');
+    return null;
+  }
 
   // Prioriza mostrar o alerta de fatura vencida
   const alertType = hasOverdueInvoice ? 'invoice' : 'credits';
+  console.log('[ALERT] Tipo de alerta definido:', alertType);
 
   const handleClose = () => {
     const alert = document.querySelector('.fixed.top-0');
