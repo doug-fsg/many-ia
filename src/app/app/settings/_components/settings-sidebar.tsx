@@ -34,24 +34,14 @@ export function SettingsSidebar() {
   const isAuthenticated = !!session?.user || !!userInfo
 
   useEffect(() => {
-    console.log('[SETTINGS-SIDEBAR] Session status:', status)
-    console.log('[SETTINGS-SIDEBAR] Session data:', {
-      user: session?.user,
-      isIntegrationUser: session?.user?.isIntegrationUser,
-      email: session?.user?.email
-    })
-    
     // Buscar informações do usuário no backend para verificação adicional
     const fetchUserInfo = async () => {
       try {
         setLoading(true)
-        console.log('[SETTINGS-SIDEBAR] Buscando informações do usuário via API...')
         const response = await fetch('/api/user/info')
         if (response.ok) {
           const data = await response.json()
           setUserInfo(data)
-          console.log('[SETTINGS-SIDEBAR] Informações do usuário obtidas via API:', data)
-          console.log('[SETTINGS-SIDEBAR] isIntegrationUser do backend:', data.isIntegrationUser)
         } else {
           console.error('[SETTINGS-SIDEBAR] Erro ao buscar informações do usuário:', await response.text())
         }
@@ -68,16 +58,7 @@ export function SettingsSidebar() {
     fetchUserInfo()
   }, [session, status])
 
-  // Log adicional para saber qual valor está sendo usado para controlar a visibilidade
-  useEffect(() => {
-    console.log('[SETTINGS-SIDEBAR] Valores de controle de visibilidade:', {
-      isIntegrationUser,
-      isIntegrationUserFromBackend,
-      shouldHideWhatsApp,
-      whatsAppVisible: !shouldHideWhatsApp,
-      isAuthenticated
-    })
-  }, [isIntegrationUser, isIntegrationUserFromBackend, shouldHideWhatsApp, isAuthenticated])
+  // Log removido para produção
 
   const isActive = (path: string) => {
     return pathname === path
@@ -142,7 +123,6 @@ export function SettingsSidebar() {
                     fetch('/api/auth/debug/integration-status?set=true')
                       .then(response => response.json())
                       .then(data => {
-                        console.log('Status alterado:', data)
                         window.location.reload()
                       })
                   }}
@@ -157,7 +137,6 @@ export function SettingsSidebar() {
                     fetch('/api/auth/debug/integration-status?set=false')
                       .then(response => response.json())
                       .then(data => {
-                        console.log('Status alterado:', data)
                         window.location.reload()
                       })
                   }}

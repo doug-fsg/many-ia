@@ -78,7 +78,6 @@ type AIConfigFormProps = {
 
 // Adicione a interface para TemasEvitar
 interface TemasEvitar {
-  id: string
   tema: string
 }
 
@@ -103,7 +102,7 @@ export function AIConfigForm({
   const [novoTema, setNovoTema] = useState('')
   const [temasEvitar, setTemasEvitar] = useState<string[]>(() => {
     if (defaultValue?.temasEvitar) {
-      return defaultValue.temasEvitar.map((tema: TemasEvitar) => tema.tema)
+      return defaultValue.temasEvitar.map((tema: any) => typeof tema === 'string' ? tema : tema.tema)
     }
     return []
   })
@@ -140,6 +139,7 @@ export function AIConfigForm({
       informacoesEmpresa: defaultValue?.informacoesEmpresa ?? '',
       temasEvitar: defaultValue?.temasEvitar?.map((tema: any) => typeof tema === 'string' ? tema : tema.tema) ?? [],
       attachments: defaultValue?.attachments?.filter(att => att.type === 'image' || att.type === 'pdf').map(att => ({
+        id: att.id || `attachment-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`,
         type: att.type as 'image' | 'pdf',
         content: att.content,
         description: att.description
@@ -157,6 +157,7 @@ export function AIConfigForm({
       const filteredAttachments = defaultValue.attachments
         .filter(att => att.type === 'image' || att.type === 'pdf')
         .map(att => ({
+          id: att.id || `attachment-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`,
           type: att.type as 'image' | 'pdf',
           content: att.content,
           description: att.description
@@ -354,7 +355,6 @@ export function AIConfigForm({
     const newAttachments = [...attachments]
     newAttachments[index] = {
       ...newAttachments[index],
-      id: newAttachments[index]?.id || Math.random().toString(36).substring(2, 15),
       [field]: value
     }
     setAttachments(newAttachments)

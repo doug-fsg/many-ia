@@ -12,10 +12,7 @@ interface AlertContentProps {
 }
 
 function AlertContent({ isVisible, onClose, type }: AlertContentProps) {
-  console.log('[ALERT-CONTENT] Renderizando AlertContent:', { isVisible, type });
-  
   if (!isVisible) {
-    console.log('[ALERT-CONTENT] Alerta não está visível');
     return null;
   }
 
@@ -98,18 +95,14 @@ interface CreditAlertProps {
 }
 
 export default function CreditAlert({ isOutOfCredits = false, hasOverdueInvoice = false }: CreditAlertProps) {
-  console.log('[ALERT] Renderizando CreditAlert:', { isOutOfCredits, hasOverdueInvoice });
-  
   const [isVisible, setIsVisible] = useState(true);
 
   if (!isOutOfCredits && !hasOverdueInvoice) {
-    console.log('[ALERT] Nenhuma condição para mostrar alerta');
     return null;
   }
 
   // Prioriza mostrar o alerta de fatura vencida
   const alertType = hasOverdueInvoice ? 'invoice' : 'credits';
-  console.log('[ALERT] Tipo de alerta definido:', alertType);
 
   const handleClose = () => {
     const alert = document.querySelector('.fixed.top-0');

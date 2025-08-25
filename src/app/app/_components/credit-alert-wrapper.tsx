@@ -19,8 +19,7 @@ export async function CreditAlertWrapper({ userId }: { userId: string }) {
     // Se créditos excedidos, desativar todas as configurações automaticamente
     if (isOutOfCredits) {
       const { deactivateUserAIConfigs } = await import('@/lib/subscription-helper')
-      const deactivateResult = await deactivateUserAIConfigs(userId)
-      console.log(`[AUTO-DEACTIVATE] Créditos excedidos - ${deactivateResult.deactivatedCount} configurações desativadas`)
+      await deactivateUserAIConfigs(userId)
     }
 
     // Verifica fatura vencida
@@ -35,14 +34,7 @@ export async function CreditAlertWrapper({ userId }: { userId: string }) {
     const hasOverdueInvoice = user?.stripeSubscriptionStatus === 'past_due' || 
                              user?.stripeSubscriptionStatus === 'unpaid'
 
-    // Log no servidor
-    console.log(`[SERVER] Status do usuário ${user?.email}:`, {
-      creditsUsed,
-      totalCredits,
-      isOutOfCredits: creditsUsed >= totalCredits,
-      hasOverdueInvoice,
-      stripeStatus: user?.stripeSubscriptionStatus
-    });
+    // Log removido para produção
 
     return <CreditAlert 
       isOutOfCredits={isOutOfCredits} 

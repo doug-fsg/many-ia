@@ -19,7 +19,8 @@ export type AIConfig = {
   userId?: string
   temasEvitar?: Array<{ tema: string }>
   attachments?: Array<{
-    type: 'link' | 'image' | 'pdf'
+    id?: string
+    type: 'image' | 'pdf'
     content: string
     description: string
   }>

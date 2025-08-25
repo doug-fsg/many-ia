@@ -30,7 +30,8 @@ export const upsertAIConfigSchema = z.object({
   attachments: z
     .array(
       z.object({
-        type: z.enum(['link', 'image', 'pdf']),
+        id: z.string().optional(),
+        type: z.enum(['image', 'pdf']),
         content: z.string(),
         description: z.string(),
       }),

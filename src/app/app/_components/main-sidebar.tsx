@@ -71,12 +71,10 @@ export function MainSidebar({ user }: MainSidebarProps) {
   useEffect(() => {
     const fetchUserInfo = async () => {
       try {
-        console.log('[MAIN-SIDEBAR] Iniciando busca de informações do usuário')
         setLoading(true)
         const response = await fetch('/api/user/info')
         if (response.ok) {
           const data = await response.json()
-          console.log('[MAIN-SIDEBAR] Dados recebidos da API:', data)
           setUserInfo(data)
         } else {
           console.error('[MAIN-SIDEBAR] Erro na resposta da API:', await response.text())
@@ -99,8 +97,6 @@ export function MainSidebar({ user }: MainSidebarProps) {
 
   // Verifique se o usuário pode criar templates
   const canCreateTemplates = userInfo?.canCreateTemplates === true
-  console.log('[MAIN-SIDEBAR] canCreateTemplates:', canCreateTemplates)
-  console.log('[MAIN-SIDEBAR] userInfo:', userInfo)
 
   // Lista de itens de menu básicos (sempre visíveis)
   const baseMenuItems: MenuItem[] = [
@@ -156,20 +152,7 @@ export function MainSidebar({ user }: MainSidebarProps) {
     ? [...baseMenuItems.slice(0, 2), templatesMenuItem, baseMenuItems[2]] 
     : baseMenuItems
 
-  console.log('[MAIN-SIDEBAR] Menu items:', menuItems)
 
-  const extraLinks = [
-    {
-      href: '/help',
-      icon: <HelpCircle className="w-4 h-4 mr-3" />,
-      label: 'Precisa de ajuda?'
-    },
-    {
-      href: '/',
-      icon: <Globe className="w-4 h-4 mr-3" />,
-      label: 'Site'
-    }
-  ]
 
   // Detectar se estamos em um dispositivo móvel
   useEffect(() => {
@@ -214,13 +197,11 @@ export function MainSidebar({ user }: MainSidebarProps) {
   }
 
   const toggleSubmenu = (href: string) => {
-    console.log('Toggleando submenu:', href);
     setExpandedMenus(prev => {
       const newState = {
         ...prev,
         [href]: !prev[href]
       };
-      console.log('Novo estado:', newState);
       return newState;
     });
   }
@@ -230,7 +211,6 @@ export function MainSidebar({ user }: MainSidebarProps) {
     if (pathname) {
       menuItems.forEach(item => {
         if (item.submenu && item.submenu.some(sub => isActive(sub.href))) {
-          console.log('Expandindo menu pai automaticamente:', item.href);
           setExpandedMenus(prev => ({
             ...prev,
             [item.href]: true
@@ -442,25 +422,7 @@ export function MainSidebar({ user }: MainSidebarProps) {
               </DashboardSidebarNavMain>
             </DashboardSidebarNav>
 
-            <DashboardSidebarNav className="mt-auto pt-6">
-              <DashboardSidebarNavHeader>
-                <DashboardSidebarNavHeaderTitle>
-                  Links extras
-                </DashboardSidebarNavHeaderTitle>
-              </DashboardSidebarNavHeader>
-              <DashboardSidebarNavMain>
-                {extraLinks.map((item) => (
-                  <DashboardSidebarNavLink 
-                    key={item.href}
-                    href={item.href}
-                    active={isActive(item.href)}
-                  >
-                    {item.icon}
-                    {item.label}
-                  </DashboardSidebarNavLink>
-                ))}
-              </DashboardSidebarNavMain>
-            </DashboardSidebarNav>
+
           </DashboardSidebarMain>
           <DashboardSidebarFooter>
             <UserDropdown user={user} />
