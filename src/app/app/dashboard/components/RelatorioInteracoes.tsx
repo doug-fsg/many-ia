@@ -24,7 +24,6 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Loader2, Search, RefreshCw, Filter, ExternalLink, Phone, MessageCircle, User, Calendar, AlertCircle } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -41,6 +40,7 @@ interface Interacao {
   interesse: string
   manytalksAccountId?: string
   ConversationID: number
+  value: number // Valor total de créditos da conversa
 }
 
 // Função para obter a cor do status
@@ -95,14 +95,33 @@ export function RelatorioInteracoes() {
   const [loading, setLoading] = React.useState(true)
   const [refreshing, setRefreshing] = React.useState(false)
   const [searchTerm, setSearchTerm] = React.useState('')
-  const [statusFilter, setStatusFilter] = React.useState('all')
-  const [activeTab, setActiveTab] = React.useState('todos')
+  
+  // Novos estados para filtros
+  const [periodFilter, setPeriodFilter] = React.useState<'month' | 'week' | 'custom'>('month')
+  const [showAdvancedFilters, setShowAdvancedFilters] = React.useState(false)
+  const [customStartDate, setCustomStartDate] = React.useState('')
+  const [customEndDate, setCustomEndDate] = React.useState('')
+  const [minInteractions, setMinInteractions] = React.useState('')
+  const [metadata, setMetadata] = React.useState<any>(null)
+  
   const { toast } = useToast()
 
   const fetchInteracoes = async () => {
     setLoading(true)
     try {
-      const result = await getUserInteractions()
+      const params: any = { period: periodFilter }
+      
+      // Adicionar filtros avançados se aplicável
+      if (periodFilter === 'custom' && customStartDate && customEndDate) {
+        params.startDate = new Date(customStartDate)
+        params.endDate = new Date(customEndDate)
+      }
+      
+      if (minInteractions && parseInt(minInteractions) > 0) {
+        params.minInteractions = parseInt(minInteractions)
+      }
+      
+      const result = await getUserInteractions(params)
       if (result.error) {
         setError(result.error)
         toast({
@@ -113,6 +132,7 @@ export function RelatorioInteracoes() {
       } else {
         setInteracoes(result.data || [])
         setFilteredInteracoes(result.data || [])
+        setMetadata(result.metadata || null)
       }
     } catch (error) {
       console.error('Erro ao chamar getUserInteractions:', error)
@@ -131,15 +151,23 @@ export function RelatorioInteracoes() {
 
   React.useEffect(() => {
     fetchInteracoes()
-  }, [toast])
+  }, [periodFilter, customStartDate, customEndDate, minInteractions])
 
   const handleRefresh = async () => {
     setRefreshing(true)
     await fetchInteracoes()
   }
 
+  const handlePeriodChange = (newPeriod: 'month' | 'week' | 'custom') => {
+    setPeriodFilter(newPeriod)
+    if (newPeriod !== 'custom') {
+      setCustomStartDate('')
+      setCustomEndDate('')
+    }
+  }
+
   React.useEffect(() => {
-    // Filtrar com base na tab ativa e nos outros filtros
+    // Filtrar apenas por termo de busca
     const filtered = interacoes.filter((interacao) => {
       // Verifica se o termo de busca está presente
       const matchesSearch = searchTerm === '' || 
@@ -149,22 +177,12 @@ export function RelatorioInteracoes() {
           (interacao.interesse?.toLowerCase()?.includes(searchTerm.toLowerCase()) || false)
         );
       
-      // Verifica se o status corresponde ao filtro
-      const matchesStatus = statusFilter === 'all' || interacao.status === statusFilter;
-      
-      // Verifica se corresponde à tab ativa
-      const matchesTab = activeTab === 'todos' || 
-        (activeTab === 'recentes' && new Date(interacao.lastContactAt).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000) ||
-        (activeTab === 'frequentes' && interacao.interactionsCount > 5);
-      
-      return matchesSearch && matchesStatus && matchesTab;
+      return matchesSearch;
     });
     
     setFilteredInteracoes(filtered);
-  }, [interacoes, searchTerm, statusFilter, activeTab]);
+  }, [interacoes, searchTerm]);
 
-  const uniqueStatuses = Array.from(new Set(interacoes.map(i => i.status)))
-  
   // Estatísticas
   const totalInteracoes = interacoes.length
   const interacoesRecentes = interacoes.filter(i => 
@@ -272,58 +290,124 @@ export function RelatorioInteracoes() {
             </Card>
           </div>
 
-          {/* Tabs e Filtros */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-              <TabsList>
-                <TabsTrigger value="todos">Todos</TabsTrigger>
-                <TabsTrigger value="recentes">Recentes (7 dias)</TabsTrigger>
-                <TabsTrigger value="frequentes">Frequentes (>5)</TabsTrigger>
-              </TabsList>
-              
-              <div className="flex flex-col sm:flex-row gap-4 sm:items-end">
-                <div className="flex-1">
-                  <Label htmlFor="search" className="text-xs font-medium">Buscar</Label>
-                  <div className="relative">
-                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="search"
-                      placeholder="Nome, telefone ou interesse"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-8"
-                    />
-                  </div>
-                </div>
-                <div className="w-full sm:w-40">
-                  <Label htmlFor="status" className="text-xs font-medium">Status</Label>
-                  <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger id="status" className="w-full">
-                      <SelectValue placeholder="Todos" />
+          {/* Filtros de Período */}
+          <div className="flex flex-col space-y-4 mb-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-2">
+                  <Select value={periodFilter} onValueChange={handlePeriodChange}>
+                    <SelectTrigger className="w-32 h-9">
+                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Todos os Status</SelectItem>
-                      {uniqueStatuses.map((status) => (
-                        <SelectItem key={status} value={status}>
-                          {status}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="month">Este mês</SelectItem>
+                      <SelectItem value="week">7 dias</SelectItem>
+                      <SelectItem value="custom">Personalizado</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
+                
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setShowAdvancedFilters(!showAdvancedFilters)
+                    if (!showAdvancedFilters) {
+                      setPeriodFilter('custom')
+                    }
+                  }}
+                  className="h-9 px-3 gap-2 text-xs"
+                >
+                  <Filter className="h-3 w-3" />
+                  Avançado
+                </Button>
+                
+                {(periodFilter === 'custom' || minInteractions) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setPeriodFilter('month')
+                      setCustomStartDate('')
+                      setCustomEndDate('')
+                      setMinInteractions('')
+                      setShowAdvancedFilters(false)
+                    }}
+                    className="h-9 px-3 gap-2 text-xs"
+                  >
+                    Limpar
+                  </Button>
+                )}
+              </div>
+              
+              {metadata && (
+                <div className="text-xs text-muted-foreground">
+                  {metadata.uniqueConversations} conversas • {metadata.totalInteractions} interações
+                </div>
+              )}
+            </div>
+            
+            {/* Filtros Avançados */}
+            {showAdvancedFilters && (
+              <div className="border rounded-lg p-4 bg-muted/20 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {periodFilter === 'custom' && (
+                    <>
+                      <div>
+                        <Label htmlFor="start-date" className="text-xs">Data inicial</Label>
+                        <Input
+                          id="start-date"
+                          type="date"
+                          value={customStartDate}
+                          onChange={(e) => setCustomStartDate(e.target.value)}
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="end-date" className="text-xs">Data final</Label>
+                        <Input
+                          id="end-date"
+                          type="date"
+                          value={customEndDate}
+                          onChange={(e) => setCustomEndDate(e.target.value)}
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                    </>
+                  )}
+                  <div>
+                    <Label htmlFor="min-interactions" className="text-xs">Mín. interações</Label>
+                    <Input
+                      id="min-interactions"
+                      type="number"
+                      placeholder="Ex: 5"
+                      value={minInteractions}
+                      onChange={(e) => setMinInteractions(e.target.value)}
+                      className="h-8 text-xs"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Busca */}
+          <div className="flex items-center gap-4 mb-6">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por nome, telefone ou interesse..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9"
+                />
               </div>
             </div>
+          </div>
 
-            <TabsContent value="todos" className="mt-0">
-              {renderTabContent(filteredInteracoes, loading)}
-            </TabsContent>
-            <TabsContent value="recentes" className="mt-0">
-              {renderTabContent(filteredInteracoes, loading)}
-            </TabsContent>
-            <TabsContent value="frequentes" className="mt-0">
-              {renderTabContent(filteredInteracoes, loading)}
-            </TabsContent>
-          </Tabs>
+          {/* Tabela de Interações */}
+          {renderTabContent(filteredInteracoes, loading)}
         </CardContent>
         <CardFooter className="border-t bg-muted/40 py-3 px-6">
           <p className="text-xs text-muted-foreground">
@@ -363,8 +447,11 @@ export function RelatorioInteracoes() {
             variant="outline" 
             onClick={() => {
               setSearchTerm('')
-              setStatusFilter('all')
-              setActiveTab('todos')
+              setPeriodFilter('month')
+              setCustomStartDate('')
+              setCustomEndDate('')
+              setMinInteractions('')
+              setShowAdvancedFilters(false)
             }}
           >
             Limpar filtros
@@ -383,6 +470,7 @@ export function RelatorioInteracoes() {
                 <TableHead>Telefone</TableHead>
                 <TableHead>Interesse</TableHead>
                 <TableHead className="text-center">Interações</TableHead>
+                <TableHead className="text-center">Créditos</TableHead>
                 <TableHead>Última Mensagem</TableHead>
                 <TableHead>Atendente</TableHead>
                 <TableHead>Último Contato</TableHead>
@@ -406,6 +494,11 @@ export function RelatorioInteracoes() {
                   <TableCell className="text-center">
                     <Badge variant={interacao.interactionsCount > 5 ? "secondary" : "outline"}>
                       {interacao.interactionsCount || 0}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Badge variant={interacao.value > 1000 ? "destructive" : interacao.value > 500 ? "default" : "secondary"}>
+                      {(interacao.value || 0).toLocaleString('pt-BR')}
                     </Badge>
                   </TableCell>
                   <TableCell className="max-w-[200px] truncate">

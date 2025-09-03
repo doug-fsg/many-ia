@@ -130,6 +130,11 @@ export async function checkAndEnforceCreditLimit(userId: string) {
     const creditsUsed = plan.quota.credits?.current || 0;
     const totalCredits = plan.quota.credits?.available || 10000;
     const isOutOfCredits = creditsUsed >= totalCredits;
+    
+    // Log adicional para monitoramento de limites personalizados
+    if (totalCredits !== 10000) {
+      console.log(`[CREDIT-LIMIT] LIMITE PERSONALIZADO detectado para usuário ${userId}: ${totalCredits} créditos`);
+    }
 
     console.log(`[CREDIT-LIMIT] Status: ${creditsUsed}/${totalCredits} créditos usados. Excedido: ${isOutOfCredits}`);
 

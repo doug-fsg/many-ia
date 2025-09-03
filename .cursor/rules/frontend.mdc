@@ -1,0 +1,28 @@
+description: Regras específicas para o Frontend
+globs: 
+alwaysApply: false
+---
+# Regras Profissionais de Desenvolvimento - Frontend
+
+## Boas Práticas de Código
+- sempre use shadcn, veja o MCP
+- Todo o código deve usar **TypeScript** sempre que possível
+- É obrigatório o uso de **Tailwind CSS**
+- O design deve ser **sutil, limpo e consistente**  
+- Sempre considerar **modo dark e light**
+- Componentes devem ser **reutilizáveis** e bem organizados
+- Nomeie classes, variáveis e funções de forma clara e descritiva
+- Prefira **hooks e componentes funcionais** ao invés de classes
+
+## Experiência do Usuário
+- Interface deve ser **responsiva** (desktop, tablet e mobile)
+- Mantenha carregamento rápido (evite dependências desnecessárias)
+- Dê feedback visual para interações (hover, loading, disabled, etc.)
+- Sempre pense em **acessibilidade** (alt em imagens, contraste, aria-labels)
+
+## Boas Práticas de Build e Deploy
+- Nunca quebre o `yarn build`  
+- Revise se os imports estão otimizados (não importar libs inteiras sem necessidade)
+- Só instale bibliotecas novas se **realmente for indispensável**
+
+---

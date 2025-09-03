@@ -1,0 +1,143 @@
+# Sistema de Super Admin
+
+## Visão Geral
+
+O sistema de Super Admin foi criado para substituir o antigo painel admin que estava em `/app/admin/credit-limits`. Agora temos um sistema completo de monitoramento e gestão de clientes.
+
+## Funcionalidades
+
+### 1. Autenticação de Super Admin
+- **Rota:** `/super_admin/sign_in`
+- **Autenticação:** Login com email/senha
+- **Requisitos:** 
+  - Usuário deve ter `isSuperAdmin = true` no banco
+  - Deve ter senha configurada (campo `password`)
+
+### 2. Dashboard Principal
+- **Rota:** `/super_admin/dashboard`
+- **Funcionalidades:**
+  - Visão geral de todos os clientes
+  - Estatísticas em tempo real
+  - Monitoramento de limites mensais
+  - Identificação de clientes acima do limite
+
+### 3. Detalhes do Cliente
+- **Rota:** `/super_admin/client/[clientId]`
+- **Funcionalidades:**
+  - Análise detalhada de um cliente específico
+  - Histórico de interações
+  - Evolução mensal de uso
+  - Controle de limites personalizados
+
+## Métricas Monitoradas
+
+### Por Cliente
+- **Interações mensais:** Soma de todos os `interactionsCount` das interações do mês atual
+- **Valor mensal:** Soma dos valores das interações do mês
+- **Limite mensal:** Limite configurado (padrão: 10.000)
+- **Percentual de uso:** Soma dos `interactionsCount` vs limite mensal
+- **Status da assinatura:** Status do Stripe
+- **Última atividade:** Data da última interação
+
+### Globais
+- **Total de clientes:** Número total de usuários
+- **Clientes ativos:** Usuários com assinatura ativa
+- **Interações do mês:** Soma total de todos os `interactionsCount` de todos os clientes
+- **Valor do mês:** Valor total gerado no mês
+- **Clientes acima do limite:** Quantidade de clientes que excederam o limite
+
+## Estrutura de Dados
+
+### Tabela `Interaction`
+- `id`: Identificador único
+- `userId`: ID do usuário (cliente)
+- `interactionsCount`: Quantidade de interações neste registro
+- `value`: Valor monetário da interação
+- `createdAt`: Data de criação
+- `updatedAt`: Data de atualização
+- `name`: Nome do contato
+- `phoneNumber`: Telefone do contato
+- `status`: Status da interação
+
+### Tabela `User`
+- `customCreditLimit`: Limite personalizado de créditos
+- `stripeSubscriptionStatus`: Status da assinatura
+- `email`: Email do cliente
+- `name`: Nome do cliente
+- `isSuperAdmin`: Flag que indica se é super administrador
+- `password`: Senha para login (obrigatória para super admin)
+
+## APIs Disponíveis
+
+### `/api/super_admin/auth`
+- **Método:** POST
+- **Body:** `{ email, password }`
+- **Retorna:** Autenticação de super admin
+
+### `/api/super_admin/clients`
+- **Método:** GET
+- **Retorna:** Lista de todos os clientes com estatísticas mensais
+
+### `/api/super_admin/clients/[clientId]`
+- **Método:** GET
+- **Parâmetros:** `clientId` (ID do cliente)
+- **Retorna:** Dados detalhados de um cliente específico
+
+### `/api/super_admin/clients/[clientId]/limit`
+- **Método:** PUT
+- **Body:** `{ customCreditLimit }`
+- **Retorna:** Atualização do limite de créditos
+
+## Alertas e Monitoramento
+
+### Clientes Acima do Limite
+- Cards com fundo vermelho no dashboard
+- Badge "Acima do Limite" em vermelho
+- Contabilização na estatística global
+
+### Indicadores Visuais
+- **Progress bars:** Mostram percentual de uso do limite
+- **Badges coloridos:** Indicam status da assinatura
+- **Cores de alerta:** Vermelho para situações críticas
+
+## Segurança
+
+- **Autenticação robusta:** Campo `isSuperAdmin` no banco de dados
+- **Verificação de permissão:** Em todas as páginas do super admin
+- **Sessão local:** Token armazenado no sessionStorage
+- **Logout automático:** Ao fechar o navegador
+
+## Melhorias Futuras
+
+1. **Autenticação JWT:** Implementar sistema mais robusto
+2. **Controle de permissões:** Diferentes níveis de acesso
+3. **Alertas automáticos:** Notificações por email/WhatsApp
+4. **Relatórios:** Exportação de dados em PDF/Excel
+5. **Gráficos:** Visualizações mais avançadas com charts
+6. **Auditoria:** Log de todas as ações administrativas
+
+## Como Usar
+
+### Primeiro Acesso
+1. **Configurar Super Admin no Banco:**
+   ```sql
+   UPDATE "User" SET "isSuperAdmin" = true WHERE "email" = 'seu-email@exemplo.com';
+   ```
+
+2. **Garantir que tem senha configurada**
+
+### Uso Regular
+1. Acesse `/super_admin/sign_in`
+2. Faça login com email/senha do super admin
+3. Navegue pelo dashboard para ver todos os clientes
+4. Clique em "Ver detalhes" para análise individual
+5. Use "Ajustar limite" para modificar limites de clientes
+6. Monitore clientes próximos ou acima do limite
+
+## Observações Técnicas
+
+- Sistema totalmente responsivo (mobile, tablet, desktop)
+- Suporte a modo dark/light
+- Dados atualizados em tempo real
+- Performance otimizada para grandes volumes de dados
+- Interface clean e profissional

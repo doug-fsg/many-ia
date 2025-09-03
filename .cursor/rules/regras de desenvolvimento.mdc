@@ -18,6 +18,10 @@ alwaysApply: false
   - Impacto em diferentes ambientes (dev, test, prod)
   - Possíveis melhorias futuras
   - Não quero ter problemas ao realizar o yarn build
+  - Sempre opte por desing sutil
+  - Obrigatório o uso do taiwind
+  - lembre-se que temos o modo dark e ligth
+  - sempre pense na experiencia do usuario
 
 Estou usando o Yarn, eu uso o yarn dev para local e na minha VPS eu coloco Yarn build e Yarn start.
 Só instale bibliotecas novas se realmente for necessário

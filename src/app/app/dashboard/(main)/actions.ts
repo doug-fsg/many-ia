@@ -3,7 +3,13 @@
 import { auth } from '@/services/auth'
 import { prisma } from '@/services/database'
 
-export async function getUserInteractions() {
+export async function getUserInteractions(params?: {
+  startDate?: Date;
+  endDate?: Date;
+  limit?: number;
+  period?: 'month' | 'week' | 'custom';
+  minInteractions?: number;
+}) {
   const session = await auth()
   if (!session?.user?.id) {
     return {
@@ -13,32 +19,124 @@ export async function getUserInteractions() {
   }
 
   try {
+    // Determinar período baseado no parâmetro ou usar "este mês" como padrão
+    const now = new Date();
+    let startDate: Date;
+    let endDate: Date;
+    
+    if (params?.period === 'week') {
+      // Últimos 7 dias
+      startDate = new Date(now);
+      startDate.setDate(now.getDate() - 7);
+      endDate = now;
+    } else if (params?.period === 'custom' && params?.startDate && params?.endDate) {
+      // Período personalizado
+      startDate = params.startDate;
+      endDate = params.endDate;
+    } else {
+      // Padrão: Este mês
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    }
+    
+    const limit = params?.limit || 1000; // Limite padrão para performance
+
+    // Buscar interações com filtros de performance
     const interactions = await prisma.interaction.findMany({
       where: {
         userId: session.user.id,
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        }
       },
       orderBy: {
         lastContactAt: 'desc',
       },
+      take: limit,
       include: {
         user: {
           select: {
-            manytalksAccountId: true, // Selecionar apenas a coluna desejada
+            manytalksAccountId: true,
           },
         },
       },
     })
-    // Converta objetos Decimal para valores numéricos
-    const interactionsWithPlainValues = interactions.map((interaction) => ({
-      ...interaction,
-      value: interaction.value?.toNumber() || 0, // Converta o Decimal para número e trate valores nulos
-      manytalksAccountId: interaction.user?.manytalksAccountId || null, // Adicione o campo manytalksAccountId
-    }));
+
+    // Agrupar por ConversationID para eliminar duplicatas
+    const groupedInteractions = new Map();
+    
+    console.log(`[DEBUG] Total de interações antes do agrupamento: ${interactions.length}`);
+    
+    interactions.forEach((interaction) => {
+      // Tentar agrupar por ConversationID primeiro, depois por telefone + nome
+      const conversationId = interaction.ConversationID || `${interaction.phoneNumber}-${interaction.name}` || interaction.id;
+      
+      console.log(`[DEBUG] Interação ID: ${interaction.id}, ConversationID: ${interaction.ConversationID}, Telefone: ${interaction.phoneNumber}, Nome: ${interaction.name}, Usando: ${conversationId}`);
+      
+      if (!groupedInteractions.has(conversationId)) {
+        // Primeira ocorrência desta conversa
+        console.log(`[DEBUG] Nova conversa: ${conversationId}`);
+        groupedInteractions.set(conversationId, {
+          ...interaction,
+          value: interaction.value?.toNumber() || 0,
+          manytalksAccountId: interaction.user?.manytalksAccountId || null,
+        });
+      } else {
+        // Somar valores da mesma conversa
+        console.log(`[DEBUG] Somando à conversa existente: ${conversationId}`);
+        const existing = groupedInteractions.get(conversationId);
+        existing.value += interaction.value?.toNumber() || 0;
+        
+        // Manter a data de contato mais recente
+        if (new Date(interaction.updatedAt || 0) > new Date(existing.lastContactAt || 0)) {
+          existing.lastContactAt = interaction.updatedAt;
+          existing.lastMessage = interaction.lastMessage;
+          existing.status = interaction.status;
+        }
+        
+        // Manter o interactionsCount mais alto (representa o total da conversa)
+        existing.interactionsCount = Math.max(
+          existing.interactionsCount || 0, 
+          interaction.interactionsCount || 0
+        );
+      }
+    });
+
+    // Converter Map para Array, aplicar filtros e ordenar por data mais recente
+    let uniqueInteractions = Array.from(groupedInteractions.values());
+    
+    // Filtrar por número mínimo de interações se especificado
+    if (params?.minInteractions && params.minInteractions > 0) {
+      uniqueInteractions = uniqueInteractions.filter(
+        interaction => (interaction.interactionsCount || 0) >= params.minInteractions!
+      );
+    }
+    
+    // Ordenar por data mais recente
+    uniqueInteractions.sort((a, b) => new Date(b.lastContactAt || 0).getTime() - new Date(a.lastContactAt || 0).getTime());
+
+    console.log(`[INTERACTIONS] Performance: ${interactions.length} interações agrupadas em ${uniqueInteractions.length} conversas únicas`);
+    console.log(`[INTERACTIONS] Período: ${startDate.toISOString().split('T')[0]} até ${endDate.toISOString().split('T')[0]}`);
+    if (params?.minInteractions) {
+      console.log(`[INTERACTIONS] Filtro mín. interações: ${params.minInteractions}`);
+    }
+
     return {
       error: null,
-      data: interactionsWithPlainValues,
+      data: uniqueInteractions,
+      metadata: {
+        totalInteractions: interactions.length,
+        uniqueConversations: uniqueInteractions.length,
+        periodStart: startDate,
+        periodEnd: endDate,
+        limitApplied: limit,
+        period: params?.period || 'month',
+        minInteractions: params?.minInteractions
+      }
     };
   } catch (error) {
+    console.error('[INTERACTIONS] Erro ao buscar interações:', error);
     return {
       error: 'Erro ao buscar interações: ' + (error as Error).message,
       data: null,
@@ -111,11 +209,11 @@ export async function calculateCredits(): Promise<CreditResult> {
     // Total de Créditos no Mês
     const totalMonth = await prisma.interaction.aggregate({
       _sum: {
-        value: true,
+        interactionsCount: true,
       },
       where: {
         userId,
-        updatedAt: {
+        createdAt: {  // ← MUDANÇA: createdAt para evitar cobrança dupla
           gte: firstDayOfMonth,
           lte: lastDayOfMonth,
         },
@@ -125,31 +223,40 @@ export async function calculateCredits(): Promise<CreditResult> {
     // Total de Créditos na Semana
     const totalWeek = await prisma.interaction.aggregate({
       _sum: {
-        value: true,
+        interactionsCount: true,
       },
       where: {
         userId,
-        updatedAt: {
+        createdAt: {  // ← MUDANÇA: createdAt para evitar cobrança dupla
           gte: startOfWeek,
           lte: endOfWeek,
         },
       },
     });
 
-    // Crédito Restante
-    const creditosIniciais = 10000; // Defina aqui o valor inicial de créditos
+    // Crédito Restante - buscar limite do plano do usuário
+    let creditosIniciais = 10000; // Valor padrão como fallback
+    try {
+      const { getUserCurrentPlan } = await import('@/services/stripe');
+      const plan = await getUserCurrentPlan(userId);
+      creditosIniciais = plan.quota.credits?.available || 10000;
+    } catch (error) {
+      console.error('[CREDITS] Erro ao buscar limite do usuário, usando padrão:', error);
+      creditosIniciais = 10000; // Fallback seguro
+    }
+    
     const creditosRestantes =
-      creditosIniciais - (totalMonth._sum.value?.toNumber() || 0);
+      creditosIniciais - (totalMonth._sum.interactionsCount || 0);
 
     // Histórico de uso de créditos por dia nos últimos 30 dias
     const creditHistory = await prisma.$queryRaw`
       SELECT 
-        DATE("updatedAt") as date,
+        DATE("createdAt") as date,
         SUM(CAST(value as DECIMAL(10,2))) as total
       FROM "Interaction"
       WHERE "userId" = ${userId}
-        AND "updatedAt" >= ${thirtyDaysAgo}
-      GROUP BY DATE("updatedAt")
+        AND "createdAt" >= ${thirtyDaysAgo}
+      GROUP BY DATE("createdAt")
       ORDER BY date ASC
     ` as CreditHistoryItem[];
 
@@ -224,8 +331,8 @@ export async function calculateCredits(): Promise<CreditResult> {
 
     return {
       error: null,
-      totalCreditsMonth: totalMonth._sum.value?.toNumber() || 0,
-      totalCreditsWeek: totalWeek._sum.value?.toNumber() || 0,
+      totalCreditsMonth: totalMonth._sum.interactionsCount || 0,
+      totalCreditsWeek: totalWeek._sum.interactionsCount || 0,
       remainingCredits: creditosRestantes,
       creditHistory,
       averageDailyUsage,
@@ -279,10 +386,13 @@ export async function calculateInteractions() {
 
   try {
     // Contagem de atendimentos na semana
-    const weeklyInteractions = await prisma.interaction.count({
+    const weeklyInteractions = await prisma.interaction.aggregate({
+      _sum: {
+        interactionsCount: true,
+      },
       where: {
         userId,
-        updatedAt: {
+        createdAt: {  // ← MUDANÇA: createdAt para evitar cobrança dupla
           gte: startOfWeek,
           lte: endOfWeek,
         },
@@ -290,10 +400,13 @@ export async function calculateInteractions() {
     });
 
     // Contagem de atendimentos no mês
-    const monthlyInteractions = await prisma.interaction.count({
+    const monthlyInteractions = await prisma.interaction.aggregate({
+      _sum: {
+        interactionsCount: true,
+      },
       where: {
         userId,
-        updatedAt: {
+        createdAt: {  // ← MUDANÇA: createdAt para evitar cobrança dupla
           gte: firstDayOfMonth,
           lte: lastDayOfMonth,
         },
@@ -302,8 +415,8 @@ export async function calculateInteractions() {
 
     return {
       error: null,
-      weeklyInteractions,
-      monthlyInteractions,
+      weeklyInteractions: weeklyInteractions._sum.interactionsCount || 0,
+      monthlyInteractions: monthlyInteractions._sum.interactionsCount || 0,
     };
   } catch (error) {
     console.error('Erro ao calcular interações:', error);
@@ -311,6 +424,63 @@ export async function calculateInteractions() {
       error: 'Erro ao calcular interações',
       weeklyInteractions: 0,
       monthlyInteractions: 0,
+    };
+  }
+}
+
+// Função otimizada para calcular estatísticas agregadas diretamente no banco
+export async function getInteractionStats() {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return {
+      error: 'Usuário não autenticado',
+      data: null,
+    };
+  }
+
+  const userId = session.user.id;
+  const now = new Date();
+  const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+  try {
+    // Usar agregação SQL para performance máxima
+    const stats = await prisma.$queryRaw`
+      SELECT 
+        COUNT(DISTINCT "ConversationID") as unique_conversations,
+        SUM("interactionsCount") as total_interactions,
+        COALESCE(SUM(CAST("value" as DECIMAL(10,2))), 0) as total_credits,
+        SUM(CASE WHEN "createdAt" >= ${firstDayOfMonth} AND "createdAt" <= ${lastDayOfMonth} THEN "interactionsCount" ELSE 0 END) as monthly_interactions,
+        COALESCE(SUM(CASE WHEN "createdAt" >= ${firstDayOfMonth} AND "createdAt" <= ${lastDayOfMonth} THEN CAST("value" as DECIMAL(10,2)) ELSE 0 END), 0) as monthly_credits
+      FROM "Interaction"
+      WHERE "userId" = ${userId} 
+        AND "ConversationID" IS NOT NULL
+        AND "createdAt" >= NOW() - INTERVAL '6 months'
+    ` as Array<{
+      unique_conversations: bigint;
+      total_interactions: bigint;
+      total_credits: number;
+      monthly_interactions: bigint;
+      monthly_credits: number;
+    }>;
+
+    const result = stats[0];
+    
+    return {
+      error: null,
+      data: {
+        uniqueConversations: Number(result.unique_conversations),
+        totalInteractions: Number(result.total_interactions),
+        totalCredits: Number(result.total_credits),
+        monthlyInteractions: Number(result.monthly_interactions),
+        monthlyCredits: Number(result.monthly_credits),
+      }
+    };
+  } catch (error) {
+    console.error('[STATS] Erro ao calcular estatísticas:', error);
+    return {
+      error: 'Erro ao calcular estatísticas: ' + (error as Error).message,
+      data: null,
     };
   }
 }

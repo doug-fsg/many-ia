@@ -237,6 +237,7 @@ export const getUserCurrentPlan = async (userId: string) => {
       stripePriceId: true,
       isIntegrationUser: true,
       email: true, // Adicionado para log
+      customCreditLimit: true, // Campo para limite personalizado
     },
   })
 
@@ -248,11 +249,28 @@ export const getUserCurrentPlan = async (userId: string) => {
   // Log no servidor
   console.log(`[SERVER] Plano do usuário ${user.email}:`, {
     stripePriceId: user.stripePriceId,
-    isIntegrationUser: user.isIntegrationUser
+    isIntegrationUser: user.isIntegrationUser,
+    customCreditLimit: user.customCreditLimit
   });
 
-  // TODOS os usuários devem ter limite de 10000 - não importa o stripePriceId
-  console.log(`[SERVER] Calculando créditos para usuário ${user.email} (stripePriceId: ${user.stripePriceId})`);
+  // Determinar limite de créditos com múltiplos fallbacks de segurança
+  const DEFAULT_CREDIT_LIMIT = 10000; // Limite padrão mantido como constante
+  let creditLimit = DEFAULT_CREDIT_LIMIT;
+  
+  try {
+    // 1. Primeiro, tenta usar limite personalizado do usuário
+    if (user.customCreditLimit && user.customCreditLimit > 0) {
+      creditLimit = user.customCreditLimit;
+      console.log(`[SERVER] Usando limite personalizado: ${creditLimit} para usuário ${user.email}`);
+    } else {
+      console.log(`[SERVER] Usando limite padrão: ${creditLimit} para usuário ${user.email} (customCreditLimit: ${user.customCreditLimit})`);
+    }
+  } catch (error) {
+    console.error(`[SERVER] Erro ao determinar limite de créditos para ${user.email}, usando padrão:`, error);
+    creditLimit = DEFAULT_CREDIT_LIMIT; // Fallback absoluto
+  }
+
+  console.log(`[SERVER] Calculando créditos para usuário ${user.email} (limite: ${creditLimit})`);
   
   const now = new Date();
   const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -261,7 +279,7 @@ export const getUserCurrentPlan = async (userId: string) => {
   const interactions = await prisma.interaction.findMany({
     where: {
       userId,
-      updatedAt: {
+      createdAt: {  // ← MUDANÇA: createdAt em vez de updatedAt para evitar cobrança dupla
         gte: firstDayOfMonth,
         lte: lastDayOfMonth,
       },
@@ -275,21 +293,24 @@ export const getUserCurrentPlan = async (userId: string) => {
     return sum + (interaction.value?.toNumber() || 0);
   }, 0);
 
-  const usagePercentage = (currentCredits / 10000) * 100;
+  // Calcular porcentagem de uso baseado no limite dinâmico
+  const usagePercentage = creditLimit > 0 ? (currentCredits / creditLimit) * 100 : 0;
+  const isOutOfCredits = currentCredits >= creditLimit;
 
   console.log(`[SERVER] Créditos calculados para usuário ${user.email}:`, {
     currentCredits,
-    usagePercentage,
+    creditLimit,
+    usagePercentage: Math.round(usagePercentage * 100) / 100, // Arredondar para 2 casas decimais
     interactionsCount: interactions.length,
     totalValueSum: interactions.reduce((sum, i) => sum + (i.value?.toNumber() || 0), 0),
-    isOutOfCredits: currentCredits >= 10000
+    isOutOfCredits
   });
 
   return {
     name: 'pro',
     quota: {
       credits: {
-        available: 10000,
+        available: creditLimit,
         current: currentCredits,
         usage: usagePercentage
       }
