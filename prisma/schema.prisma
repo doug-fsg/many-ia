@@ -52,7 +52,7 @@ model User {
   aiConfigs                 AIConfig[]
   accounts                  Account[]
   affiliate                 Affiliate?
-  GoogleCalendarIntegration GoogleCalendarIntegration?
+
   inboxes                   Inbox[]
   interactions              Interaction[]
   referralsReceived         Referral[]                 @relation("ReferredUser")
@@ -249,15 +249,4 @@ model Referral {
   @@index([referredUserId])
 }
 
-model GoogleCalendarIntegration {
-  id           String   @id
-  userId       String   @unique
-  accessToken  String
-  refreshToken String?
-  expiresAt    DateTime
-  email        String?
-  calendarId   String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime
-  User         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
+
