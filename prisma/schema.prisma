@@ -135,7 +135,7 @@ model TemasEvitar {
 }
 
 model Interaction {
-  id                 String    @id @default(cuid())
+  id                 Int       @id @default(autoincrement())
   name               String?
   phoneNumber        String?
   interactionsCount  Int?
