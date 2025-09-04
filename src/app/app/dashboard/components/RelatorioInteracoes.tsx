@@ -29,7 +29,7 @@ import { motion } from 'framer-motion'
 import { ScrollArea } from '@/components/ui/scroll-area'
 
 interface Interacao {
-  id: number
+  id: string
   name: string
   phoneNumber: string
   interactionsCount: number
