@@ -1,20 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyToken } from '@/lib/auth';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { userId: string } }
 ) {
-  const token = request.headers.get('Authorization')?.replace('Bearer ', '');
+  const masterKey = request.headers.get('Authorization')?.replace('Bearer ', '');
 
-  if (!token) {
+  if (!masterKey) {
+    return new NextResponse('Unauthorized', { status: 401 });
+  }
+
+  // Verificar se a MASTER_KEY fornecida corresponde à do .env
+  if (masterKey !== process.env.MASTER_KEY) {
     return new NextResponse('Unauthorized', { status: 401 });
   }
 
   try {
-    const decoded = verifyToken(token);
-    
     const user = await prisma.user.findUnique({
       where: { id: params.userId },
       include: {
