@@ -102,17 +102,6 @@ model AIConfig {
   inboxId                 Int?
   inboxName               String?
   updatedAt               DateTime             @updatedAt
-  googleCalendarEnabled   Boolean              @default(false)
-  defaultEventDuration    Int?
-  workingHoursStart       String?
-  workingHoursEnd         String?
-  allowedDays             String[]             @default([])
-  minAdvanceTime          Int?
-  maxAdvanceTime          Int?
-  defaultReminder         Int?
-  autoCreateEvents        Boolean              @default(false)
-  calendarId              String?
-  reminderMessage         String?
   user                    User                 @relation(fields: [userId], references: [id])
   attachments             Attachment[]
   temasEvitar             TemasEvitar[]
