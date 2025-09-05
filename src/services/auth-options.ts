@@ -168,6 +168,7 @@ export const authOptions = {
             // Marcar o token como usado através de uma sessão especial temporária
             await prisma.session.create({
               data: {
+                id: crypto.randomUUID(),
                 sessionToken: tokenUseTimestamp,
                 userId: credentials.userId as string,
                 expires: new Date(Date.now() + 10000) // 10 segundos
