@@ -1,2 +1,0 @@
--- AlterTable
-ALTER TABLE "AIConfig" ADD COLUMN IF NOT EXISTS "embedding" JSONB NOT NULL DEFAULT '{}'; 

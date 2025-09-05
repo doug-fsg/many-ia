@@ -20,10 +20,10 @@ export async function POST(req: Request) {
     // Verificar se o email já está cadastrado
     const existingUser = await prisma.user.findUnique({
       where: { email: data.email },
-      include: { Affiliate: true },
+      include: { affiliate: true },
     })
 
-    if (existingUser?.Affiliate) {
+    if (existingUser?.affiliate) {
       return NextResponse.json(
         { error: 'Email já cadastrado como afiliado' },
         { status: 400 }
