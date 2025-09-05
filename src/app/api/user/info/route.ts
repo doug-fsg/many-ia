@@ -25,7 +25,7 @@ export async function GET() {
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
       include: {
-        affiliate: true
+        Affiliate: true
       }
     });
 
@@ -37,7 +37,7 @@ export async function GET() {
       );
     }
 
-    const isAffiliate = !!user.affiliate;
+    const isAffiliate = !!user.Affiliate;
     const hasActiveSubscription = user.stripeSubscriptionStatus === 'active';
 
     console.log('[USER-INFO] Dados do usuário:', {
