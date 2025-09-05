@@ -20,16 +20,16 @@ export async function GET(
     const user = await prisma.user.findUnique({
       where: { id: params.userId },
       include: {
-        AIConfig: {
+        aiConfigs: {
           include: {
-            Attachment: true,
-            TemasEvitar: true,
+            attachments: true,
+            temasEvitar: true,
           },
         },
-        Account: true,
-        Inbox: true,
-        Interaction: true,
-        Session: true,
+        accounts: true,
+        inboxes: true,
+        interactions: true,
+        sessions: true,
       },
     });
 
