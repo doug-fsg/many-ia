@@ -29,6 +29,7 @@ interface ClientData {
   id: string
   name: string | null
   email: string | null
+  companyName: string | null
   customCreditLimit: number | null
   monthlyInteractions: number
   monthlyValue: number
@@ -326,7 +327,7 @@ export default function SuperAdminDashboard() {
                     <TableRow key={client.id} className={client.isOverLimit ? 'bg-red-50 dark:bg-red-900/20' : ''}>
                       <TableCell>
                         <div>
-                          <p className="font-medium">{client.name || 'Sem nome'}</p>
+                          <p className="font-medium">{client.companyName || client.name || 'Sem nome'}</p>
                           <p className="text-sm text-gray-500">{client.email}</p>
                         </div>
                       </TableCell>

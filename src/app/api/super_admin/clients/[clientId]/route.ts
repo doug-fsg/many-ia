@@ -10,6 +10,7 @@ export async function GET(
     const { searchParams } = new URL(request.url)
     const monthParam = searchParams.get('month')
     
+    const currentDate = new Date()
     let startOfMonth: Date
     
     if (monthParam) {
@@ -18,7 +19,6 @@ export async function GET(
       startOfMonth = new Date(year, month - 1, 1)
     } else {
       // Usar mês atual como padrão
-      const currentDate = new Date()
       startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
     }
     const user = await prisma.user.findUnique({
