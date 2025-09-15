@@ -8,7 +8,6 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    console.log('[USER-INFO] Iniciando busca de informações do usuário');
     const session = await auth();
 
     if (!session?.user?.id) {
@@ -18,8 +17,6 @@ export async function GET() {
         { status: 401 }
       );
     }
-
-    console.log('[USER-INFO] ID do usuário:', session.user.id);
 
     // Buscar usuário com informações de afiliado
     const user = await prisma.user.findUnique({
@@ -39,15 +36,6 @@ export async function GET() {
 
     const isAffiliate = !!user.affiliate;
     const hasActiveSubscription = user.stripeSubscriptionStatus === 'active';
-
-    console.log('[USER-INFO] Dados do usuário:', {
-      id: user.id,
-      email: user.email,
-      isAffiliate,
-      hasActiveSubscription,
-      isIntegrationUser: user.isIntegrationUser,
-      canCreateTemplates: user.canCreateTemplates
-    });
 
     // Retornar os dados diretamente no objeto de resposta
     return NextResponse.json({

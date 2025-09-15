@@ -276,7 +276,11 @@ export const getUserCurrentPlan = async (userId: string) => {
   const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
   
-  const interactions = await prisma.interaction.findMany({
+  // CORREÇÃO: Usar interactionsCount para consistência com o dashboard
+  const interactionStats = await prisma.interaction.aggregate({
+    _sum: {
+      interactionsCount: true,
+    },
     where: {
       userId,
       createdAt: {  // ← MUDANÇA: createdAt em vez de updatedAt para evitar cobrança dupla
@@ -284,14 +288,9 @@ export const getUserCurrentPlan = async (userId: string) => {
         lte: lastDayOfMonth,
       },
     },
-    select: {
-      value: true
-    }
-  })
+  });
 
-  const currentCredits = interactions.reduce((sum, interaction) => {
-    return sum + (interaction.value?.toNumber() || 0);
-  }, 0);
+  const currentCredits = interactionStats._sum.interactionsCount || 0;
 
   // Calcular porcentagem de uso baseado no limite dinâmico
   const usagePercentage = creditLimit > 0 ? (currentCredits / creditLimit) * 100 : 0;
@@ -301,9 +300,8 @@ export const getUserCurrentPlan = async (userId: string) => {
     currentCredits,
     creditLimit,
     usagePercentage: Math.round(usagePercentage * 100) / 100, // Arredondar para 2 casas decimais
-    interactionsCount: interactions.length,
-    totalValueSum: interactions.reduce((sum, i) => sum + (i.value?.toNumber() || 0), 0),
-    isOutOfCredits
+    isOutOfCredits,
+    method: 'interactionsCount'
   });
 
   return {
