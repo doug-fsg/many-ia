@@ -88,19 +88,30 @@ const ExternalLinkButton: React.FC<{ url: string }> = ({ url }) => {
   )
 }
 
-export function RelatorioInteracoes() {
+interface RelatorioInteracoesProps {
+  periodFilter: 'month' | 'week' | 'custom';
+  setPeriodFilter: (value: 'month' | 'week' | 'custom') => void;
+  customStartDate: string;
+  setCustomStartDate: (value: string) => void;
+  customEndDate: string;
+  setCustomEndDate: (value: string) => void;
+}
+
+export function RelatorioInteracoes({
+  periodFilter,
+  setPeriodFilter,
+  customStartDate,
+  setCustomStartDate,
+  customEndDate,
+  setCustomEndDate,
+}: RelatorioInteracoesProps) {
   const [interacoes, setInteracoes] = React.useState<Interacao[]>([])
   const [filteredInteracoes, setFilteredInteracoes] = React.useState<Interacao[]>([])
   const [error, setError] = React.useState<string | null>(null)
   const [loading, setLoading] = React.useState(true)
   const [refreshing, setRefreshing] = React.useState(false)
   const [searchTerm, setSearchTerm] = React.useState('')
-  
-  // Novos estados para filtros
-  const [periodFilter, setPeriodFilter] = React.useState<'month' | 'week' | 'custom'>('month')
   const [showAdvancedFilters, setShowAdvancedFilters] = React.useState(false)
-  const [customStartDate, setCustomStartDate] = React.useState('')
-  const [customEndDate, setCustomEndDate] = React.useState('')
   const [minInteractions, setMinInteractions] = React.useState('')
   const [metadata, setMetadata] = React.useState<any>(null)
   

@@ -37,7 +37,17 @@ const getProgressColor = (percentage: number): string => {
   return 'bg-rose-500';
 };
 
-export const RelatorioTeste: React.FC = () => {
+interface RelatorioTesteProps {
+  periodFilter?: 'month' | 'week' | 'custom';
+  customStartDate?: string;
+  customEndDate?: string;
+}
+
+export const RelatorioTeste: React.FC<RelatorioTesteProps> = ({
+  periodFilter = 'month',
+  customStartDate,
+  customEndDate,
+}) => {
   const [credits, setCredits] = useState<{
     totalCreditsMonth: number;
     totalCreditsWeek: number;
@@ -54,9 +64,17 @@ export const RelatorioTeste: React.FC = () => {
   async function fetchData() {
     setLoading(true);
     try {
+      // Preparar parâmetros de filtro
+      const params: any = { period: periodFilter };
+      
+      if (periodFilter === 'custom' && customStartDate && customEndDate) {
+        params.startDate = new Date(customStartDate);
+        params.endDate = new Date(customEndDate);
+      }
+
       const [creditResult, interactionResult] = await Promise.all([
-        calculateCredits(),
-        calculateInteractions()
+        calculateCredits(params),
+        calculateInteractions(params)
       ]);
 
       if (creditResult.error) throw new Error(creditResult.error);
@@ -75,7 +93,7 @@ export const RelatorioTeste: React.FC = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [periodFilter, customStartDate, customEndDate]);
 
   const handleRefresh = async () => {
     setRefreshing(true);

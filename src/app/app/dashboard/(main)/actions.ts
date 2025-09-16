@@ -169,7 +169,11 @@ interface CreditResult {
 }
 
 // Função para calcular créditos
-export async function calculateCredits(): Promise<CreditResult> {
+export async function calculateCredits(params?: {
+  startDate?: Date;
+  endDate?: Date;
+  period?: 'month' | 'week' | 'custom';
+}): Promise<CreditResult> {
   const session = await auth();
   if (!session?.user?.id) {
     return {
@@ -187,19 +191,50 @@ export async function calculateCredits(): Promise<CreditResult> {
 
   const userId = session.user.id;
   const now = new Date();
-  const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
   
-  // Corrigindo o cálculo de início e fim da semana
-  const currentDate = new Date(now);
-  const dayOfWeek = currentDate.getDay(); // 0 = domingo, 1 = segunda, etc.
-  const startOfWeek = new Date(currentDate);
-  startOfWeek.setDate(currentDate.getDate() - dayOfWeek);
-  startOfWeek.setHours(0, 0, 0, 0);
+  // Determinar período baseado nos parâmetros ou usar padrão
+  let firstDayOfMonth: Date;
+  let lastDayOfMonth: Date;
+  let startOfWeek: Date;
+  let endOfWeek: Date;
   
-  const endOfWeek = new Date(startOfWeek);
-  endOfWeek.setDate(startOfWeek.getDate() + 6);
-  endOfWeek.setHours(23, 59, 59, 999);
+  if (params?.period === 'custom' && params?.startDate && params?.endDate) {
+    // Período personalizado
+    firstDayOfMonth = params.startDate;
+    lastDayOfMonth = params.endDate;
+    startOfWeek = params.startDate;
+    endOfWeek = params.endDate;
+  } else if (params?.period === 'week') {
+    // Últimos 7 dias
+    const currentDate = new Date(now);
+    const dayOfWeek = currentDate.getDay();
+    startOfWeek = new Date(currentDate);
+    startOfWeek.setDate(currentDate.getDate() - dayOfWeek);
+    startOfWeek.setHours(0, 0, 0, 0);
+    
+    endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
+    
+    // Para semana, usar os mesmos valores para mês
+    firstDayOfMonth = startOfWeek;
+    lastDayOfMonth = endOfWeek;
+  } else {
+    // Padrão: Este mês
+    firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    
+    // Calcular semana atual
+    const currentDate = new Date(now);
+    const dayOfWeek = currentDate.getDay();
+    startOfWeek = new Date(currentDate);
+    startOfWeek.setDate(currentDate.getDate() - dayOfWeek);
+    startOfWeek.setHours(0, 0, 0, 0);
+    
+    endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
+  }
 
   // Data de 30 dias atrás para análise de tendência
   const thirtyDaysAgo = new Date(now);
@@ -357,8 +392,12 @@ export async function calculateCredits(): Promise<CreditResult> {
   }
 }
 
-// Função para calcular atendimentos semanais e mensais
-export async function calculateInteractions() {
+// Função para calcular clientes únicos atendidos semanais e mensais
+export async function calculateInteractions(params?: {
+  startDate?: Date;
+  endDate?: Date;
+  period?: 'month' | 'week' | 'custom';
+}) {
   const session = await auth();
   if (!session?.user?.id) {
     return {
@@ -370,53 +409,103 @@ export async function calculateInteractions() {
 
   const userId = session.user.id;
   const now = new Date();
-  const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
   
-  // Corrigindo o cálculo de início e fim da semana
-  const currentDate = new Date(now);
-  const dayOfWeek = currentDate.getDay(); // 0 = domingo, 1 = segunda, etc.
-  const startOfWeek = new Date(currentDate);
-  startOfWeek.setDate(currentDate.getDate() - dayOfWeek);
-  startOfWeek.setHours(0, 0, 0, 0);
+  // Determinar período baseado nos parâmetros ou usar padrão
+  let firstDayOfMonth: Date;
+  let lastDayOfMonth: Date;
+  let startOfWeek: Date;
+  let endOfWeek: Date;
   
-  const endOfWeek = new Date(startOfWeek);
-  endOfWeek.setDate(startOfWeek.getDate() + 6);
-  endOfWeek.setHours(23, 59, 59, 999);
+  if (params?.period === 'custom' && params?.startDate && params?.endDate) {
+    // Período personalizado
+    firstDayOfMonth = params.startDate;
+    lastDayOfMonth = params.endDate;
+    startOfWeek = params.startDate;
+    endOfWeek = params.endDate;
+  } else if (params?.period === 'week') {
+    // Últimos 7 dias
+    const currentDate = new Date(now);
+    const dayOfWeek = currentDate.getDay();
+    startOfWeek = new Date(currentDate);
+    startOfWeek.setDate(currentDate.getDate() - dayOfWeek);
+    startOfWeek.setHours(0, 0, 0, 0);
+    
+    endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
+    
+    // Para semana, usar os mesmos valores para mês
+    firstDayOfMonth = startOfWeek;
+    lastDayOfMonth = endOfWeek;
+  } else {
+    // Padrão: Este mês
+    firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    
+    // Calcular semana atual
+    const currentDate = new Date(now);
+    const dayOfWeek = currentDate.getDay();
+    startOfWeek = new Date(currentDate);
+    startOfWeek.setDate(currentDate.getDate() - dayOfWeek);
+    startOfWeek.setHours(0, 0, 0, 0);
+    
+    endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
+  }
 
   try {
-    // Contagem de atendimentos na semana
-    const weeklyInteractions = await prisma.interaction.aggregate({
-      _sum: {
-        interactionsCount: true,
-      },
+    // Buscar todas as interações da semana para contar clientes únicos
+    const weeklyInteractionsData = await prisma.interaction.findMany({
       where: {
         userId,
-        createdAt: {  // ← MUDANÇA: createdAt para evitar cobrança dupla
+        createdAt: {
           gte: startOfWeek,
           lte: endOfWeek,
         },
       },
+      select: {
+        phoneNumber: true,
+      },
     });
 
-    // Contagem de atendimentos no mês
-    const monthlyInteractions = await prisma.interaction.aggregate({
-      _sum: {
-        interactionsCount: true,
-      },
+    // Buscar todas as interações do mês para contar clientes únicos
+    const monthlyInteractionsData = await prisma.interaction.findMany({
       where: {
         userId,
-        createdAt: {  // ← MUDANÇA: createdAt para evitar cobrança dupla
+        createdAt: {
           gte: firstDayOfMonth,
           lte: lastDayOfMonth,
         },
       },
+      select: {
+        phoneNumber: true,
+      },
     });
+
+    // Função para contar clientes únicos baseado apenas no phoneNumber
+    const countUniqueClients = (interactions: Array<{ phoneNumber: string | null }>) => {
+      const uniquePhones = new Set<string>();
+      
+      interactions.forEach((interaction) => {
+        // Usar apenas phoneNumber como identificador único
+        if (interaction.phoneNumber) {
+          uniquePhones.add(interaction.phoneNumber);
+        }
+      });
+      
+      return uniquePhones.size;
+    };
+
+    const weeklyUniqueClients = countUniqueClients(weeklyInteractionsData);
+    const monthlyUniqueClients = countUniqueClients(monthlyInteractionsData);
+
+    console.log(`[INTERACTIONS] Clientes únicos por telefone - Semana: ${weeklyUniqueClients}, Mês: ${monthlyUniqueClients}`);
 
     return {
       error: null,
-      weeklyInteractions: weeklyInteractions._sum.interactionsCount || 0,
-      monthlyInteractions: monthlyInteractions._sum.interactionsCount || 0,
+      weeklyInteractions: weeklyUniqueClients,
+      monthlyInteractions: monthlyUniqueClients,
     };
   } catch (error) {
     console.error('Erro ao calcular interações:', error);
