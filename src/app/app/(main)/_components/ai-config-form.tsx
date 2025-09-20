@@ -30,13 +30,14 @@ import {
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { useState, useEffect } from 'react'
+import confetti from 'canvas-confetti'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { ExpandIcon, Check, ChevronsUpDown, PlusIcon } from 'lucide-react'
+import { ExpandIcon, Check, ChevronsUpDown, PlusIcon, MoreHorizontal } from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { StepManager } from './step-manager'
 
@@ -119,14 +120,16 @@ export function AIConfigForm({
   }>>([])
   const [isEssentialInfoOpen, setIsEssentialInfoOpen] = useState(true)
   const [isAttachmentsOpen, setIsAttachmentsOpen] = useState(false)
-  const [isTemasOpen, setIsTemasOpen] = useState(false)
+  const [isMoreOptionsOpen, setIsMoreOptionsOpen] = useState(false)
   // Adicionar um estado para forçar a atualização do StepManager
   const [stepManagerKey, setStepManagerKey] = useState(0)
+
 
   const form = useForm<AIConfigFormData>({
     resolver: zodResolver(upsertAIConfigSchema),
     defaultValues: {
       isActive: defaultValue?.isActive ?? false,
+      detectarIdioma: defaultValue?.detectarIdioma ?? false,
       enviarParaAtendente: defaultValue?.enviarParaAtendente ?? true,
       nomeAtendenteDigital: defaultValue?.nomeAtendenteDigital ?? '',
       quemEhAtendente: defaultValue?.quemEhAtendente ?? '',
@@ -151,8 +154,144 @@ export function AIConfigForm({
 
   // Não é mais necessário formatar o valor do comoAtendenteDeve pois o StepManager já lida com isso
 
-  // Corrigir o setAttachments
+  // Processar defaultValue e atualizar o formulário
   useEffect(() => {
+    console.log('[DEBUG] useEffect para defaultValue executado:', defaultValue)
+    
+    // Atualizar o formulário quando defaultValue mudar
+    if (defaultValue) {
+      console.log('[DEBUG] Resetando formulário com valores:', defaultValue)
+      
+      // Verificar se os dados vieram do wizard (IA)
+      const isFromWizard = defaultValue.nomeAtendenteDigital && 
+                          defaultValue.quemEhAtendente && 
+                          defaultValue.oQueAtendenteFaz
+      
+      form.reset({
+        isActive: defaultValue.isActive ?? true,
+        detectarIdioma: defaultValue.detectarIdioma ?? false,
+        enviarParaAtendente: defaultValue.enviarParaAtendente ?? true,
+        nomeAtendenteDigital: defaultValue.nomeAtendenteDigital ?? '',
+        quemEhAtendente: defaultValue.quemEhAtendente ?? '',
+        oQueAtendenteFaz: defaultValue.oQueAtendenteFaz ?? '',
+        objetivoAtendente: defaultValue.objetivoAtendente ?? '',
+        comoAtendenteDeve: defaultValue.comoAtendenteDeve ?? '',
+        informacoesEmpresa: defaultValue.informacoesEmpresa ?? '',
+        horarioAtendimento: defaultValue.horarioAtendimento ?? 'Atender 24h por dia',
+        temasEvitar: defaultValue.temasEvitar ?? [],
+        condicoesAtendimento: defaultValue.condicoesAtendimento ?? '',
+        tempoRetornoAtendimento: defaultValue.tempoRetornoAtendimento ?? '',
+      })
+
+      // 🎉 Confete quando a IA preencher o formulário!
+      if (isFromWizard) {
+        setTimeout(() => {
+          // 🌈 Explosão principal - CENTRO com muitas cores
+          confetti({
+            particleCount: 200,
+            spread: 80,
+            origin: { y: 0.6 },
+            colors: [
+              '#9c6fff', '#8b5cf6', '#7c3aed', // Roxos principais
+              '#f0ebff', '#e4d9ff', '#d8c7ff', // Roxos claros
+              '#ff6b9d', '#ff8cc8', '#ffb3d9', // Rosas vibrantes
+              '#4ecdc4', '#45b7aa', '#26a69a', // Verdes água
+              '#ffd93d', '#ffcc02', '#ffb300', // Amarelos dourados
+              '#ff6b6b', '#ff5252', '#e53935', // Vermelhos
+              '#42a5f5', '#2196f3', '#1976d2', // Azuis
+              '#ab47bc', '#9c27b0', '#8e24aa'  // Roxos escuros
+            ],
+            scalar: 1.4,
+            drift: 0.5,
+            gravity: 0.8,
+            ticks: 300
+          })
+          
+          // 💥 Explosão das LATERAIS - ESQUERDA
+          setTimeout(() => {
+            confetti({
+              particleCount: 150,
+              angle: 45,
+              spread: 70,
+              origin: { x: 0, y: 0.8 },
+              colors: [
+                '#ff6b9d', '#ff8cc8', '#ffb3d9',
+                '#9c6fff', '#8b5cf6', '#7c3aed',
+                '#ffd93d', '#ffcc02', '#ffb300',
+                '#4ecdc4', '#45b7aa', '#26a69a'
+              ],
+              scalar: 1.3,
+              drift: 0.3,
+              gravity: 0.9,
+              ticks: 250
+            })
+          }, 150)
+          
+          // 💥 Explosão das LATERAIS - DIREITA
+          setTimeout(() => {
+            confetti({
+              particleCount: 150,
+              angle: 135,
+              spread: 70,
+              origin: { x: 1, y: 0.8 },
+              colors: [
+                '#42a5f5', '#2196f3', '#1976d2',
+                '#9c6fff', '#8b5cf6', '#7c3aed',
+                '#ff6b6b', '#ff5252', '#e53935',
+                '#ab47bc', '#9c27b0', '#8e24aa'
+              ],
+              scalar: 1.3,
+              drift: -0.3,
+              gravity: 0.9,
+              ticks: 250
+            })
+          }, 200)
+          
+          // 🎊 Explosão SUPERIOR - CHUVA DE CONFETES
+          setTimeout(() => {
+            confetti({
+              particleCount: 300,
+              spread: 90,
+              origin: { y: 0.2 },
+              colors: [
+                '#9c6fff', '#8b5cf6', '#7c3aed',
+                '#ff6b9d', '#ff8cc8', '#ffb3d9',
+                '#4ecdc4', '#45b7aa', '#26a69a',
+                '#ffd93d', '#ffcc02', '#ffb300',
+                '#ff6b6b', '#ff5252', '#e53935',
+                '#42a5f5', '#2196f3', '#1976d2'
+              ],
+              scalar: 1.2,
+              drift: 0,
+              gravity: 1.2,
+              ticks: 400
+            })
+          }, 300)
+          
+          // 🌟 Explosão FINAL - FOGOS DE ARTIFÍCIO
+          setTimeout(() => {
+            confetti({
+              particleCount: 100,
+              spread: 60,
+              origin: { y: 0.4 },
+              colors: [
+                '#ffd700', '#ffed4e', '#fff176', // Dourados
+                '#9c6fff', '#8b5cf6', '#7c3aed', // Roxos
+                '#ff6b9d', '#ff8cc8', '#ffb3d9', // Rosas
+                '#4ecdc4', '#45b7aa', '#26a69a'  // Verdes
+              ],
+              scalar: 1.8,
+              drift: 0,
+              gravity: 0.6,
+              ticks: 500
+            })
+          }, 600)
+          
+        }, 500) // Delay para garantir que a página carregou
+      }
+    }
+    
+    // Processar anexos se existirem
     if (defaultValue?.attachments && defaultValue.attachments.length > 0) {
       const filteredAttachments = defaultValue.attachments
         .filter(att => att.type === 'image' || att.type === 'pdf')
@@ -164,7 +303,7 @@ export function AIConfigForm({
         }));
       setAttachments(filteredAttachments);
     }
-  }, [defaultValue]);
+  }, [defaultValue, form]);
 
   useEffect(() => {
     const subscription = form.watch((value, { name, type }) => {
@@ -867,17 +1006,17 @@ export function AIConfigForm({
               </Collapsible>
 
               <Collapsible
-                open={isTemasOpen}
-                onOpenChange={setIsTemasOpen}
-                className="space-y-4 rounded-lg border p-4 tutorial-temas">
+                open={isMoreOptionsOpen}
+                onOpenChange={setIsMoreOptionsOpen}
+                className="space-y-4 rounded-lg border p-4">
                 <CollapsibleTrigger asChild>
                   <div className="flex justify-between items-center p-4 cursor-pointer border-b border-transparent group-hover:border-border">
                     <div>
                       <div className="flex items-center gap-2">
-                        <h2 className="text-xl font-semibold tracking-tight">Temas a Evitar</h2>
+                        <h2 className="text-xl font-semibold tracking-tight">Mais opções</h2>
                         <ChevronsUpDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-hover:text-foreground" />
                       </div>
-                      <p className="text-sm text-muted-foreground">Defina os assuntos que o atendente não deve abordar</p>
+                      <p className="text-sm text-muted-foreground">Configurações adicionais para o atendente</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className={`h-2 w-2 rounded-full transition-colors duration-200 ${temasEvitar.length > 0 ? "bg-green-500" : "bg-yellow-500"}`} />
@@ -886,41 +1025,64 @@ export function AIConfigForm({
                 </CollapsibleTrigger>
 
                 <CollapsibleContent className="p-4 pt-2 space-y-6">
-        <div className="flex gap-2">
-          <Input
-            placeholder="Digite um tema a evitar"
-            value={novoTema}
-            onChange={(e) => setNovoTema(e.target.value)}
-            onKeyPress={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault()
-                adicionarTema()
-              }
-            }}
-          />
-                    <Button type="button" onClick={adicionarTema} size="sm">
-            Adicionar
-          </Button>
-        </div>
-                  <div className="flex flex-wrap gap-2">
-          {temasEvitar.map((tema, index) => (
-            <div
-              key={index}
-              className="flex items-center gap-2 bg-secondary rounded-full px-3 py-1"
-            >
-              <span>{tema}</span>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-4 w-4 p-0 hover:bg-destructive hover:text-destructive-foreground rounded-full"
-                onClick={() => removerTema(index)}
-              >
-                ×
-              </Button>
-            </div>
-          ))}
-        </div>
+                  <FormField
+                    control={form.control}
+                    name="detectarIdioma"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 mb-6">
+                        <div className="space-y-0.5">
+                          <FormLabel className="text-base">Detectar Idioma</FormLabel>
+                          <FormDescription>
+                            A IA detectará automaticamente o idioma do cliente antes de responder
+                          </FormDescription>
+                        </div>
+                        <FormControl>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <div>
+                    <h3 className="text-sm font-medium mb-3">Temas a Evitar</h3>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Digite um tema a evitar"
+                        value={novoTema}
+                        onChange={(e) => setNovoTema(e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            adicionarTema()
+                          }
+                        }}
+                      />
+                      <Button type="button" onClick={adicionarTema} size="sm" variant="outline">
+                        Adicionar
+                      </Button>
+                    </div>
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      {temasEvitar.map((tema, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center gap-2 bg-secondary rounded-full px-3 py-1"
+                        >
+                          <span>{tema}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-4 w-4 p-0 hover:bg-destructive hover:text-destructive-foreground rounded-full"
+                            onClick={() => removerTema(index)}
+                          >
+                            ×
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </CollapsibleContent>
               </Collapsible>
                 </div>

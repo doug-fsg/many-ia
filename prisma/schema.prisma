@@ -88,6 +88,7 @@ model AIConfig {
   id                      String               @id @default(cuid())
   userId                  String
   isActive                Boolean              @default(true)
+  detectarIdioma          Boolean              @default(false)
   nomeAtendenteDigital    String
   enviarParaAtendente     Boolean              @default(true)
   quemEhAtendente         String

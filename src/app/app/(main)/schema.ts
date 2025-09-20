@@ -9,6 +9,7 @@ import { z } from 'zod'
 export const upsertAIConfigSchema = z.object({
   id: z.string().optional(),
   isActive: z.boolean().default(true),
+  detectarIdioma: z.boolean().default(false),
   enviarParaAtendente: z.boolean().default(true),
   nomeAtendenteDigital: z
     .string()
