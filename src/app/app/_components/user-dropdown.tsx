@@ -11,10 +11,12 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { signOut } from 'next-auth/react'
-import { LogOutIcon, SettingsIcon, UserCircle2 } from 'lucide-react'
+import { LogOutIcon, SettingsIcon, UserCircle2, SunIcon, MoonIcon, MonitorIcon } from 'lucide-react'
 import Link from 'next/link'
 import { AuthUser } from '@/lib/auth-helper'
 import { cn } from '@/lib/utils'
+import { useTheme } from 'next-themes'
+import { useState, useEffect } from 'react'
 
 type UserDropdownProps = {
   user: AuthUser
@@ -22,6 +24,13 @@ type UserDropdownProps = {
 }
 
 export function UserDropdown({ user, isMobile = false }: UserDropdownProps) {
+  const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
   const handleSignOut = async () => {
     try {
       // Chamar o endpoint centralizado de logout
@@ -42,6 +51,32 @@ export function UserDropdown({ user, isMobile = false }: UserDropdownProps) {
       await signOut({ callbackUrl: '/auth' });
     }
   };
+
+  const toggleTheme = () => {
+    if (theme === 'light') {
+      setTheme('dark')
+    } else if (theme === 'dark') {
+      setTheme('system')
+    } else {
+      setTheme('light')
+    }
+  }
+
+  const getThemeIcon = () => {
+    if (!mounted) return <MonitorIcon className="mr-2 h-4 w-4" />
+    
+    if (theme === 'light') return <SunIcon className="mr-2 h-4 w-4" />
+    if (theme === 'dark') return <MoonIcon className="mr-2 h-4 w-4" />
+    return <MonitorIcon className="mr-2 h-4 w-4" />
+  }
+
+  const getThemeLabel = () => {
+    if (!mounted) return 'Tema'
+    
+    if (theme === 'light') return 'Modo Claro'
+    if (theme === 'dark') return 'Modo Escuro'
+    return 'Automático'
+  }
 
   if (isMobile) {
     return (
@@ -66,12 +101,23 @@ export function UserDropdown({ user, isMobile = false }: UserDropdownProps) {
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
+          <DropdownMenuItem 
+            onSelect={(event) => {
+              event.preventDefault()
+              toggleTheme()
+            }}
+            className="cursor-pointer"
+          >
+            {getThemeIcon()}
+            {getThemeLabel()}
+          </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link href="/app/settings" className="cursor-pointer">
               <SettingsIcon className="mr-2 h-4 w-4" />
               Configurações
             </Link>
           </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem 
             onSelect={(event) => {
               event.preventDefault()
@@ -114,12 +160,23 @@ export function UserDropdown({ user, isMobile = false }: UserDropdownProps) {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem 
+          onSelect={(event) => {
+            event.preventDefault()
+            toggleTheme()
+          }}
+          className="cursor-pointer"
+        >
+          {getThemeIcon()}
+          {getThemeLabel()}
+        </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link href="/app/settings" className="cursor-pointer">
             <SettingsIcon className="mr-2 h-4 w-4" />
             Configurações
           </Link>
         </DropdownMenuItem>
+        <DropdownMenuSeparator />
         <DropdownMenuItem 
           onSelect={(event) => {
             event.preventDefault()
