@@ -33,7 +33,7 @@ export function TestAgentModal({ agentId, agentName, accountId, inboxId, trigger
       </DialogTrigger>
       <DialogContent className="sm:max-w-[800px] md:max-w-[900px] lg:max-w-[1000px] max-h-[95vh] p-0 overflow-hidden">
         <div className="h-10 bg-muted/20 relative flex items-center px-4">
-          <Badge variant="default" className="px-2 py-0 text-xs h-5">
+          <Badge variant="default" className="px-2 py-0 text-xs h-5 whitespace-nowrap">
           {agentName}
           </Badge>
           <div className="w-full flex justify-center">
