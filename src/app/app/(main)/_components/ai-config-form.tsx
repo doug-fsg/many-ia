@@ -184,7 +184,8 @@ export function AIConfigForm({
       })
 
       // 🎉 Confete quando a IA preencher o formulário!
-      if (isFromWizard) {
+      // Só mostrar confetes se vier do wizard E não estiver em modo de edição
+      if (isFromWizard && !isEditMode) {
         setTimeout(() => {
           // 🌈 Explosão principal - CENTRO com muitas cores
           confetti({
