@@ -24,7 +24,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, Search, RefreshCw, Filter, ExternalLink, Phone, MessageCircle, User, Calendar, AlertCircle } from 'lucide-react'
+import { Loader2, Search, RefreshCw, Filter, ExternalLink, Phone, MessageCircle, User, Calendar, AlertCircle, Download } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { ScrollArea } from '@/components/ui/scroll-area'
 
@@ -171,6 +171,60 @@ export function RelatorioInteracoes({
     await fetchInteracoes()
   }
 
+  const handleExportExcel = () => {
+    try {
+      // Preparar dados para exportação
+      const exportData = filteredInteracoes.map(interacao => ({
+        'Nome': interacao.name || 'N/A',
+        'Telefone': interacao.phoneNumber || 'N/A',
+        'Interesse': interacao.interesse || 'N/A',
+        'Créditos': interacao.interactionsCount || 0,
+        'Última Mensagem': interacao.lastMessage || 'N/A',
+        'Atendente': interacao.currentlyTalkingTo || 'N/A',
+        'Último Contato': interacao.lastContactAt 
+          ? new Date(interacao.lastContactAt).toLocaleString('pt-BR')
+          : 'N/A',
+        'Status': interacao.status || 'N/A',
+        'Conversa ID': interacao.ConversationID || 'N/A'
+      }))
+
+      // Converter para CSV (Excel pode abrir CSV)
+      const headers = Object.keys(exportData[0] || {})
+      const csvContent = [
+        headers.join(','),
+        ...exportData.map(row => 
+          headers.map(header => {
+            const value = row[header as keyof typeof row]
+            // Escapar aspas e quebras de linha
+            return `"${String(value).replace(/"/g, '""')}"`
+          }).join(',')
+        )
+      ].join('\n')
+
+      // Criar e baixar arquivo
+      const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
+      const link = document.createElement('a')
+      const url = URL.createObjectURL(blob)
+      link.setAttribute('href', url)
+      link.setAttribute('download', `interacoes_${new Date().toISOString().split('T')[0]}.csv`)
+      link.style.visibility = 'hidden'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+
+      toast({
+        title: 'Exportação realizada',
+        description: `Arquivo baixado com ${exportData.length} interações`,
+      })
+    } catch (error) {
+      toast({
+        title: 'Erro na exportação',
+        description: 'Falha ao gerar arquivo Excel',
+        variant: 'destructive',
+      })
+    }
+  }
+
   const handlePeriodChange = (newPeriod: 'month' | 'week' | 'custom') => {
     setPeriodFilter(newPeriod)
     if (newPeriod !== 'custom') {
@@ -246,25 +300,37 @@ export function RelatorioInteracoes({
                 Visualize e gerencie todas as interações com clientes
               </CardDescription>
             </div>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleRefresh}
-              disabled={refreshing}
-              className="gap-2"
-            >
-              {refreshing ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Atualizando...</span>
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="h-4 w-4" />
-                  <span>Atualizar</span>
-                </>
-              )}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleExportExcel}
+                disabled={loading || filteredInteracoes.length === 0}
+                className="gap-2"
+              >
+                <Download className="h-4 w-4" />
+                <span>Download</span>
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleRefresh}
+                disabled={refreshing}
+                className="gap-2"
+              >
+                {refreshing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Atualizando...</span>
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-4 w-4" />
+                    <span>Atualizar</span>
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="p-6">
