@@ -114,6 +114,8 @@ export function RelatorioInteracoes({
   const [showAdvancedFilters, setShowAdvancedFilters] = React.useState(false)
   const [minInteractions, setMinInteractions] = React.useState('')
   const [metadata, setMetadata] = React.useState<any>(null)
+  const [currentPage, setCurrentPage] = React.useState(1)
+  const itemsPerPage = 10
   
   const { toast } = useToast()
 
@@ -192,6 +194,8 @@ export function RelatorioInteracoes({
     });
     
     setFilteredInteracoes(filtered);
+    // Voltar para página 1 quando aplicar filtros
+    setCurrentPage(1);
   }, [interacoes, searchTerm]);
 
   // Estatísticas
@@ -422,7 +426,8 @@ export function RelatorioInteracoes({
         </CardContent>
         <CardFooter className="border-t bg-muted/40 py-3 px-6">
           <p className="text-xs text-muted-foreground">
-            Mostrando {filteredInteracoes.length} de {interacoes.length} interações
+            Mostrando {Math.min(currentPage * itemsPerPage, filteredInteracoes.length)} de {filteredInteracoes.length} interações
+            {interacoes.length >= 1000 && <span className="ml-1 text-amber-500">(limitado a 1000 registros)</span>}
           </p>
         </CardFooter>
       </Card>
@@ -463,6 +468,7 @@ export function RelatorioInteracoes({
               setCustomEndDate('')
               setMinInteractions('')
               setShowAdvancedFilters(false)
+              setCurrentPage(1)
             }}
           >
             Limpar filtros
@@ -471,79 +477,106 @@ export function RelatorioInteracoes({
       )
     }
     
+    // Paginação
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const currentItems = data.slice(indexOfFirstItem, indexOfLastItem);
+    const totalPages = Math.ceil(data.length / itemsPerPage);
+    
     return (
-      <ScrollArea className="h-[500px] rounded-md border">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader className="sticky top-0 bg-background">
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Telefone</TableHead>
-                <TableHead>Interesse</TableHead>
-                <TableHead className="text-center">Interações</TableHead>
-                <TableHead className="text-center">Créditos</TableHead>
-                <TableHead>Última Mensagem</TableHead>
-                <TableHead>Atendente</TableHead>
-                <TableHead>Último Contato</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.map((interacao: Interacao) => (
-                <TableRow key={interacao.id} className="hover:bg-muted/50">
-                  <TableCell className="font-medium">{interacao.name || 'N/A'}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center">
-                      <Phone className="h-3 w-3 mr-1 text-muted-foreground" />
-                      {interacao.phoneNumber || 'N/A'}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{interacao.interesse || 'N/A'}</Badge>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Badge variant={interacao.interactionsCount > 5 ? "secondary" : "outline"}>
-                      {interacao.interactionsCount || 0}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Badge variant={interacao.value > 1000 ? "destructive" : interacao.value > 500 ? "default" : "secondary"}>
-                      {(interacao.value || 0).toLocaleString('pt-BR')}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="max-w-[200px] truncate">
-                    {interacao.lastMessage || 'N/A'}
-                  </TableCell>
-                  <TableCell>{interacao.currentlyTalkingTo || 'N/A'}</TableCell>
-                  <TableCell>
-                    {interacao.lastContactAt
-                      ? new Date(interacao.lastContactAt).toLocaleString('pt-BR', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })
-                      : 'N/A'}
-                  </TableCell>
-                  <TableCell>
-                    <StatusBadge status={interacao.status} />
-                  </TableCell>
-                  <TableCell>
-                    {interacao.manytalksAccountId && interacao.ConversationID ? (
-                      <ExternalLinkButton 
-                        url={`https://app.manytalks.com.br/app/accounts/${interacao.manytalksAccountId}/conversations/${interacao.ConversationID}`}
-                      />
-                    ) : (
-                      <span className="text-xs text-muted-foreground">N/A</span>
-                    )}
-                  </TableCell>
+      <>
+        <ScrollArea className="h-[500px] rounded-md border">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader className="sticky top-0 bg-background">
+                <TableRow>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Telefone</TableHead>
+                  <TableHead>Interesse</TableHead>
+                  <TableHead className="text-center">Créditos</TableHead>
+                  <TableHead>Última Mensagem</TableHead>
+                  <TableHead>Atendente</TableHead>
+                  <TableHead>Último Contato</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Ações</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </ScrollArea>
+              </TableHeader>
+              <TableBody>
+                {currentItems.map((interacao: Interacao) => (
+                  <TableRow key={interacao.id} className="hover:bg-muted/50">
+                    <TableCell className="font-medium">{interacao.name || 'N/A'}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center">
+                        <Phone className="h-3 w-3 mr-1 text-muted-foreground" />
+                        {interacao.phoneNumber || 'N/A'}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{interacao.interesse || 'N/A'}</Badge>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant={interacao.interactionsCount > 5 ? "secondary" : "outline"}>
+                        {interacao.interactionsCount || 0}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="max-w-[200px] truncate">
+                      {interacao.lastMessage || 'N/A'}
+                    </TableCell>
+                    <TableCell>{interacao.currentlyTalkingTo || 'N/A'}</TableCell>
+                    <TableCell>
+                      {interacao.lastContactAt
+                        ? new Date(interacao.lastContactAt).toLocaleString('pt-BR', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })
+                        : 'N/A'}
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge status={interacao.status} />
+                    </TableCell>
+                    <TableCell>
+                      {interacao.manytalksAccountId && interacao.ConversationID ? (
+                        <ExternalLinkButton 
+                          url={`https://app.manytalks.com.br/app/accounts/${interacao.manytalksAccountId}/conversations/${interacao.ConversationID}`}
+                        />
+                      ) : (
+                        <span className="text-xs text-muted-foreground">N/A</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </ScrollArea>
+        
+        {/* Controles de Paginação */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center space-x-2 mt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+            >
+              Anterior
+            </Button>
+            <div className="text-sm">
+              Página {currentPage} de {totalPages}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+            >
+              Próxima
+            </Button>
+          </div>
+        )}
+      </>
     )
   }
 }
