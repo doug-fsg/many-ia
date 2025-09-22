@@ -493,7 +493,6 @@ export function RelatorioInteracoes({
         <CardFooter className="border-t bg-muted/40 py-3 px-6">
           <p className="text-xs text-muted-foreground">
             Mostrando {Math.min(currentPage * itemsPerPage, filteredInteracoes.length)} de {filteredInteracoes.length} interações
-            {interacoes.length >= 1000 && <span className="ml-1 text-amber-500">(limitado a 1000 registros)</span>}
           </p>
         </CardFooter>
       </Card>

@@ -39,9 +39,7 @@ export async function getUserInteractions(params?: {
       endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
     }
     
-    const limit = params?.limit || 1000; // Limite padrão para performance
-
-    // Buscar interações com filtros de performance
+    // Buscar TODAS as interações do período (sem limite)
     const interactions = await prisma.interaction.findMany({
       where: {
         userId: session.user.id,
@@ -53,7 +51,6 @@ export async function getUserInteractions(params?: {
       orderBy: {
         lastContactAt: 'desc',
       },
-      take: limit,
       include: {
         user: {
           select: {
@@ -130,7 +127,7 @@ export async function getUserInteractions(params?: {
         uniqueConversations: uniqueInteractions.length,
         periodStart: startDate,
         periodEnd: endDate,
-        limitApplied: limit,
+        limitApplied: null,
         period: params?.period || 'month',
         minInteractions: params?.minInteractions
       }
