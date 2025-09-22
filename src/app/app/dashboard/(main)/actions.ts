@@ -92,11 +92,8 @@ export async function getUserInteractions(params?: {
           existing.status = interaction.status;
         }
         
-        // Manter o interactionsCount mais alto (representa o total da conversa)
-        existing.interactionsCount = Math.max(
-          existing.interactionsCount || 0, 
-          interaction.interactionsCount || 0
-        );
+        // Somar interactionsCount (igual ao cálculo de créditos do mês)
+        existing.interactionsCount = (existing.interactionsCount || 0) + (interaction.interactionsCount || 0);
       }
     });
 
