@@ -17,8 +17,11 @@ import {
   Phone,
   MessageSquare,
   TrendingUp,
-  AlertCircle
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Input } from '@/components/ui/input'
 
 interface ClientDetails {
   id: string
@@ -44,6 +47,14 @@ interface ClientDetails {
     interactions: number
     value: number
   }>
+  pagination: {
+    currentPage: number
+    totalPages: number
+    totalInteractions: number
+    hasNextPage: boolean
+    hasPrevPage: boolean
+    limit: number
+  }
 }
 
 export default function ClientDetailPage() {
@@ -51,16 +62,21 @@ export default function ClientDetailPage() {
   const router = useRouter()
   const [clientData, setClientData] = useState<ClientDetails | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString())
+  const [selectedMonth, setSelectedMonth] = useState((new Date().getMonth() + 1).toString())
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
 
   useEffect(() => {
     if (!requireSuperAdmin()) return
 
     fetchClientData()
-  }, [params.clientId])
+  }, [params.clientId, selectedYear, selectedMonth, currentPage, itemsPerPage])
 
   const fetchClientData = async () => {
     try {
-      const response = await fetch(`/api/super_admin/clients/${params.clientId}`)
+      const monthParam = `${selectedYear}-${selectedMonth.padStart(2, '0')}`
+      const response = await fetch(`/api/super_admin/clients/${params.clientId}?month=${monthParam}&page=${currentPage}&limit=${itemsPerPage}`)
       const data = await response.json()
       
       if (data.success) {
@@ -88,6 +104,15 @@ export default function ClientDetailPage() {
       hour: '2-digit',
       minute: '2-digit'
     }).format(new Date(date))
+  }
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+  }
+
+  const handleItemsPerPageChange = (value: string) => {
+    setItemsPerPage(parseInt(value))
+    setCurrentPage(1) // Reset to first page when changing items per page
   }
 
   if (isLoading) {
@@ -122,25 +147,66 @@ export default function ClientDetailPage() {
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between py-6">
-            <div className="flex items-center space-x-4">
-              <Button 
-                variant="ghost" 
-                onClick={() => router.push('/super_admin/dashboard')}
-                className="flex items-center gap-2"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Voltar
-              </Button>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                  {clientData.name || 'Cliente sem nome'}
-                </h1>
-                <p className="text-gray-600 dark:text-gray-400">{clientData.email}</p>
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center space-x-4">
+                <Button 
+                  variant="ghost" 
+                  onClick={() => router.push('/super_admin/dashboard')}
+                  className="flex items-center gap-2"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Voltar
+                </Button>
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                    {clientData.name || 'Cliente sem nome'}
+                  </h1>
+                  <p className="text-gray-600 dark:text-gray-400">{clientData.email}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(e.target.value)}
+                    className="w-20"
+                    placeholder="Ano"
+                  />
+                  <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">Janeiro</SelectItem>
+                      <SelectItem value="2">Fevereiro</SelectItem>
+                      <SelectItem value="3">Março</SelectItem>
+                      <SelectItem value="4">Abril</SelectItem>
+                      <SelectItem value="5">Maio</SelectItem>
+                      <SelectItem value="6">Junho</SelectItem>
+                      <SelectItem value="7">Julho</SelectItem>
+                      <SelectItem value="8">Agosto</SelectItem>
+                      <SelectItem value="9">Setembro</SelectItem>
+                      <SelectItem value="10">Outubro</SelectItem>
+                      <SelectItem value="11">Novembro</SelectItem>
+                      <SelectItem value="12">Dezembro</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button 
+                  onClick={fetchClientData}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Atualizar
+                </Button>
+                <Badge variant="outline" className="text-base px-3 py-1">
+                  {clientData.stripeSubscriptionStatus === 'active' ? 'Ativo' : 'Inativo'}
+                </Badge>
               </div>
             </div>
-            <Badge variant="outline" className="text-base px-3 py-1">
-              {clientData.stripeSubscriptionStatus === 'active' ? 'Ativo' : 'Inativo'}
-            </Badge>
           </div>
         </div>
       </div>
@@ -251,10 +317,28 @@ export default function ClientDetailPage() {
           <TabsContent value="interactions">
             <Card>
               <CardHeader>
-                <CardTitle>Interações Recentes</CardTitle>
-                <CardDescription>
-                  Últimas interações registradas para este cliente
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Interações Recentes</CardTitle>
+                    <CardDescription>
+                      Últimas interações registradas para este cliente
+                    </CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-500">Itens por página:</span>
+                    <Select value={itemsPerPage.toString()} onValueChange={handleItemsPerPageChange}>
+                      <SelectTrigger className="w-20">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="5">5</SelectItem>
+                        <SelectItem value="10">10</SelectItem>
+                        <SelectItem value="20">20</SelectItem>
+                        <SelectItem value="50">50</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 <Table>
@@ -301,6 +385,64 @@ export default function ClientDetailPage() {
                 {clientData.recentInteractions.length === 0 && (
                   <div className="text-center py-8">
                     <p className="text-gray-500">Nenhuma interação recente encontrada</p>
+                  </div>
+                )}
+                
+                {/* Pagination Controls */}
+                {clientData.pagination && clientData.pagination.totalPages > 1 && (
+                  <div className="flex items-center justify-between mt-6">
+                    <div className="text-sm text-gray-500">
+                      Mostrando {((clientData.pagination.currentPage - 1) * clientData.pagination.limit) + 1} a{' '}
+                      {Math.min(clientData.pagination.currentPage * clientData.pagination.limit, clientData.pagination.totalInteractions)} de{' '}
+                      {clientData.pagination.totalInteractions} interações
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange(clientData.pagination.currentPage - 1)}
+                        disabled={!clientData.pagination.hasPrevPage}
+                      >
+                        Anterior
+                      </Button>
+                      
+                      {/* Page numbers */}
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: Math.min(5, clientData.pagination.totalPages) }, (_, i) => {
+                          let pageNum;
+                          if (clientData.pagination.totalPages <= 5) {
+                            pageNum = i + 1;
+                          } else if (clientData.pagination.currentPage <= 3) {
+                            pageNum = i + 1;
+                          } else if (clientData.pagination.currentPage >= clientData.pagination.totalPages - 2) {
+                            pageNum = clientData.pagination.totalPages - 4 + i;
+                          } else {
+                            pageNum = clientData.pagination.currentPage - 2 + i;
+                          }
+                          
+                          return (
+                            <Button
+                              key={pageNum}
+                              variant={clientData.pagination.currentPage === pageNum ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => handlePageChange(pageNum)}
+                              className="w-8 h-8 p-0"
+                            >
+                              {pageNum}
+                            </Button>
+                          );
+                        })}
+                      </div>
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange(clientData.pagination.currentPage + 1)}
+                        disabled={!clientData.pagination.hasNextPage}
+                      >
+                        Próximo
+                      </Button>
+                    </div>
                   </div>
                 )}
               </CardContent>

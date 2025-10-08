@@ -28,8 +28,25 @@ export async function GET(
         },
         accounts: true,
         inboxes: true,
-        interactions: true,
         sessions: true,
+        whatsAppConnections: {
+          select: {
+            id: true,
+            phoneNumber: true,
+            name: true,
+            isActive: true,
+            webhookConfigured: true,
+            createdAt: true,
+            updatedAt: true,
+            aiConfig: {
+              select: {
+                id: true,
+                nomeAtendenteDigital: true,
+                isActive: true
+              }
+            }
+          }
+        },
       },
     });
 
@@ -37,7 +54,18 @@ export async function GET(
       return new NextResponse('User not found', { status: 404 });
     }
 
-    return NextResponse.json(user);
+    // Adicionar informações resumidas das conexões WhatsApp
+    const whatsappSummary = {
+      totalConnections: user.whatsAppConnections.length,
+      activeConnections: user.whatsAppConnections.filter(conn => conn.isActive).length,
+      connectionsWithWebhook: user.whatsAppConnections.filter(conn => conn.webhookConfigured).length,
+      connectionsWithAI: user.whatsAppConnections.filter(conn => conn.aiConfig).length
+    };
+
+    return NextResponse.json({
+      ...user,
+      whatsappSummary
+    });
   } catch (error) {
     console.error('Error retrieving user:', error);
     return new NextResponse('Internal Server Error', { status: 500 });

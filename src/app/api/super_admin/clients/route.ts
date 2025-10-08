@@ -62,9 +62,14 @@ export async function GET(request: NextRequest) {
           }
         }
       },
-      orderBy: {
-        email: 'asc'
-      }
+      orderBy: [
+        {
+          stripeSubscriptionStatus: 'desc'
+        },
+        {
+          email: 'asc'
+        }
+      ]
     })
 
     // Processar dados dos clientes

@@ -18,7 +18,10 @@ import {
   TrendingUp,
   Calendar,
   MoreHorizontal,
-  RefreshCw
+  RefreshCw,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -57,6 +60,8 @@ export default function SuperAdminDashboard() {
   const [showLimitDialog, setShowLimitDialog] = useState(false)
   const [selectedClient, setSelectedClient] = useState<ClientData | null>(null)
   const [newLimit, setNewLimit] = useState('')
+  const [sortField, setSortField] = useState<string>('stripeSubscriptionStatus')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
 
   useEffect(() => {
     if (!requireSuperAdmin()) return
@@ -118,6 +123,72 @@ export default function SuperAdminDashboard() {
       minute: '2-digit'
     }).format(new Date(date))
   }
+
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDirection('asc')
+    }
+  }
+
+  const getSortIcon = (field: string) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="h-4 w-4" />
+    }
+    return sortDirection === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />
+  }
+
+  const sortedClients = [...clients].sort((a, b) => {
+    let aValue: any
+    let bValue: any
+
+    switch (sortField) {
+      case 'name':
+        aValue = a.companyName || a.name || ''
+        bValue = b.companyName || b.name || ''
+        break
+      case 'email':
+        aValue = a.email || ''
+        bValue = b.email || ''
+        break
+      case 'stripeSubscriptionStatus':
+        aValue = a.stripeSubscriptionStatus || ''
+        bValue = b.stripeSubscriptionStatus || ''
+        break
+      case 'customCreditLimit':
+        aValue = a.customCreditLimit || 10000
+        bValue = b.customCreditLimit || 10000
+        break
+      case 'monthlyInteractions':
+        aValue = a.monthlyInteractions
+        bValue = b.monthlyInteractions
+        break
+      case 'monthlyValue':
+        aValue = a.monthlyValue
+        bValue = b.monthlyValue
+        break
+      case 'monthlySubscription':
+        aValue = a.monthlySubscription
+        bValue = b.monthlySubscription
+        break
+      case 'usagePercentage':
+        aValue = a.usagePercentage
+        bValue = b.usagePercentage
+        break
+      case 'lastActivity':
+        aValue = a.lastActivity ? new Date(a.lastActivity).getTime() : 0
+        bValue = b.lastActivity ? new Date(b.lastActivity).getTime() : 0
+        break
+      default:
+        return 0
+    }
+
+    if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1
+    if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1
+    return 0
+  })
 
   const getStatusBadge = (status: string | null) => {
     switch (status) {
@@ -311,19 +382,83 @@ export default function SuperAdminDashboard() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Limite Mensal</TableHead>
-                    <TableHead>Interações</TableHead>
-                    <TableHead>Valor Mensal</TableHead>
-                    <TableHead>Mensalidade</TableHead>
-                    <TableHead>Uso (%)</TableHead>
-                    <TableHead>Última Atividade</TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 select-none"
+                      onClick={() => handleSort('name')}
+                    >
+                      <div className="flex items-center gap-2">
+                        Cliente
+                        {getSortIcon('name')}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 select-none"
+                      onClick={() => handleSort('stripeSubscriptionStatus')}
+                    >
+                      <div className="flex items-center gap-2">
+                        Status
+                        {getSortIcon('stripeSubscriptionStatus')}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 select-none"
+                      onClick={() => handleSort('customCreditLimit')}
+                    >
+                      <div className="flex items-center gap-2">
+                        Limite Mensal
+                        {getSortIcon('customCreditLimit')}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 select-none"
+                      onClick={() => handleSort('monthlyInteractions')}
+                    >
+                      <div className="flex items-center gap-2">
+                        Interações
+                        {getSortIcon('monthlyInteractions')}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 select-none"
+                      onClick={() => handleSort('monthlyValue')}
+                    >
+                      <div className="flex items-center gap-2">
+                        Valor Mensal
+                        {getSortIcon('monthlyValue')}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 select-none"
+                      onClick={() => handleSort('monthlySubscription')}
+                    >
+                      <div className="flex items-center gap-2">
+                        Mensalidade
+                        {getSortIcon('monthlySubscription')}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 select-none"
+                      onClick={() => handleSort('usagePercentage')}
+                    >
+                      <div className="flex items-center gap-2">
+                        Uso (%)
+                        {getSortIcon('usagePercentage')}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 select-none"
+                      onClick={() => handleSort('lastActivity')}
+                    >
+                      <div className="flex items-center gap-2">
+                        Última Atividade
+                        {getSortIcon('lastActivity')}
+                      </div>
+                    </TableHead>
                     <TableHead className="w-[50px]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {clients.map((client) => (
+                  {sortedClients.map((client) => (
                     <TableRow key={client.id} className={client.isOverLimit ? 'bg-red-50 dark:bg-red-900/20' : ''}>
                       <TableCell>
                         <div>

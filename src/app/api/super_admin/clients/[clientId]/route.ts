@@ -9,24 +9,36 @@ export async function GET(
     const { clientId } = params
     const { searchParams } = new URL(request.url)
     const monthParam = searchParams.get('month')
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '10')
+    const offset = (page - 1) * limit
     
     const currentDate = new Date()
     let startOfMonth: Date
+    let endOfMonth: Date
     
     if (monthParam) {
       // Parse do parâmetro month (formato: YYYY-MM)
       const [year, month] = monthParam.split('-').map(Number)
       startOfMonth = new Date(year, month - 1, 1)
+      endOfMonth = new Date(year, month, 0) // Último dia do mês
     } else {
       // Usar mês atual como padrão
       startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
+      endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
     }
     const user = await prisma.user.findUnique({
       where: { id: clientId },
       include: {
         interactions: {
           orderBy: { createdAt: 'desc' },
-          take: 50 // Últimas 50 interações
+          skip: offset,
+          take: limit
+        },
+        _count: {
+          select: {
+            interactions: true
+          }
         }
       }
     })
@@ -40,7 +52,7 @@ export async function GET(
 
     // Filtrar interações do mês atual
     const monthlyInteractions = user.interactions.filter(interaction => 
-      interaction.createdAt >= startOfMonth
+      interaction.createdAt >= startOfMonth && interaction.createdAt <= endOfMonth
     )
 
     // Calcular estatísticas mensais
@@ -57,7 +69,7 @@ export async function GET(
     }
 
     // Preparar interações recentes para exibição
-    const recentInteractions = user.interactions.slice(0, 20).map(interaction => ({
+    const recentInteractions = user.interactions.map(interaction => ({
       id: interaction.id,
       name: interaction.name,
       phoneNumber: interaction.phoneNumber,
@@ -65,6 +77,12 @@ export async function GET(
       createdAt: interaction.createdAt,
       status: interaction.status
     }))
+
+    // Calcular informações de paginação
+    const totalInteractions = user._count.interactions
+    const totalPages = Math.ceil(totalInteractions / limit)
+    const hasNextPage = page < totalPages
+    const hasPrevPage = page > 1
 
     // Calcular histórico mensal (últimos 6 meses)
     const monthlyHistory = []
@@ -99,7 +117,15 @@ export async function GET(
       stripeSubscriptionStatus: user.stripeSubscriptionStatus,
       monthlyStats,
       recentInteractions,
-      monthlyHistory
+      monthlyHistory,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalInteractions,
+        hasNextPage,
+        hasPrevPage,
+        limit
+      }
     }
 
     return NextResponse.json({
