@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/services/database'
-import { encode } from 'next-auth/jwt'
 
 /**
  * Rota para efetuar login via impersonação
- * Cria uma sessão NextAuth para o usuário impersonado
+ * Redireciona para a página de autenticação com credenciais especiais
  */
 export async function GET(request: NextRequest) {
   try {
@@ -135,58 +134,39 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Deletar o token usado (uso único)
-    await prisma.verificationToken.delete({
+    // Extrair super admin ID do identifier
+    const superAdminId = verificationToken.identifier.split(':')[2]
+    
+    // Log de auditoria
+    console.log(`[SUPER_ADMIN_AUDIT] Impersonação iniciada: Super Admin ${superAdminId} está acessando conta de ${user.email} (${user.id}) em ${new Date().toISOString()}`)
+
+    // Criar um novo token SSO temporário para autenticação via NextAuth
+    // Isso garante que o NextAuth processe corretamente o isIntegrationUser
+    const ssoToken = verificationToken.token // Reutilizar o mesmo token
+    const ssoExpires = new Date(Date.now() + 2 * 60 * 1000) // 2 minutos para completar o login
+    
+    // Atualizar o token para o formato SSO
+    await prisma.verificationToken.update({
       where: {
         identifier_token: {
           identifier: verificationToken.identifier,
           token: verificationToken.token
         }
+      },
+      data: {
+        identifier: user.id, // Mudar para o formato esperado pelo SSO
+        expires: ssoExpires
       }
     })
 
-    // Extrair super admin ID do identifier
-    const superAdminId = verificationToken.identifier.split(':')[2]
-    
-    // Log de auditoria
-    console.log(`[SUPER_ADMIN_AUDIT] Impersonação ativada: Super Admin ${superAdminId} acessou conta de ${user.email} (${user.id}) em ${new Date().toISOString()}`)
-
-    // Criar um JWT válido para o usuário (NextAuth usa JWT, não sessões de banco)
-    const sessionExpires = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 horas
-    
-    const jwtToken = await encode({
-      token: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        picture: user.image,
-        isIntegrationUser: user.isIntegrationUser,
-        sub: user.id,
-        iat: Math.floor(Date.now() / 1000),
-        exp: Math.floor(sessionExpires.getTime() / 1000)
-      },
-      secret: process.env.NEXTAUTH_SECRET || '',
-      salt: process.env.NEXTAUTH_SECRET || 'nextauth-salt'
-    })
-
-    // Redirecionar para o app com o cookie JWT
+    // Redirecionar para a página de auth com os parâmetros SSO
     const siteUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin
-    const response = NextResponse.redirect(new URL('/app', siteUrl))
+    const authUrl = new URL('/auth', siteUrl)
+    authUrl.searchParams.append('callbackUrl', '/app')
+    authUrl.searchParams.append('sso-token', ssoToken)
+    authUrl.searchParams.append('user-id', user.id)
 
-    // Definir cookie JWT usando o mesmo nome que o NextAuth
-    const cookieName = process.env.NODE_ENV === 'production' 
-      ? '__Secure-next-auth.session-token'
-      : 'next-auth.session-token'
-    
-    response.cookies.set(cookieName, jwtToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      expires: sessionExpires,
-      path: '/'
-    })
-
-    return response
+    return NextResponse.redirect(authUrl)
 
   } catch (error) {
     console.error('Erro ao fazer login via impersonação:', error)
@@ -216,4 +196,3 @@ export async function GET(request: NextRequest) {
     )
   }
 }
-
