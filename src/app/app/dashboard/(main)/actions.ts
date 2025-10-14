@@ -63,17 +63,12 @@ export async function getUserInteractions(params?: {
     // Agrupar por ConversationID para eliminar duplicatas
     const groupedInteractions = new Map();
     
-    console.log(`[DEBUG] Total de interações antes do agrupamento: ${interactions.length}`);
-    
     interactions.forEach((interaction) => {
       // Tentar agrupar por ConversationID primeiro, depois por telefone + nome
       const conversationId = interaction.ConversationID || `${interaction.phoneNumber}-${interaction.name}` || interaction.id;
       
-      console.log(`[DEBUG] Interação ID: ${interaction.id}, ConversationID: ${interaction.ConversationID}, Telefone: ${interaction.phoneNumber}, Nome: ${interaction.name}, Usando: ${conversationId}`);
-      
       if (!groupedInteractions.has(conversationId)) {
         // Primeira ocorrência desta conversa
-        console.log(`[DEBUG] Nova conversa: ${conversationId}`);
         groupedInteractions.set(conversationId, {
           ...interaction,
           value: interaction.value?.toNumber() || 0,
@@ -81,7 +76,6 @@ export async function getUserInteractions(params?: {
         });
       } else {
         // Somar valores da mesma conversa
-        console.log(`[DEBUG] Somando à conversa existente: ${conversationId}`);
         const existing = groupedInteractions.get(conversationId);
         existing.value += interaction.value?.toNumber() || 0;
         

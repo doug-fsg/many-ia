@@ -62,6 +62,7 @@ export default function SuperAdminDashboard() {
   const [newLimit, setNewLimit] = useState('')
   const [sortField, setSortField] = useState<string>('stripeSubscriptionStatus')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
+  const [isImpersonating, setIsImpersonating] = useState(false)
 
   useEffect(() => {
     if (!requireSuperAdmin()) return
@@ -103,6 +104,37 @@ export default function SuperAdminDashboard() {
       }
     } catch (error) {
       console.error('Erro ao atualizar limite:', error)
+    }
+  }
+
+  const handleImpersonate = async (userId: string) => {
+    setIsImpersonating(true)
+    
+    try {
+      const superAdminUser = JSON.parse(sessionStorage.getItem('super_admin_user') || '{}')
+      
+      const response = await fetch('/api/super_admin/impersonate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          userId,
+          superAdminEmail: superAdminUser.email 
+        })
+      })
+      
+      const data = await response.json()
+      
+      if (data.success) {
+        // Abrir em nova aba
+        window.open(data.impersonateUrl, '_blank')
+      } else {
+        alert(`Erro ao acessar conta: ${data.message}`)
+      }
+    } catch (error) {
+      console.error('Erro ao impersonar usuário:', error)
+      alert('Erro ao acessar conta do usuário')
+    } finally {
+      setIsImpersonating(false)
     }
   }
 
@@ -517,6 +549,9 @@ export default function SuperAdminDashboard() {
                               onClick={() => window.location.href = `/super_admin/client/${client.id}`}
                             >
                               Ver detalhes
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleImpersonate(client.id)}>
+                              Acessar conta
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => {
                               setSelectedClient(client)

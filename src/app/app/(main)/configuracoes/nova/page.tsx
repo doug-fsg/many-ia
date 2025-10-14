@@ -17,17 +17,12 @@ export default function NovaConfiguracaoPage() {
   const [wizardData, setWizardData] = useState<any>(null)
 
   useEffect(() => {
-    console.log('[DEBUG] useEffect executado')
     const wizard = searchParams?.get('wizard')
     const config = searchParams?.get('config')
-    
-    console.log('[DEBUG] wizard:', wizard)
-    console.log('[DEBUG] config existe:', !!config)
     
     if (wizard === 'true' && config) {
       try {
         const parsedConfig = JSON.parse(decodeURIComponent(config))
-        console.log('[DEBUG] Dados do wizard parseados:', parsedConfig)
         
         // Garantir que os campos estejam no formato correto
         const formattedConfig = {
@@ -38,10 +33,9 @@ export default function NovaConfiguracaoPage() {
           temasEvitar: parsedConfig.temasEvitar || []
         }
         
-        console.log('[DEBUG] Config formatada:', formattedConfig)
         setWizardData(formattedConfig)
       } catch (error) {
-        console.error('[DEBUG] Erro ao parsear config do wizard:', error)
+        console.error('Erro ao parsear config do wizard:', error)
       }
     }
   }, [searchParams])

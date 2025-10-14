@@ -18,7 +18,8 @@ import {
   MessageSquare,
   TrendingUp,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  UserCog
 } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
@@ -66,6 +67,7 @@ export default function ClientDetailPage() {
   const [selectedMonth, setSelectedMonth] = useState((new Date().getMonth() + 1).toString())
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
+  const [isImpersonating, setIsImpersonating] = useState(false)
 
   useEffect(() => {
     if (!requireSuperAdmin()) return
@@ -113,6 +115,37 @@ export default function ClientDetailPage() {
   const handleItemsPerPageChange = (value: string) => {
     setItemsPerPage(parseInt(value))
     setCurrentPage(1) // Reset to first page when changing items per page
+  }
+
+  const handleImpersonate = async () => {
+    setIsImpersonating(true)
+    
+    try {
+      const superAdminUser = JSON.parse(sessionStorage.getItem('super_admin_user') || '{}')
+      
+      const response = await fetch('/api/super_admin/impersonate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          userId: params.clientId,
+          superAdminEmail: superAdminUser.email 
+        })
+      })
+      
+      const data = await response.json()
+      
+      if (data.success) {
+        // Abrir em nova aba
+        window.open(data.impersonateUrl, '_blank')
+      } else {
+        alert(`Erro ao acessar conta: ${data.message}`)
+      }
+    } catch (error) {
+      console.error('Erro ao impersonar usuário:', error)
+      alert('Erro ao acessar conta do usuário')
+    } finally {
+      setIsImpersonating(false)
+    }
   }
 
   if (isLoading) {
@@ -165,6 +198,16 @@ export default function ClientDetailPage() {
                 </div>
               </div>
               <div className="flex items-center gap-4">
+                <Button 
+                  onClick={handleImpersonate}
+                  variant="default"
+                  size="sm"
+                  className="flex items-center gap-2"
+                  disabled={isImpersonating}
+                >
+                  <UserCog className="w-4 h-4" />
+                  {isImpersonating ? 'Acessando...' : 'Acessar Conta'}
+                </Button>
                 <div className="flex items-center gap-2">
                   <Input
                     type="number"

@@ -28,6 +28,7 @@ O sistema de Super Admin foi criado para substituir o antigo painel admin que es
   - Histórico de interações
   - Evolução mensal de uso
   - Controle de limites personalizados
+  - Acesso à conta do cliente (impersonação)
 
 ## Métricas Monitoradas
 
@@ -88,6 +89,25 @@ O sistema de Super Admin foi criado para substituir o antigo painel admin que es
 - **Body:** `{ customCreditLimit }`
 - **Retorna:** Atualização do limite de créditos
 
+### `/api/super_admin/impersonate`
+- **Método:** POST
+- **Body:** `{ userId, superAdminEmail }`
+- **Retorna:** URL de impersonação com token temporário (válido por 5 minutos)
+- **Segurança:** 
+  - Apenas super admins podem usar
+  - Não permite impersonar outros super admins
+  - Token de uso único
+  - Registra auditoria no console
+
+### `/api/super_admin/impersonate/login`
+- **Método:** GET
+- **Query Params:** `token`, `userId`
+- **Retorna:** Redirecionamento para `/app` com sessão ativa
+- **Funcionalidade:** 
+  - Valida token de impersonação
+  - Cria sessão NextAuth para o usuário
+  - Define cookie de modo de impersonação
+
 ## Alertas e Monitoramento
 
 ### Clientes Acima do Limite
@@ -106,6 +126,39 @@ O sistema de Super Admin foi criado para substituir o antigo painel admin que es
 - **Verificação de permissão:** Em todas as páginas do super admin
 - **Sessão local:** Token armazenado no sessionStorage
 - **Logout automático:** Ao fechar o navegador
+- **Impersonação segura:**
+  - Token temporário de uso único (5 minutos)
+  - Não permite impersonar outros super admins
+  - Acesso transparente ao usuário (sem notificações)
+  - Auditoria completa de todos os acessos no servidor
+  - Sessão de impersonação independente da sessão do super admin
+
+## Impersonação de Usuários
+
+### Como Funciona
+1. No dashboard ou na página de detalhes do cliente, clique em "Acessar conta"
+2. Um token temporário é gerado (válido por 5 minutos)
+3. Uma nova aba é aberta com a sessão do usuário
+4. O acesso é transparente - o usuário não é notificado
+5. Para sair, basta fechar a aba ou fazer logout normalmente
+
+### Segurança
+- Token de uso único e temporário
+- Não permite impersonar outros super admins
+- Todas as ações são registradas no log do servidor
+- Sessão independente da sessão do super admin
+- Acesso transparente ao usuário (sem notificações visuais)
+
+### Casos de Uso
+- **Suporte técnico:** Visualizar a conta do cliente para resolver problemas sem pedir senha
+- **Testes:** Verificar comportamento da aplicação na perspectiva do cliente
+- **Auditoria:** Investigar problemas reportados pelo cliente
+- **Configuração:** Ajustar configurações complexas diretamente na conta do cliente
+
+### Observações Importantes
+- O usuário **não é notificado** quando sua conta é acessada
+- Todos os acessos são registrados apenas nos logs do servidor
+- Use com responsabilidade e apenas para fins de suporte legítimos
 
 ## Melhorias Futuras
 
@@ -114,7 +167,7 @@ O sistema de Super Admin foi criado para substituir o antigo painel admin que es
 3. **Alertas automáticos:** Notificações por email/WhatsApp
 4. **Relatórios:** Exportação de dados em PDF/Excel
 5. **Gráficos:** Visualizações mais avançadas com charts
-6. **Auditoria:** Log de todas as ações administrativas
+6. **Auditoria avançada:** Salvar logs de impersonação no banco de dados com timestamps e ações realizadas
 
 ## Como Usar
 

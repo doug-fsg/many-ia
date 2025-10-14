@@ -13,8 +13,6 @@ export function CreateAttendenteButton() {
   const handleOpenAdvanced = (generatedConfig?: any) => {
     if (generatedConfig) {
       // Se houver configuração gerada pelo wizard, passar como parâmetro
-      console.log('[DEBUG] Enviando config para formulário:', generatedConfig)
-      
       // Usar encodeURIComponent para garantir que caracteres especiais sejam preservados
       const configParam = encodeURIComponent(JSON.stringify(generatedConfig))
       

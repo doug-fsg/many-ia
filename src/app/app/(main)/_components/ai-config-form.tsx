@@ -156,11 +156,8 @@ export function AIConfigForm({
 
   // Processar defaultValue e atualizar o formulário
   useEffect(() => {
-    console.log('[DEBUG] useEffect para defaultValue executado:', defaultValue)
-    
     // Atualizar o formulário quando defaultValue mudar
     if (defaultValue) {
-      console.log('[DEBUG] Resetando formulário com valores:', defaultValue)
       
       // Verificar se os dados vieram do wizard (IA)
       const isFromWizard = defaultValue.nomeAtendenteDigital && 
@@ -189,7 +186,7 @@ export function AIConfigForm({
         setTimeout(() => {
           // 🌈 Explosão principal - CENTRO com muitas cores
           confetti({
-            particleCount: 200,
+            particleCount: 150,
             spread: 80,
             origin: { y: 0.6 },
             colors: [
@@ -204,14 +201,14 @@ export function AIConfigForm({
             ],
             scalar: 1.4,
             drift: 0.5,
-            gravity: 0.8,
-            ticks: 300
+            gravity: 1.2,
+            ticks: 120
           })
           
           // 💥 Explosão das LATERAIS - ESQUERDA
           setTimeout(() => {
             confetti({
-              particleCount: 150,
+              particleCount: 100,
               angle: 45,
               spread: 70,
               origin: { x: 0, y: 0.8 },
@@ -223,15 +220,15 @@ export function AIConfigForm({
               ],
               scalar: 1.3,
               drift: 0.3,
-              gravity: 0.9,
-              ticks: 250
+              gravity: 1.2,
+              ticks: 100
             })
-          }, 150)
+          }, 80)
           
           // 💥 Explosão das LATERAIS - DIREITA
           setTimeout(() => {
             confetti({
-              particleCount: 150,
+              particleCount: 100,
               angle: 135,
               spread: 70,
               origin: { x: 1, y: 0.8 },
@@ -243,15 +240,15 @@ export function AIConfigForm({
               ],
               scalar: 1.3,
               drift: -0.3,
-              gravity: 0.9,
-              ticks: 250
+              gravity: 1.2,
+              ticks: 100
             })
-          }, 200)
+          }, 100)
           
           // 🎊 Explosão SUPERIOR - CHUVA DE CONFETES
           setTimeout(() => {
             confetti({
-              particleCount: 300,
+              particleCount: 200,
               spread: 90,
               origin: { y: 0.2 },
               colors: [
@@ -264,15 +261,15 @@ export function AIConfigForm({
               ],
               scalar: 1.2,
               drift: 0,
-              gravity: 1.2,
-              ticks: 400
+              gravity: 1.5,
+              ticks: 150
             })
-          }, 300)
+          }, 150)
           
           // 🌟 Explosão FINAL - FOGOS DE ARTIFÍCIO
           setTimeout(() => {
             confetti({
-              particleCount: 100,
+              particleCount: 80,
               spread: 60,
               origin: { y: 0.4 },
               colors: [
@@ -283,10 +280,10 @@ export function AIConfigForm({
               ],
               scalar: 1.8,
               drift: 0,
-              gravity: 0.6,
-              ticks: 500
+              gravity: 0.8,
+              ticks: 150
             })
-          }, 600)
+          }, 300)
           
         }, 500) // Delay para garantir que a página carregou
       }
