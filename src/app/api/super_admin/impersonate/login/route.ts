@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/services/database'
+import { encode } from 'next-auth/jwt'
 
 /**
  * Rota para efetuar login via impersonação
@@ -144,31 +145,40 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // Criar uma sessão NextAuth para o usuário
-    const sessionToken = `impersonate_${Date.now()}_${Math.random().toString(36).substring(7)}`
-    const sessionExpires = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 horas
-
-    await prisma.session.create({
-      data: {
-        sessionToken,
-        userId: user.id,
-        expires: sessionExpires
-      }
-    })
-
     // Extrair super admin ID do identifier
     const superAdminId = verificationToken.identifier.split(':')[2]
     
     // Log de auditoria
     console.log(`[SUPER_ADMIN_AUDIT] Impersonação ativada: Super Admin ${superAdminId} acessou conta de ${user.email} (${user.id}) em ${new Date().toISOString()}`)
 
-    // Redirecionar para o app com o cookie de sessão
+    // Criar um JWT válido para o usuário (NextAuth usa JWT, não sessões de banco)
+    const sessionExpires = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 horas
+    
+    const jwtToken = await encode({
+      token: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        picture: user.image,
+        isIntegrationUser: user.isIntegrationUser,
+        sub: user.id,
+        iat: Math.floor(Date.now() / 1000),
+        exp: Math.floor(sessionExpires.getTime() / 1000)
+      },
+      secret: process.env.NEXTAUTH_SECRET || '',
+      salt: process.env.NEXTAUTH_SECRET || 'nextauth-salt'
+    })
+
+    // Redirecionar para o app com o cookie JWT
     const siteUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin
     const response = NextResponse.redirect(new URL('/app', siteUrl))
 
-    // Definir cookie de sessão
-    const cookieName = 'authjs.session-token'
-    response.cookies.set(cookieName, sessionToken, {
+    // Definir cookie JWT usando o mesmo nome que o NextAuth
+    const cookieName = process.env.NODE_ENV === 'production' 
+      ? '__Secure-next-auth.session-token'
+      : 'next-auth.session-token'
+    
+    response.cookies.set(cookieName, jwtToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',

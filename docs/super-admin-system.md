@@ -105,8 +105,9 @@ O sistema de Super Admin foi criado para substituir o antigo painel admin que es
 - **Retorna:** Redirecionamento para `/app` com sessão ativa
 - **Funcionalidade:** 
   - Valida token de impersonação
-  - Cria sessão NextAuth para o usuário
-  - Define cookie de modo de impersonação
+  - Cria JWT NextAuth válido para o usuário
+  - Define cookie de sessão com o valor real de `isIntegrationUser` do banco
+  - Preserva todas as propriedades do usuário (email, nome, imagem, etc)
 
 ## Alertas e Monitoramento
 
