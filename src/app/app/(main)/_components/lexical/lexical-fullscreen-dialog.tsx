@@ -10,7 +10,7 @@ interface LexicalFullscreenDialogProps {
   value: string
   onChange: (text: string) => void
   attachments: Array<{
-    type: 'image' | 'pdf'
+    type: 'image' | 'pdf' | 'audio' | 'video'
     content: string
     description: string
   }>

@@ -1,8 +1,28 @@
 import { NextResponse } from 'next/server';
 import { oauth2Client, SCOPES } from '@/lib/google-calendar';
+import { auth } from '@/services/auth';
+import { hasGoogleCalendarAccess } from '@/lib/feature-flags';
 
 export async function GET(request: Request) {
   try {
+    // Verificar autenticação
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: 'Usuário não autenticado' },
+        { status: 401 }
+      );
+    }
+
+    // Verificar Feature Flag
+    const hasAccess = await hasGoogleCalendarAccess(session.user.id);
+    if (!hasAccess) {
+      return NextResponse.json(
+        { error: 'Acesso ao Google Calendar não disponível para este usuário' },
+        { status: 403 }
+      );
+    }
+
     // Gerar URL de autenticação
     const authUrl = oauth2Client.generateAuthUrl({
       access_type: 'offline',

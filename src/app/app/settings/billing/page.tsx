@@ -45,6 +45,9 @@ export default async function Page() {
   const creditsPercentage = plan.quota.credits?.usage || 0
   const isOutOfCredits = creditsUsed >= totalCredits
 
+  // Log para monitoramento (apenas para debugging)
+  console.log(`[BILLING] Limite de créditos para ${session.user.email}: ${totalCredits} (usado: ${creditsUsed})`)
+
   // Buscar informações detalhadas da assinatura
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },

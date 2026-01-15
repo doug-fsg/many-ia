@@ -59,7 +59,7 @@ export const createStripeCustomer = async (input: {
 
   const createdCustomerSubscription = await stripe.subscriptions.create({
     customer: createdCustomer.id,
-    items: [{ price: config.stripe.plans.free.priceId }],
+    items: [{ price: config.stripe.plans.pro.priceId }],
   })
 
   await prisma.user.update({
@@ -70,7 +70,7 @@ export const createStripeCustomer = async (input: {
       stripeCustomerId: createdCustomer.id,
       stripeSubscriptionId: createdCustomerSubscription.id,
       stripeSubscriptionStatus: createdCustomerSubscription.status,
-      stripePriceId: config.stripe.plans.free.priceId,
+      stripePriceId: config.stripe.plans.pro.priceId,
     },
   })
 
@@ -235,42 +235,80 @@ export const getUserCurrentPlan = async (userId: string) => {
     },
     select: {
       stripePriceId: true,
+      isIntegrationUser: true,
+      email: true, // Adicionado para log
+      customCreditLimit: true, // Campo para limite personalizado
     },
   })
 
-  if (!user || !user.stripePriceId) {
-    throw new Error('User or user stripePriceId not found')
+  if (!user) {
+    console.log(`[SERVER] Usuário não encontrado: ${userId}`);
+    throw new Error('User not found')
   }
 
-  const plan = getPlanByPrice(user.stripePriceId)
+  // Log no servidor
+  console.log(`[SERVER] Plano do usuário ${user.email}:`, {
+    stripePriceId: user.stripePriceId,
+    isIntegrationUser: user.isIntegrationUser,
+    customCreditLimit: user.customCreditLimit
+  });
 
-  // Buscar a soma de todas as interactionsCount do usuário no mês atual
-  const interactions = await prisma.interaction.findMany({
+  // Determinar limite de créditos com múltiplos fallbacks de segurança
+  const DEFAULT_CREDIT_LIMIT = 10000; // Limite padrão mantido como constante
+  let creditLimit = DEFAULT_CREDIT_LIMIT;
+  
+  try {
+    // 1. Primeiro, tenta usar limite personalizado do usuário
+    if (user.customCreditLimit && user.customCreditLimit > 0) {
+      creditLimit = user.customCreditLimit;
+      console.log(`[SERVER] Usando limite personalizado: ${creditLimit} para usuário ${user.email}`);
+    } else {
+      console.log(`[SERVER] Usando limite padrão: ${creditLimit} para usuário ${user.email} (customCreditLimit: ${user.customCreditLimit})`);
+    }
+  } catch (error) {
+    console.error(`[SERVER] Erro ao determinar limite de créditos para ${user.email}, usando padrão:`, error);
+    creditLimit = DEFAULT_CREDIT_LIMIT; // Fallback absoluto
+  }
+
+  console.log(`[SERVER] Calculando créditos para usuário ${user.email} (limite: ${creditLimit})`);
+  
+  const now = new Date();
+  const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  
+  // CORREÇÃO: Usar interactionsCount para consistência com o dashboard
+  const interactionStats = await prisma.interaction.aggregate({
+    _sum: {
+      interactionsCount: true,
+    },
     where: {
       userId,
-      createdAt: {
-        gte: new Date(new Date().setDate(1)), // Início do mês atual
-        lt: new Date(new Date().setMonth(new Date().getMonth() + 1)), // Início do próximo mês
+      createdAt: {  // ← MUDANÇA: createdAt em vez de updatedAt para evitar cobrança dupla
+        gte: firstDayOfMonth,
+        lte: lastDayOfMonth,
       },
     },
-    select: {
-      interactionsCount: true
-    }
-  })
+  });
 
-  // Somar todos os interactionsCount
-  const currentCredits = interactions.reduce((sum, interaction) => {
-    return sum + (interaction.interactionsCount || 0);
-  }, 0);
+  const currentCredits = interactionStats._sum.interactionsCount || 0;
 
-  const availableCredits = plan.quota.credits
-  const usagePercentage = (currentCredits / availableCredits) * 100;
+  // Calcular porcentagem de uso baseado no limite dinâmico
+  const usagePercentage = creditLimit > 0 ? (currentCredits / creditLimit) * 100 : 0;
+  const isOutOfCredits = currentCredits >= creditLimit;
+
+  console.log(`[SERVER] Créditos calculados para usuário ${user.email}:`, {
+    currentCredits,
+    creditLimit,
+    usagePercentage: Math.round(usagePercentage * 100) / 100, // Arredondar para 2 casas decimais
+    isOutOfCredits,
+    method: 'interactionsCount'
+  });
 
   return {
-    name: plan.name,
+    name: 'pro',
     quota: {
       credits: {
-        available: availableCredits,
+        available: creditLimit,
         current: currentCredits,
         usage: usagePercentage
       }

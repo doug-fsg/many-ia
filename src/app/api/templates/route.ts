@@ -22,8 +22,7 @@ export async function GET() {
                 userId: session.user.id
               }
             }
-          },
-          { isPublic: true }
+          }
         ]
       },
       include: {

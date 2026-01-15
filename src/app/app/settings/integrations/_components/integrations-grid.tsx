@@ -3,6 +3,7 @@
 import { MessagesSquareIcon, BrainCircuitIcon } from 'lucide-react';
 import { IntegrationCard } from './integration-card';
 import Image from 'next/image';
+import { useGoogleCalendarAccess } from '@/hooks/use-feature-flags';
 
 const GoogleCalendarIcon = () => (
   <Image
@@ -39,13 +40,33 @@ const integrations = [
 ] as const;
 
 export function IntegrationsGrid() {
+  const { hasAccess: hasGoogleCalendarAccess, isLoading } = useGoogleCalendarAccess();
+
+  // Filtrar Google Calendar se não tiver acesso
+  const visibleIntegrations = integrations.filter((integration) => {
+    if (integration.id === 'google-calendar') {
+      return hasGoogleCalendarAccess;
+    }
+    return true;
+  });
+
+  // Não renderizar nada enquanto carrega (evita flash)
+  if (isLoading) {
+    return (
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {integrations
+          .filter((i) => i.id !== 'google-calendar')
+          .map((integration) => (
+            <IntegrationCard key={integration.id} integration={integration} />
+          ))}
+      </div>
+    );
+  }
+
   return (
     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-      {integrations.map((integration) => (
-        <IntegrationCard
-          key={integration.id}
-          integration={integration}
-        />
+      {visibleIntegrations.map((integration) => (
+        <IntegrationCard key={integration.id} integration={integration} />
       ))}
     </div>
   );

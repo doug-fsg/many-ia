@@ -24,9 +24,6 @@ export async function middleware(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const refCode = searchParams.get('ref')
   
-  // Listar todos os cookies no início
-  console.log('[MIDDLEWARE] Cookies iniciais:', [...req.cookies.getAll()].map(c => `${c.name}=${c.value}`))
-
   // Criar uma nova resposta
   const response = NextResponse.next()
 
@@ -67,14 +64,10 @@ export async function middleware(req: NextRequest) {
       if (token) {
         isAuthenticated = true
         tokenFound = cookieName
-        console.log(`[MIDDLEWARE] Token encontrado em cookie: ${cookieName}`)
         break
       }
     }
     
-    // Listar cookies após as modificações
-    console.log('[MIDDLEWARE] Cookies após processamento:', 
-      [...response.cookies.getAll()].map(c => `${c.name}=${c.value}`))
     
     // Verificar se o usuário está fazendo login (vindo da página de autenticação)
     const referer = req.headers.get('referer') || ''
@@ -110,7 +103,6 @@ export async function middleware(req: NextRequest) {
     }
     
     if (pathname === '/auth' && isAuthenticated) {
-      console.log('[MIDDLEWARE] Usuário autenticado tentando acessar /auth, redirecionando para /app')
       return NextResponse.redirect(new URL(getUrl('/app')))
     }
     
@@ -124,9 +116,7 @@ export async function middleware(req: NextRequest) {
     if (pathname.includes('/app') && isAuthenticated) {
       console.log('[MIDDLEWARE] Usuário autenticado acessando /app, permitido')
     }
-    
-    // Adicionando log de debug para outras rotas
-    console.log(`[MIDDLEWARE] Acesso a "${pathname}" - Autenticado: ${isAuthenticated}`)
+
   } catch (error) {
     console.error('[MIDDLEWARE] Erro ao processar autenticação:', error)
   }

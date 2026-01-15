@@ -9,14 +9,11 @@ import { getAuthenticatedUser } from '@/lib/auth-helper'
 import { checkUserSubscription } from '@/lib/subscription-helper'
 
 export async function upsertAIConfig(input: z.infer<typeof upsertAIConfigSchema>) {
-  console.log('Ação `upsertAIConfig` recebida no servidor - ' + new Date().toISOString());
-  console.log('Dados recebidos:', JSON.stringify(input, null, 2));
 
   try {
     const user = await getAuthenticatedUser();
     
     if (!user?.id) {
-      console.error('Erro de autorização: Usuário não encontrado.');
       return {
         error: 'Não autorizado',
         data: null,
@@ -124,7 +121,6 @@ export async function upsertAIConfig(input: z.infer<typeof upsertAIConfigSchema>
   } catch (error) {
     console.error('Erro CRÍTICO na ação `upsertAIConfig`:', error);
     if (error instanceof z.ZodError) {
-      console.error('Erros de validação Zod:', error.errors);
       return {
         error: 'Erro de validação nos dados enviados.',
         data: null,
@@ -231,6 +227,19 @@ export async function toggleAIConfigStatus(configId: string, isActive: boolean) 
     }
 
     if (isActive) {
+      // Verificar limite de créditos ANTES de permitir ativação
+      const { checkAndEnforceCreditLimit } = await import('@/lib/subscription-helper')
+      const creditCheck = await checkAndEnforceCreditLimit(user.id)
+      
+      if (creditCheck.isOutOfCredits) {
+        console.log(`[TOGGLE-AI] Bloqueando ativação - créditos excedidos: ${creditCheck.creditsUsed}/${creditCheck.totalCredits}`)
+        return {
+          error: `Limite de ${creditCheck.totalCredits} créditos excedido (${creditCheck.creditsUsed} usados). Não é possível ativar configurações.`,
+          data: null,
+          creditsExceeded: true
+        };
+      }
+
       const subscription = await checkUserSubscription(user.id);
       
       if (subscription.isBlocked) {

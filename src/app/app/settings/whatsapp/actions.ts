@@ -487,10 +487,65 @@ export async function toggleWhatsAppConnection(connectionId: string, isActive: b
       }
     }
 
+    const connection = connections[0]
+
+    let webhookConfigured = connection.webhookConfigured
+
+    // Se estiver desativando a conexão, remover o webhook
+    if (!isActive && connection.webhookConfigured) {
+      try {
+        const webhookResponse = await fetch(`http://173.249.22.227:31000/v3/bot/${connection.token}/webhook`, {
+          method: 'DELETE',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          }
+        })
+        
+        if (!webhookResponse.ok) {
+          console.warn('Erro ao remover webhook na API externa, mas continuando com a desativação')
+        } else {
+          webhookConfigured = false
+        }
+      } catch (error) {
+        console.error('Erro ao remover webhook:', error)
+        // Continua com a desativação mesmo se falhar ao remover o webhook
+      }
+    }
+
+    // Se estiver ativando a conexão e não tem webhook configurado, criar o webhook
+    if (isActive && !connection.webhookConfigured) {
+      try {
+        const webhookResponse = await fetch(`http://173.249.22.227:31000/v3/bot/${connection.token}/webhook`, {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            url: 'https://n8n.manytalks.com.br/webhook/manytalksia',
+            extra: {
+              id: session.user.id,
+              isIntegrationUser: "false"
+            }
+          })
+        })
+        
+        if (webhookResponse.ok) {
+          webhookConfigured = true
+        } else {
+          console.warn('Erro ao configurar webhook na API externa, mas continuando com a ativação')
+        }
+      } catch (error) {
+        console.error('Erro ao configurar webhook:', error)
+        // Continua com a ativação mesmo se falhar ao configurar o webhook
+      }
+    }
+
     // Atualizar o status da conexão
     await prisma.$executeRaw`
       UPDATE "WhatsAppConnection"
-      SET "isActive" = ${isActive}, "updatedAt" = NOW()
+      SET "isActive" = ${isActive}, "webhookConfigured" = ${webhookConfigured}, "updatedAt" = NOW()
       WHERE "id" = ${connectionId}
     `
 

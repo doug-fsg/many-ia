@@ -6,9 +6,8 @@ import {
   DashboardPageMain,
 } from '@/components/dashboard/page'
 import { AIConfigDataTable } from './_components/ai-config-data-table'
+import { CreateAttendenteButton } from './_components/create-attendente-button'
 import { getUserAIConfigs } from './actions'
-import Link from 'next/link'
-import { Sparkles } from 'lucide-react'
 import { SubscriptionGuardClient } from '@/components/subscription-guard-client'
 
 // Configuração para marcar a página como dinâmica
@@ -30,13 +29,7 @@ export default async function Page() {
             Atendente Virtual
           </DashboardPageHeaderTitle>
           <DashboardPageHeaderNav>
-            <Link
-              href="/app/configuracoes/nova"
-              className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
-            >
-              <Sparkles className="h-4 w-4" />
-              Criar Atendente
-            </Link>
+            <CreateAttendenteButton />
           </DashboardPageHeaderNav>
         </DashboardPageHeader>
         <DashboardPageMain>

@@ -9,6 +9,7 @@ import { z } from 'zod'
 export const upsertAIConfigSchema = z.object({
   id: z.string().optional(),
   isActive: z.boolean().default(true),
+  detectarIdioma: z.boolean().default(false),
   enviarParaAtendente: z.boolean().default(true),
   nomeAtendenteDigital: z
     .string()
@@ -30,25 +31,29 @@ export const upsertAIConfigSchema = z.object({
   attachments: z
     .array(
       z.object({
-        type: z.enum(['link', 'image', 'pdf']),
+        id: z.string().optional(),
+        type: z.enum(['image', 'pdf', 'audio', 'video']),
         content: z.string(),
         description: z.string(),
       }),
     )
     .default([]),
   temasEvitar: z.array(z.union([z.string(), z.object({ tema: z.string() })])).default([]),
-  // Campos para Google Calendar - todos verdadeiramente opcionais
+  // Campos para Google Calendar - todos opcionais
   googleCalendarEnabled: z.boolean().optional(),
   calendarId: z.string().optional(),
   defaultEventDuration: z.number().optional(),
-  workingHoursStart: z.string().optional(),
-  workingHoursEnd: z.string().optional(),
-  allowedDays: z.array(z.string()).optional(),
+  weeklySchedule: z.any().optional(), // JSON object
   minAdvanceTime: z.number().optional(),
   maxAdvanceTime: z.number().optional(),
   defaultReminder: z.number().nullable().optional(),
   reminderMessage: z.string().optional(),
-  autoCreateEvents: z.boolean().optional()
+  autoCreateEvents: z.boolean().optional(),
+  eventType: z.string().optional(),
+  responsibleEmails: z.array(z.string()).optional(),
+  aiPrompt: z.string().optional(),
+  enableScarcityMode: z.boolean().optional(),
+  maxSlotsToShow: z.number().optional()
 })
 
 export const deleteAIConfigSchema = z.object({

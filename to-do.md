@@ -1,0 +1,1 @@
+-Remova o Resumo Estatístico (whatsappSummary) da API

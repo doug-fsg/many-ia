@@ -6,27 +6,21 @@ import { prisma } from '@/lib/prisma';
 import { google } from 'googleapis';
 import { oauth2Client } from '@/lib/google-calendar';
 
-// Utilitário para autenticar via Bearer token, com logs para debug
+// Utilitário para autenticar via Bearer token
 async function getUserIdFromRequest(request: NextRequest) {
   const authHeader = request.headers.get('Authorization');
-  console.log('➡️ Authorization header:', authHeader);
   const token = authHeader?.replace('Bearer ', '');
-  console.log('➡️ Raw token:', token);
   if (!token) return null;
   try {
     const decoded = verifyToken(token);
-    console.log('➡️ Decoded token payload:', decoded);
     return decoded.userId;
   } catch (err) {
-    console.error('❌ verifyToken error:', err);
     return null;
   }
 }
 
 // GET /api/integrations/google-calendar/events
 export async function GET(request: NextRequest) {
-  console.log('\n=== Novo GET /events ===');
-
   // 1) Lê query params
   const { searchParams } = new URL(request.url);
   const calendarId = searchParams.get('calendarId') || 'primary';
@@ -39,13 +33,19 @@ export async function GET(request: NextRequest) {
   if (!userId) {
     userId = await getUserIdFromRequest(request);
   }
-  console.log('➡️ userId final usado:', userId);
   if (!userId) {
-    console.warn('⚠️ Sem userId → 401 Unauthorized');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  console.log('➡️ Query params:', { calendarId, timeMin, timeMax, userId });
+  // Verificar Feature Flag
+  const { hasGoogleCalendarAccess } = await import('@/lib/feature-flags');
+  const hasAccess = await hasGoogleCalendarAccess(userId);
+  if (!hasAccess) {
+    return NextResponse.json(
+      { error: 'Acesso ao Google Calendar não disponível para este usuário' },
+      { status: 403 }
+    );
+  }
 
   // 3) Busca integração no banco
   let integration;
@@ -53,23 +53,55 @@ export async function GET(request: NextRequest) {
     integration = await prisma.googleCalendarIntegration.findUnique({
       where: { userId },
     });
-    console.log('➡️ prisma.findUnique(integration):', integration);
   } catch (dbErr) {
-    console.error('❌ Erro no prisma.findUnique:', dbErr);
+    console.error('Erro no prisma.findUnique:', dbErr);
     return NextResponse.json({ error: 'Erro no banco' }, { status: 500 });
   }
 
   if (!integration) {
-    console.warn(`⚠️ Integração não encontrada para userId=${userId}`);
     return NextResponse.json({ error: 'Integração não encontrada' }, { status: 404 });
   }
 
-  // 4) Configura OAuth2 e chama Google Calendar API
+  // 4) Configura OAuth2 e tenta renovar token se necessário
   oauth2Client.setCredentials({
     access_token:  integration.accessToken,
     refresh_token: integration.refreshToken,
     expiry_date:   integration.expiresAt.getTime(),
   });
+
+  // Tentar renovar token se necessário
+  try {
+    if (integration.expiresAt && new Date() > integration.expiresAt) {
+      const { credentials } = await oauth2Client.refreshAccessToken();
+      
+      // Atualizar tokens no banco
+      await prisma.googleCalendarIntegration.update({
+        where: { id: integration.id },
+        data: {
+          accessToken: credentials.access_token || integration.accessToken,
+          refreshToken: credentials.refresh_token || integration.refreshToken,
+          expiresAt: credentials.expiry_date ? new Date(credentials.expiry_date) : integration.expiresAt,
+        },
+      });
+      
+      // Atualizar credenciais do cliente
+      oauth2Client.setCredentials(credentials);
+    }
+  } catch (refreshError: any) {
+    // Se erro ao renovar, verificar se é invalid_grant
+    if (refreshError?.response?.data?.error === 'invalid_grant' || 
+        refreshError?.message?.includes('invalid_grant') ||
+        refreshError?.response?.data?.error_description?.includes('Token has been expired or revoked')) {
+      return NextResponse.json(
+        { 
+          error: 'REAUTH_REQUIRED',
+          message: 'Sessão expirada. Por favor, reconecte sua conta do Google Calendar.',
+          requiresReauth: true 
+        },
+        { status: 401 }
+      );
+    }
+  }
 
   const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
   try {
@@ -80,11 +112,25 @@ export async function GET(request: NextRequest) {
       singleEvents:  true,
       orderBy:       'startTime',
     });
-    console.log('➡️ Google Calendar API response.items.length:', response.data.items?.length);
     return NextResponse.json({ events: response.data.items || [] });
   } catch (apiErr: any) {
-    console.error('❌ Erro na Google Calendar API:', apiErr);
-    return NextResponse.json({ error: apiErr.message }, { status: 500 });
+    console.error('Erro na Google Calendar API:', apiErr);
+    
+    // Verificar se é erro de token
+    if (apiErr?.response?.data?.error === 'invalid_grant' || 
+        apiErr?.message?.includes('invalid_grant') ||
+        apiErr?.response?.data?.error_description?.includes('Token has been expired or revoked')) {
+      return NextResponse.json(
+        { 
+          error: 'REAUTH_REQUIRED',
+          message: 'Sessão expirada. Por favor, reconecte sua conta do Google Calendar.',
+          requiresReauth: true 
+        },
+        { status: 401 }
+      );
+    }
+    
+    return NextResponse.json({ error: apiErr.message || 'Erro ao buscar eventos' }, { status: 500 });
   }
 }
 
@@ -129,6 +175,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Verificar Feature Flag
+  const { hasGoogleCalendarAccess } = await import('@/lib/feature-flags');
+  const hasAccess = await hasGoogleCalendarAccess(userId);
+  if (!hasAccess) {
+    return NextResponse.json(
+      { error: 'Acesso ao Google Calendar não disponível para este usuário' },
+      { status: 403 }
+    );
+  }
+
   // busca integração
   const integration = await prisma.googleCalendarIntegration.findUnique({
     where: { userId },
@@ -137,12 +193,47 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Integração não encontrada' }, { status: 404 });
   }
 
-  // seta credenciais e insere evento
+  // seta credenciais e tenta renovar token se necessário
   oauth2Client.setCredentials({
     access_token:  integration.accessToken,
     refresh_token: integration.refreshToken,
     expiry_date:   integration.expiresAt.getTime(),
   });
+
+  // Tentar renovar token se necessário
+  try {
+    if (integration.expiresAt && new Date() > integration.expiresAt) {
+      const { credentials } = await oauth2Client.refreshAccessToken();
+      
+      // Atualizar tokens no banco
+      await prisma.googleCalendarIntegration.update({
+        where: { id: integration.id },
+        data: {
+          accessToken: credentials.access_token || integration.accessToken,
+          refreshToken: credentials.refresh_token || integration.refreshToken,
+          expiresAt: credentials.expiry_date ? new Date(credentials.expiry_date) : integration.expiresAt,
+        },
+      });
+      
+      // Atualizar credenciais do cliente
+      oauth2Client.setCredentials(credentials);
+    }
+  } catch (refreshError: any) {
+    // Se erro ao renovar, verificar se é invalid_grant
+    if (refreshError?.response?.data?.error === 'invalid_grant' || 
+        refreshError?.message?.includes('invalid_grant') ||
+        refreshError?.response?.data?.error_description?.includes('Token has been expired or revoked')) {
+      return NextResponse.json(
+        { 
+          error: 'REAUTH_REQUIRED',
+          message: 'Sessão expirada. Por favor, reconecte sua conta do Google Calendar.',
+          requiresReauth: true 
+        },
+        { status: 401 }
+      );
+    }
+  }
+
   const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
   try {
     const sendUpdates = eventData.sendUpdates || undefined;
@@ -157,10 +248,6 @@ export async function POST(request: NextRequest) {
       eventData.conferenceData = conferenceData;
     }
     
-    console.log('🔍 Debug conferenceData:', JSON.stringify(conferenceData, null, 2));
-    console.log('🔍 Debug conferenceDataVersion:', conferenceDataVersion);
-    console.log('🔍 Debug eventData final:', JSON.stringify(eventData, null, 2));
-    
     const response = await calendar.events.insert({
       calendarId,
       requestBody: eventData,
@@ -169,7 +256,22 @@ export async function POST(request: NextRequest) {
     });
     return NextResponse.json({ event: response.data });
   } catch (error: any) {
-    console.error('❌ Erro ao criar evento:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('Erro ao criar evento:', error);
+    
+    // Verificar se é erro de token
+    if (error?.response?.data?.error === 'invalid_grant' || 
+        error?.message?.includes('invalid_grant') ||
+        error?.response?.data?.error_description?.includes('Token has been expired or revoked')) {
+      return NextResponse.json(
+        { 
+          error: 'REAUTH_REQUIRED',
+          message: 'Sessão expirada. Por favor, reconecte sua conta do Google Calendar.',
+          requiresReauth: true 
+        },
+        { status: 401 }
+      );
+    }
+    
+    return NextResponse.json({ error: error.message || 'Erro ao criar evento' }, { status: 500 });
   }
 }

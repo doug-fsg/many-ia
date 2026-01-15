@@ -3,14 +3,14 @@
 import { useState, useRef, useEffect, forwardRef } from 'react'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { ImageIcon, FileTextIcon } from 'lucide-react'
+import { ImageIcon, FileTextIcon, MusicIcon, VideoIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 // @ts-ignore - O pacote não tem tipos
 import getCaretCoordinates from 'textarea-caret-position'
 
 interface Attachment {
   id: string
-  type: 'image' | 'pdf'
+  type: 'image' | 'pdf' | 'audio' | 'video'
   content: string
   description: string
 }
@@ -311,8 +311,12 @@ export const ShortcutField = forwardRef<HTMLInputElement | HTMLTextAreaElement, 
                 >
                   {att.type === 'image' ? (
                     <ImageIcon className="w-4 h-4 mr-2 text-muted-foreground" />
-                  ) : (
+                  ) : att.type === 'pdf' ? (
                     <FileTextIcon className="w-4 h-4 mr-2 text-muted-foreground" />
+                  ) : att.type === 'audio' ? (
+                    <MusicIcon className="w-4 h-4 mr-2 text-muted-foreground" />
+                  ) : (
+                    <VideoIcon className="w-4 h-4 mr-2 text-muted-foreground" />
                   )}
                   <span className="font-medium text-primary">{att.description}</span>
                 </button>

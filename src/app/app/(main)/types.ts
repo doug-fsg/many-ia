@@ -4,6 +4,7 @@ import { getUserAIConfigs } from './actions'
 export type AIConfig = {
   id?: string
   isActive: boolean
+  detectarIdioma?: boolean
   nomeAtendenteDigital: string
   enviarParaAtendente: boolean
   quemEhAtendente: string
@@ -19,10 +20,26 @@ export type AIConfig = {
   userId?: string
   temasEvitar?: Array<{ tema: string }>
   attachments?: Array<{
-    type: 'link' | 'image' | 'pdf'
+    id?: string
+    type: 'image' | 'pdf' | 'audio' | 'video'
     content: string
     description: string
   }>
+  // Campos para Google Calendar
+  googleCalendarEnabled?: boolean
+  calendarId?: string
+  defaultEventDuration?: number
+  weeklySchedule?: any
+  minAdvanceTime?: number
+  maxAdvanceTime?: number
+  defaultReminder?: number
+  reminderMessage?: string
+  autoCreateEvents?: boolean
+  eventType?: string
+  responsibleEmails?: string[]
+  aiPrompt?: string
+  enableScarcityMode?: boolean
+  maxSlotsToShow?: number
 }
 
 export type TemplateStatus = 'PUBLIC' | 'PRIVATE'

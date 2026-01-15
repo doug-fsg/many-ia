@@ -1,0 +1,551 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import { requireSuperAdmin } from '@/lib/super-admin-auth'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Progress } from '@/components/ui/progress'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { 
+  ArrowLeft, 
+  Activity, 
+  DollarSign, 
+  Calendar,
+  Phone,
+  MessageSquare,
+  TrendingUp,
+  AlertCircle,
+  RefreshCw,
+  UserCog
+} from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Input } from '@/components/ui/input'
+import { FeatureFlagsManager } from './_components/feature-flags-manager'
+
+interface ClientDetails {
+  id: string
+  name: string | null
+  email: string | null
+  customCreditLimit: number | null
+  stripeSubscriptionStatus: string | null
+  monthlyStats: {
+    interactions: number
+    value: number
+    usagePercentage: number
+  }
+  recentInteractions: Array<{
+    id: string
+    name: string | null
+    phoneNumber: string | null
+    value: number
+    createdAt: Date
+    status: string | null
+  }>
+  monthlyHistory: Array<{
+    month: string
+    interactions: number
+    value: number
+  }>
+  pagination: {
+    currentPage: number
+    totalPages: number
+    totalInteractions: number
+    hasNextPage: boolean
+    hasPrevPage: boolean
+    limit: number
+  }
+}
+
+export default function ClientDetailPage() {
+  const params = useParams()
+  const router = useRouter()
+  const [clientData, setClientData] = useState<ClientDetails | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString())
+  const [selectedMonth, setSelectedMonth] = useState((new Date().getMonth() + 1).toString())
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
+  const [isImpersonating, setIsImpersonating] = useState(false)
+
+  useEffect(() => {
+    if (!requireSuperAdmin()) return
+
+    fetchClientData()
+  }, [params.clientId, selectedYear, selectedMonth, currentPage, itemsPerPage])
+
+  const fetchClientData = async () => {
+    try {
+      const monthParam = `${selectedYear}-${selectedMonth.padStart(2, '0')}`
+      const response = await fetch(`/api/super_admin/clients/${params.clientId}?month=${monthParam}&page=${currentPage}&limit=${itemsPerPage}`)
+      const data = await response.json()
+      
+      if (data.success) {
+        setClientData(data.client)
+      }
+    } catch (error) {
+      console.error('Erro ao carregar dados do cliente:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value)
+  }
+
+  const formatDate = (date: Date) => {
+    return new Intl.DateTimeFormat('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(new Date(date))
+  }
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+  }
+
+  const handleItemsPerPageChange = (value: string) => {
+    setItemsPerPage(parseInt(value))
+    setCurrentPage(1) // Reset to first page when changing items per page
+  }
+
+  const handleImpersonate = async () => {
+    setIsImpersonating(true)
+    
+    try {
+      const superAdminUser = JSON.parse(sessionStorage.getItem('super_admin_user') || '{}')
+      
+      const response = await fetch('/api/super_admin/impersonate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          userId: params.clientId,
+          superAdminEmail: superAdminUser.email 
+        })
+      })
+      
+      const data = await response.json()
+      
+      if (data.success) {
+        // Abrir em nova aba
+        window.open(data.impersonateUrl, '_blank')
+      } else {
+        alert(`Erro ao acessar conta: ${data.message}`)
+      }
+    } catch (error) {
+      console.error('Erro ao impersonar usuário:', error)
+      alert('Erro ao acessar conta do usuário')
+    } finally {
+      setIsImpersonating(false)
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Carregando dados do cliente...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!clientData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Cliente não encontrado</h2>
+          <p className="text-muted-foreground mb-4">O cliente solicitado não existe ou não pôde ser carregado.</p>
+          <Button onClick={() => router.push('/super_admin/dashboard')}>
+            Voltar ao Dashboard
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Header */}
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between py-6">
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center space-x-4">
+                <Button 
+                  variant="ghost" 
+                  onClick={() => router.push('/super_admin/dashboard')}
+                  className="flex items-center gap-2"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Voltar
+                </Button>
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                    {clientData.name || 'Cliente sem nome'}
+                  </h1>
+                  <p className="text-gray-600 dark:text-gray-400">{clientData.email}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <Button 
+                  onClick={handleImpersonate}
+                  variant="default"
+                  size="sm"
+                  className="flex items-center gap-2"
+                  disabled={isImpersonating}
+                >
+                  <UserCog className="w-4 h-4" />
+                  {isImpersonating ? 'Acessando...' : 'Acessar Conta'}
+                </Button>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(e.target.value)}
+                    className="w-20"
+                    placeholder="Ano"
+                  />
+                  <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                    <SelectTrigger className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">Janeiro</SelectItem>
+                      <SelectItem value="2">Fevereiro</SelectItem>
+                      <SelectItem value="3">Março</SelectItem>
+                      <SelectItem value="4">Abril</SelectItem>
+                      <SelectItem value="5">Maio</SelectItem>
+                      <SelectItem value="6">Junho</SelectItem>
+                      <SelectItem value="7">Julho</SelectItem>
+                      <SelectItem value="8">Agosto</SelectItem>
+                      <SelectItem value="9">Setembro</SelectItem>
+                      <SelectItem value="10">Outubro</SelectItem>
+                      <SelectItem value="11">Novembro</SelectItem>
+                      <SelectItem value="12">Dezembro</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button 
+                  onClick={fetchClientData}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Atualizar
+                </Button>
+                <Badge variant="outline" className="text-base px-3 py-1">
+                  {clientData.stripeSubscriptionStatus === 'active' ? 'Ativo' : 'Inativo'}
+                </Badge>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Overview Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <Activity className="h-8 w-8 text-blue-600" />
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                    Interações (Mês)
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {clientData.monthlyStats.interactions.toLocaleString()}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <DollarSign className="h-8 w-8 text-green-600" />
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                    Valor (Mês)
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {formatCurrency(clientData.monthlyStats.value)}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <TrendingUp className="h-8 w-8 text-purple-600" />
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                    Limite Mensal
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {(clientData.customCreditLimit || 10000).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <Calendar className="h-8 w-8 text-orange-600" />
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                    Uso do Limite
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {clientData.monthlyStats.usagePercentage.toFixed(1)}%
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Usage Progress */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Uso do Limite Mensal</CardTitle>
+            <CardDescription>
+              Acompanhe o consumo de interações em relação ao limite configurado
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex justify-between text-sm">
+                <span>Interações utilizadas</span>
+                <span>{clientData.monthlyStats.interactions} / {clientData.customCreditLimit || 10000}</span>
+              </div>
+              <Progress 
+                value={clientData.monthlyStats.usagePercentage} 
+                className={`h-3 ${clientData.monthlyStats.usagePercentage > 100 ? 'bg-red-200' : ''}`}
+              />
+              {clientData.monthlyStats.usagePercentage > 100 && (
+                <div className="flex items-center gap-2 text-red-600 text-sm">
+                  <AlertCircle className="w-4 h-4" />
+                  Cliente está acima do limite configurado
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Tabs Content */}
+        <Tabs defaultValue="interactions" className="space-y-6">
+          <TabsList>
+            <TabsTrigger value="interactions">Interações Recentes</TabsTrigger>
+            <TabsTrigger value="history">Histórico Mensal</TabsTrigger>
+            <TabsTrigger value="feature-flags">Feature Flags</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="interactions">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Interações Recentes</CardTitle>
+                    <CardDescription>
+                      Últimas interações registradas para este cliente
+                    </CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-500">Itens por página:</span>
+                    <Select value={itemsPerPage.toString()} onValueChange={handleItemsPerPageChange}>
+                      <SelectTrigger className="w-20">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="5">5</SelectItem>
+                        <SelectItem value="10">10</SelectItem>
+                        <SelectItem value="20">20</SelectItem>
+                        <SelectItem value="50">50</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Contato</TableHead>
+                      <TableHead>Telefone</TableHead>
+                      <TableHead>Valor</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Data</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {clientData.recentInteractions.map((interaction) => (
+                      <TableRow key={interaction.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <MessageSquare className="w-4 h-4 text-gray-400" />
+                            {interaction.name || 'Sem nome'}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Phone className="w-4 h-4 text-gray-400" />
+                            {interaction.phoneNumber || 'N/A'}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {formatCurrency(interaction.value)}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {interaction.status || 'N/A'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {formatDate(interaction.createdAt)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                
+                {clientData.recentInteractions.length === 0 && (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">Nenhuma interação recente encontrada</p>
+                  </div>
+                )}
+                
+                {/* Pagination Controls */}
+                {clientData.pagination && clientData.pagination.totalPages > 1 && (
+                  <div className="flex items-center justify-between mt-6">
+                    <div className="text-sm text-gray-500">
+                      Mostrando {((clientData.pagination.currentPage - 1) * clientData.pagination.limit) + 1} a{' '}
+                      {Math.min(clientData.pagination.currentPage * clientData.pagination.limit, clientData.pagination.totalInteractions)} de{' '}
+                      {clientData.pagination.totalInteractions} interações
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange(clientData.pagination.currentPage - 1)}
+                        disabled={!clientData.pagination.hasPrevPage}
+                      >
+                        Anterior
+                      </Button>
+                      
+                      {/* Page numbers */}
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: Math.min(5, clientData.pagination.totalPages) }, (_, i) => {
+                          let pageNum;
+                          if (clientData.pagination.totalPages <= 5) {
+                            pageNum = i + 1;
+                          } else if (clientData.pagination.currentPage <= 3) {
+                            pageNum = i + 1;
+                          } else if (clientData.pagination.currentPage >= clientData.pagination.totalPages - 2) {
+                            pageNum = clientData.pagination.totalPages - 4 + i;
+                          } else {
+                            pageNum = clientData.pagination.currentPage - 2 + i;
+                          }
+                          
+                          return (
+                            <Button
+                              key={pageNum}
+                              variant={clientData.pagination.currentPage === pageNum ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => handlePageChange(pageNum)}
+                              className="w-8 h-8 p-0"
+                            >
+                              {pageNum}
+                            </Button>
+                          );
+                        })}
+                      </div>
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange(clientData.pagination.currentPage + 1)}
+                        disabled={!clientData.pagination.hasNextPage}
+                      >
+                        Próximo
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="history">
+            <Card>
+              <CardHeader>
+                <CardTitle>Histórico Mensal</CardTitle>
+                <CardDescription>
+                  Evolução do uso de interações e valores ao longo dos meses
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Mês</TableHead>
+                      <TableHead>Interações</TableHead>
+                      <TableHead>Valor Total</TableHead>
+                      <TableHead>% do Limite</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {clientData.monthlyHistory.map((month, index) => (
+                      <TableRow key={index}>
+                        <TableCell className="font-medium">{month.month}</TableCell>
+                        <TableCell>{month.interactions.toLocaleString()}</TableCell>
+                        <TableCell>{formatCurrency(month.value)}</TableCell>
+                        <TableCell>
+                          <Badge variant={
+                            (month.interactions / (clientData.customCreditLimit || 10000)) * 100 > 100 
+                              ? 'destructive' 
+                              : 'outline'
+                          }>
+                            {(((month.interactions / (clientData.customCreditLimit || 10000)) * 100).toFixed(1))}%
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+
+                {clientData.monthlyHistory.length === 0 && (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">Nenhum histórico disponível</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="feature-flags">
+            <FeatureFlagsManager clientId={params.clientId as string} />
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
+  )
+}

@@ -56,7 +56,17 @@ export async function getGoogleCalendarClient(userId: string) {
       
       // Atualizar as credenciais do cliente
       oauth2Client.setCredentials(credentials);
-    } catch (error) {
+    } catch (error: any) {
+      // Se o refresh token foi revogado ou expirou, lançar erro específico
+      if (error?.response?.data?.error === 'invalid_grant' || 
+          error?.message?.includes('invalid_grant') ||
+          error?.response?.data?.error_description?.includes('Token has been expired or revoked')) {
+        const tokenError: any = new Error('REAUTH_REQUIRED');
+        tokenError.code = 'REAUTH_REQUIRED';
+        tokenError.message = 'Sessão expirada. Por favor, reconecte sua conta do Google Calendar.';
+        throw tokenError;
+      }
+      
       console.error('Erro ao renovar token:', error);
       throw new Error('Falha ao renovar token de acesso');
     }

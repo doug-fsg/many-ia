@@ -4,68 +4,85 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Light theme - Design amigável com tons suaves */
+    --background: 0 0% 99%;
+    --foreground: 240 6% 10%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 240 6% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 240 6% 10%;
 
-    --primary: 262 83% 58%;
-    --primary-foreground: 210 40% 98%;
+    /* Roxo principal - mantendo a identidade */
+    --primary: 260 84% 60%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Tons neutros suaves para melhor legibilidade */
+    --secondary: 240 6% 96%;
+    --secondary-foreground: 240 6% 15%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 4% 46%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 260 20% 95%;
+    --accent-foreground: 260 84% 60%;
 
-    --success: 142 72% 29%;
-    --success-foreground: 213 40% 98%;
+    --success: 142 70% 45%;
+    --success-foreground: 0 0% 100%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 262 83% 58%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --radius: 0.5rem;
+    /* Bordas e inputs mais suaves */
+    --border: 240 6% 90%;
+    --input: 240 6% 94%;
+    --ring: 260 84% 60%;
+
+    --radius: 0.75rem;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    /* Dark theme - Inspirado em apps musicais modernos */
+    --background: 240 10% 4%;
+    --foreground: 0 0% 95%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 240 8% 6%;
+    --card-foreground: 0 0% 95%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 240 8% 6%;
+    --popover-foreground: 0 0% 95%;
 
-    --primary: 262 83% 58%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    /* Roxo vibrante para o modo escuro */
+    --primary: 260 84% 65%;
+    --primary-foreground: 240 10% 4%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    /* Tons escuros suaves */
+    --secondary: 240 8% 12%;
+    --secondary-foreground: 0 0% 85%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 240 8% 12%;
+    --muted-foreground: 240 5% 65%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 260 30% 15%;
+    --accent-foreground: 260 84% 65%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --success: 142 70% 50%;
+    --success-foreground: 240 10% 4%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 262 83% 58%;
+    --warning: 38 92% 55%;
+    --warning-foreground: 240 10% 4%;
+
+    --destructive: 0 84% 65%;
+    --destructive-foreground: 240 10% 4%;
+
+    /* Bordas sutis no modo escuro */
+    --border: 240 8% 15%;
+    --input: 240 8% 12%;
+    --ring: 260 84% 65%;
   }
 }
 
@@ -79,36 +96,91 @@
 }
 
 @layer utilities {
+  /* Animações suaves e amigáveis */
   .animate-fadeIn {
-    animation: fadeIn 0.3s ease-in;
+    animation: fadeIn 0.4s ease-out;
   }
   
   .animate-fadeOut {
-    animation: fadeOut 0.3s ease-out forwards;
+    animation: fadeOut 0.3s ease-in forwards;
   }
 
+  .animate-slideUp {
+    animation: slideUp 0.5s ease-out;
+  }
+
+  .animate-scaleIn {
+    animation: scaleIn 0.3s ease-out;
+  }
+
+  /* Efeitos modernos inspirados em apps musicais */
   .glass-effect {
-    @apply bg-white/80 backdrop-blur-lg border border-white/20;
+    @apply bg-background/80 backdrop-blur-xl border border-border/50 shadow-xl;
+  }
+
+  .glass-card {
+    @apply bg-card/95 backdrop-blur-sm border border-border/50 rounded-xl shadow-lg;
   }
 
   .text-gradient {
-    @apply bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-primary via-primary/80 to-accent-foreground bg-clip-text text-transparent;
   }
 
   .button-gradient {
-    @apply bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 transition-all duration-300;
+    @apply bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all duration-300 shadow-lg hover:shadow-xl;
   }
 
+  /* Interações suaves */
   .hover-lift {
-    @apply transition-transform duration-300 hover:-translate-y-1;
+    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-lg;
+  }
+
+  .hover-scale {
+    @apply transition-transform duration-200 hover:scale-105;
+  }
+
+  .hover-glow {
+    @apply transition-all duration-300 hover:shadow-lg hover:shadow-primary/20;
+  }
+
+  /* Sombras e bordas amigáveis */
+  .shadow-soft {
+    @apply shadow-lg shadow-black/5;
   }
 
   .shadow-glow {
-    @apply shadow-lg shadow-primary/25;
+    @apply shadow-xl shadow-primary/15;
+  }
+
+  .border-soft {
+    @apply border border-border/60;
   }
 
   .border-glow {
-    @apply border border-primary/20;
+    @apply border border-primary/30;
+  }
+
+  /* Cards com visual moderno */
+  .card-modern {
+    @apply bg-card rounded-xl border border-border/50 shadow-soft hover:shadow-glow transition-all duration-300;
+  }
+
+  .card-interactive {
+    @apply card-modern hover:border-primary/30 hover:-translate-y-1 cursor-pointer;
+  }
+
+  /* Botões com estilo amigável */
+  .btn-soft {
+    @apply bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-lg transition-all duration-200 hover:shadow-md;
+  }
+
+  .btn-primary-soft {
+    @apply bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-all duration-200 hover:shadow-lg hover:shadow-primary/25;
+  }
+
+  /* Inputs modernos */
+  .input-modern {
+    @apply bg-input border-border/60 rounded-lg focus:border-primary/60 focus:ring-2 focus:ring-primary/20 transition-all duration-200;
   }
 
   /* Estilos para destacar atalhos */
@@ -142,10 +214,11 @@
   }
 }
 
+/* Animações suaves e amigáveis */
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(-100%);
+    transform: translateY(20px);
   }
   to {
     opacity: 1;
@@ -160,7 +233,38 @@
   }
   to {
     opacity: 0;
-    transform: translateY(-100%);
+    transform: translateY(-20px);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
   }
 }
 

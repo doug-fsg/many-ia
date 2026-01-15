@@ -26,6 +26,15 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Verificar Feature Flag
+    const { hasGoogleCalendarAccess } = await import('@/lib/feature-flags');
+    const hasAccess = await hasGoogleCalendarAccess(session.user.id);
+    if (!hasAccess) {
+      const redirectUrl = new URL('/app/settings/integrations', process.env.NEXT_PUBLIC_APP_URL);
+      redirectUrl.searchParams.set('error', 'feature-not-available');
+      return NextResponse.redirect(redirectUrl);
+    }
+
     // Trocar o código por tokens
     const { tokens } = await oauth2Client.getToken(code);
     

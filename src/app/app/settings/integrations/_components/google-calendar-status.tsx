@@ -7,6 +7,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import useSWR from 'swr';
+import { useGoogleCalendarAccess } from '@/hooks/use-feature-flags';
 
 interface GoogleCalendarIntegration {
   id: string;
@@ -26,6 +27,12 @@ export function GoogleCalendarStatus() {
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
+  const { hasAccess, isLoading: isLoadingAccess } = useGoogleCalendarAccess();
+
+  // Não renderizar se não tiver acesso
+  if (!isLoadingAccess && !hasAccess) {
+    return null;
+  }
 
   const { data, error, isLoading, mutate } = useSWR(
     '/api/integrations/google-calendar/status',

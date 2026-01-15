@@ -34,7 +34,7 @@ interface Step {
 
 interface Attachment {
   id: string
-  type: 'image' | 'pdf'
+  type: 'image' | 'pdf' | 'audio' | 'video'
   content: string
   description: string
 }

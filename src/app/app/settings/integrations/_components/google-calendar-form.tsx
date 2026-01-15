@@ -28,6 +28,7 @@ import { toast } from '@/components/ui/use-toast';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import useSWR from 'swr';
+import { useGoogleCalendarAccess } from '@/hooks/use-feature-flags';
 
 const diasDaSemana = [
   { value: '1', label: 'Segunda-feira' },
@@ -66,6 +67,12 @@ interface GoogleCalendarFormProps {
 export function GoogleCalendarForm({ onSuccess }: GoogleCalendarFormProps) {
   const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
+  const { hasAccess, isLoading: isLoadingAccess } = useGoogleCalendarAccess();
+
+  // Não renderizar se não tiver acesso
+  if (!isLoadingAccess && !hasAccess) {
+    return null;
+  }
 
   // Buscar status da integração
   const { data: statusData } = useSWR('/api/integrations/google-calendar/status', fetcher, {

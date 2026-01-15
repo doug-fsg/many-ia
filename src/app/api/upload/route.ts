@@ -3,6 +3,15 @@ import { writeFile, mkdir } from 'fs/promises'
 import path from 'path'
 import { auth } from '@/services/auth'
 
+// Função simples para sanitizar nomes de arquivos
+function sanitizeFileName(fileName: string): string {
+  return fileName
+    .replace(/\s+/g, '_') // Substitui espaços por underscore
+    .replace(/[<>:"/\\|?*]/g, '_') // Remove caracteres problemáticos do Windows
+    .replace(/__+/g, '_') // Remove underscores múltiplos
+    .replace(/^_|_$/g, '') // Remove underscores no início e fim
+}
+
 export async function POST(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.id) {
@@ -25,7 +34,10 @@ export async function POST(req: NextRequest) {
 
     const uploadDir = path.join(process.cwd(), 'private', 'uploads')
     await mkdir(uploadDir, { recursive: true })
-    const fileName = `${Date.now()}-${file.name}`
+    
+    // Sanitizar o nome do arquivo
+    const sanitizedName = sanitizeFileName(file.name)
+    const fileName = `${Date.now()}-${sanitizedName}`
     const filePath = path.join(uploadDir, fileName)
 
     await writeFile(filePath, buffer)
