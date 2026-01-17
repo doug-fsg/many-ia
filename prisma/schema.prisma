@@ -134,10 +134,10 @@ model Attachment {
   type        String
   content     String
   description String
-  aiConfigId  String
+  aiConfigId  String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  aiConfig    AIConfig @relation(fields: [aiConfigId], references: [id], onDelete: Cascade)
+  aiConfig    AIConfig? @relation(fields: [aiConfigId], references: [id], onDelete: Cascade)
 
   @@index([aiConfigId])
 }

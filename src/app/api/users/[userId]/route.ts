@@ -60,6 +60,7 @@ export async function GET(
               select: {
                 id: true,
                 type: true,
+                content: true,
                 description: true,
                 createdAt: true,
                 updatedAt: true,
