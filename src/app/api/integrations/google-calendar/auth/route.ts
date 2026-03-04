@@ -23,7 +23,10 @@ export async function GET(request: Request) {
       );
     }
 
-    // Gerar URL de autenticação
+    // Gerar URL de autenticação (redirect_uri deve bater com Google Cloud Console)
+    const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/integrations/google-calendar/callback`;
+    console.log('[GoogleCalendar] Auth iniciado, redirect_uri:', redirectUri);
+
     const authUrl = oauth2Client.generateAuthUrl({
       access_type: 'offline',
       scope: SCOPES,

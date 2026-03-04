@@ -4,17 +4,31 @@ import { prisma } from '@/lib/prisma';
 import { auth } from '@/services/auth'; // Importação corrigida
 import { oauth2Client } from '@/lib/google-calendar';
 
+const LOG_PREFIX = '[GoogleCalendar]';
+
 export async function GET(request: NextRequest) {
+  const url = new URL(request.url);
+  const code = url.searchParams.get('code');
+  const googleError = url.searchParams.get('error');
+
+  console.log(LOG_PREFIX, 'Callback recebido', { hasCode: !!code, googleError: googleError ?? null });
+
   try {
-    // Obter o código de autorização da URL
-    const url = new URL(request.url);
-    const code = url.searchParams.get('code');
+    // Google pode retornar error na URL (ex: access_denied, redirect_uri_mismatch)
+    if (googleError) {
+      const errorDetail = url.searchParams.get('error_description') ?? googleError;
+      console.log(LOG_PREFIX, 'Erro do Google na URL:', googleError, errorDetail);
+      const redirectUrl = new URL('/app/settings/integrations', process.env.NEXT_PUBLIC_APP_URL);
+      redirectUrl.searchParams.set('error', 'google-calendar');
+      redirectUrl.searchParams.set('detail', googleError);
+      return NextResponse.redirect(redirectUrl);
+    }
 
     if (!code) {
-      return NextResponse.json(
-        { error: 'Código de autorização ausente' },
-        { status: 400 }
-      );
+      console.log(LOG_PREFIX, 'Código de autorização ausente');
+      const redirectUrl = new URL('/app/settings/integrations', process.env.NEXT_PUBLIC_APP_URL);
+      redirectUrl.searchParams.set('error', 'google-calendar');
+      return NextResponse.redirect(redirectUrl);
     }
 
     // Obter a sessão do usuário atual
@@ -100,7 +114,10 @@ export async function GET(request: NextRequest) {
     // Redirecionar para a página de configurações com mensagem de sucesso
     return NextResponse.redirect(redirectUrl);
   } catch (error) {
-    console.error('Erro no callback do Google Calendar:', error);
+    const err = error as Error & { response?: { data?: unknown }; code?: string };
+    const msg = err?.message ?? String(error);
+    const extra = err?.code ?? (err?.response as { data?: unknown })?.data ?? '';
+    console.error(LOG_PREFIX, 'Callback erro:', msg, extra ? `| extra: ${String(extra)}` : '');
 
     const redirectUrl = new URL('/app/settings/integrations', process.env.NEXT_PUBLIC_APP_URL);
     redirectUrl.searchParams.set('error', 'google-calendar');
