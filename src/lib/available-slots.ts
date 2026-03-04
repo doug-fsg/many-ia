@@ -147,6 +147,10 @@ export async function calculateAvailableSlots(
     durationMinutes?: number;
     minAdvanceTimeHours?: number;
     maxAdvanceTimeDays?: number;
+    /** Quando informado, substitui o cálculo baseado em minAdvanceTime */
+    timeMin?: Date;
+    /** Quando informado, substitui o cálculo baseado em maxAdvanceTime */
+    timeMax?: Date;
     enableScarcityMode?: boolean;
     maxSlotsToShow?: number;
     timezone?: string;
@@ -158,14 +162,18 @@ export async function calculateAvailableSlots(
     durationMinutes = DEFAULT_DURATION,
     minAdvanceTimeHours = DEFAULT_MIN_ADVANCE_HOURS,
     maxAdvanceTimeDays = DEFAULT_MAX_ADVANCE_DAYS,
+    timeMin: paramTimeMin,
+    timeMax: paramTimeMax,
     enableScarcityMode = false,
     maxSlotsToShow = 5,
     timezone = DEFAULT_TIMEZONE,
   } = params;
 
   const now = new Date();
-  const minStart = addMinutesToDate(now, minAdvanceTimeHours * 60);
-  const maxEnd = addMinutesToDate(now, maxAdvanceTimeDays * 24 * 60);
+  const minStart =
+    paramTimeMin ?? addMinutesToDate(now, minAdvanceTimeHours * 60);
+  const maxEnd =
+    paramTimeMax ?? addMinutesToDate(now, maxAdvanceTimeDays * 24 * 60);
 
   let slots = generateCandidateSlots(
     weeklySchedule,

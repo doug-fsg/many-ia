@@ -53,6 +53,8 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const configId = searchParams.get('configId');
   const timezone = searchParams.get('timezone') || 'America/Sao_Paulo';
+  const timeMinParam = searchParams.get('timeMin');
+  const timeMaxParam = searchParams.get('timeMax');
 
   const whereClause: { userId: string; googleCalendarEnabled: boolean; id?: string } = {
     userId,
@@ -89,8 +91,26 @@ export async function GET(request: NextRequest) {
   const now = new Date();
   const minAdvanceHours = aiConfig.minAdvanceTime ?? 0;
   const maxAdvanceDays = aiConfig.maxAdvanceTime ?? 30;
-  const timeMin = new Date(now.getTime() + minAdvanceHours * 60 * 60 * 1000);
-  const timeMax = new Date(now.getTime() + maxAdvanceDays * 24 * 60 * 60 * 1000);
+
+  const timeMin = timeMinParam
+    ? new Date(timeMinParam)
+    : new Date(now.getTime() + minAdvanceHours * 60 * 60 * 1000);
+  const timeMax = timeMaxParam
+    ? new Date(timeMaxParam)
+    : new Date(now.getTime() + maxAdvanceDays * 24 * 60 * 60 * 1000);
+
+  if (isNaN(timeMin.getTime()) || isNaN(timeMax.getTime())) {
+    return NextResponse.json(
+      { error: 'timeMin e timeMax devem ser datas válidas (ISO 8601)' },
+      { status: 400 }
+    );
+  }
+  if (timeMin >= timeMax) {
+    return NextResponse.json(
+      { error: 'timeMin deve ser anterior a timeMax' },
+      { status: 400 }
+    );
+  }
 
   let calendarEvents: Array<{ start?: { dateTime?: string; date?: string }; end?: { dateTime?: string; date?: string } }> = [];
   try {
@@ -124,6 +144,8 @@ export async function GET(request: NextRequest) {
     durationMinutes: aiConfig.defaultEventDuration ?? 60,
     minAdvanceTimeHours: minAdvanceHours,
     maxAdvanceTimeDays: maxAdvanceDays,
+    timeMin,
+    timeMax,
     enableScarcityMode: aiConfig.enableScarcityMode ?? false,
     maxSlotsToShow: aiConfig.maxSlotsToShow ?? 5,
     timezone,

@@ -69,6 +69,8 @@ Os slots retornados vão de **hoje** (apenas horários futuros) até **daqui a X
 | `userId`   | Sim*        | ID do usuário dono da integração. *Obrigatório quando usa MASTER_KEY*    |
 | `configId` | Não         | ID da AIConfig. Se omitido, usa a primeira com Google Calendar ativo     |
 | `timezone` | Não         | Timezone para os horários. Default: `America/Sao_Paulo`                   |
+| `timeMin`  | Não         | Início da janela (ISO 8601). Quando omitido, usa `minAdvanceTime` da config |
+| `timeMax`  | Não         | Fim da janela (ISO 8601). Quando omitido, usa `maxAdvanceTime` da config   |
 
 ### Autenticação
 
@@ -95,6 +97,13 @@ curl -X GET "https://seu-dominio.com/api/integrations/google-calendar/available-
 
 ```sh
 curl -X GET "https://seu-dominio.com/api/integrations/google-calendar/available-slots?userId=xxx&configId=yyy&timezone=America/Sao_Paulo" \
+  -H "Authorization: Bearer SUA_MASTER_KEY"
+```
+
+### Exemplo com timeMin e timeMax (filtrar por período)
+
+```sh
+curl -X GET "https://seu-dominio.com/api/integrations/google-calendar/available-slots?userId=xxx&timeMin=2025-03-10T00:00:00-03:00&timeMax=2025-03-15T23:59:59-03:00" \
   -H "Authorization: Bearer SUA_MASTER_KEY"
 ```
 
