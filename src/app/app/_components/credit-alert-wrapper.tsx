@@ -5,6 +5,12 @@ import { prisma } from '@/services/database'
 // Cache simples para evitar webhooks duplicados (resetado a cada restart da aplicação)
 const webhookCache = new Map<string, number>()
 
+const debugLog = (...args: unknown[]) => {
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(...args)
+  }
+}
+
 // Função para enviar webhook de alerta de créditos
 async function sendCreditWebhook(userId: string, userEmail: string, percentage: number, creditsUsed: number, totalCredits: number) {
   const webhookUrl = process.env.WEBHOOK
@@ -80,17 +86,17 @@ export async function CreditAlertWrapper({ userId }: { userId: string }) {
     const webhookThresholds = [70, 80, 90, 100]
     let highestThresholdReached = 0
     
-    console.log(`[WEBHOOK-DEBUG] Usuário ${user.email}: ${usagePercentage.toFixed(2)}% de uso`);
+    debugLog(`[WEBHOOK-DEBUG] Usuário ${user.email}: ${usagePercentage.toFixed(2)}% de uso`);
     
     // Encontrar o maior threshold atingido
     for (const threshold of webhookThresholds) {
       if (usagePercentage >= threshold) {
         highestThresholdReached = threshold
-        console.log(`[WEBHOOK-DEBUG] Threshold ${threshold}% atingido`);
+        debugLog(`[WEBHOOK-DEBUG] Threshold ${threshold}% atingido`);
       }
     }
     
-    console.log(`[WEBHOOK-DEBUG] Maior threshold: ${highestThresholdReached}%`);
+    debugLog(`[WEBHOOK-DEBUG] Maior threshold: ${highestThresholdReached}%`);
     
     // Enviar webhook para o maior threshold atingido
     if (highestThresholdReached > 0) {
@@ -99,18 +105,18 @@ export async function CreditAlertWrapper({ userId }: { userId: string }) {
       const now = Date.now()
       const timeSinceLastSent = (now - lastSent) / (1000 * 60 * 60) // em horas
       
-      console.log(`[WEBHOOK-DEBUG] Cache key: ${cacheKey}, última vez enviado: ${timeSinceLastSent.toFixed(1)}h atrás`);
+      debugLog(`[WEBHOOK-DEBUG] Cache key: ${cacheKey}, última vez enviado: ${timeSinceLastSent.toFixed(1)}h atrás`);
       
       // Enviar apenas se não foi enviado nas últimas 24 horas
       if (now - lastSent > 24 * 60 * 60 * 1000) {
-        console.log(`[WEBHOOK-DEBUG] Enviando webhook de ${highestThresholdReached}%`);
+        debugLog(`[WEBHOOK-DEBUG] Enviando webhook de ${highestThresholdReached}%`);
         await sendCreditWebhook(userId, user.email, highestThresholdReached, creditsUsed, totalCredits)
         webhookCache.set(cacheKey, now)
       } else {
-        console.log(`[WEBHOOK-DEBUG] Webhook de ${highestThresholdReached}% bloqueado pelo cache (${timeSinceLastSent.toFixed(1)}h < 24h)`);
+        debugLog(`[WEBHOOK-DEBUG] Webhook de ${highestThresholdReached}% bloqueado pelo cache (${timeSinceLastSent.toFixed(1)}h < 24h)`);
       }
     } else {
-      console.log(`[WEBHOOK-DEBUG] Nenhum threshold atingido para ${usagePercentage.toFixed(2)}%`);
+      debugLog(`[WEBHOOK-DEBUG] Nenhum threshold atingido para ${usagePercentage.toFixed(2)}%`);
     }
 
     // Se créditos excedidos, desativar todas as configurações automaticamente

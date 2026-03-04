@@ -76,6 +76,33 @@ export async function getGoogleCalendarClient(userId: string) {
   return google.calendar({ version: 'v3', auth: oauth2Client });
 }
 
+// Função para listar eventos do Google Calendar
+export async function getCalendarEvents(
+  userId: string,
+  options: {
+    calendarId?: string;
+    timeMin?: Date;
+    timeMax?: Date;
+  }
+) {
+  const calendar = await getGoogleCalendarClient(userId);
+  const integration = await prisma.googleCalendarIntegration.findUnique({
+    where: { userId },
+    select: { calendarId: true },
+  });
+  const calendarId = options.calendarId || integration?.calendarId || 'primary';
+
+  const response = await calendar.events.list({
+    calendarId,
+    timeMin: options.timeMin?.toISOString(),
+    timeMax: options.timeMax?.toISOString(),
+    singleEvents: true,
+    orderBy: 'startTime',
+  });
+
+  return response.data.items || [];
+}
+
 // Função para criar um evento no Google Calendar
 export async function createCalendarEvent({
   userId,

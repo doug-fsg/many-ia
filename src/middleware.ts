@@ -108,12 +108,14 @@ export async function middleware(req: NextRequest) {
     
     // Redireciona para auth se tentar acessar o app e não estiver logado
     if (pathname.includes('/app') && !isAuthenticated) {
-      console.log('[MIDDLEWARE] Usuário não autenticado tentando acessar /app, redirecionando para /auth')
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('[MIDDLEWARE] Usuário não autenticado tentando acessar /app, redirecionando para /auth')
+      }
       return NextResponse.redirect(new URL(getUrl('/auth')))
     }
     
-    // Se está acessando /app e está autenticado, permitir acesso
-    if (pathname.includes('/app') && isAuthenticated) {
+    // Se está acessando /app e está autenticado, permitir acesso (log só em dev)
+    if (pathname.includes('/app') && isAuthenticated && process.env.NODE_ENV !== 'production') {
       console.log('[MIDDLEWARE] Usuário autenticado acessando /app, permitido')
     }
 

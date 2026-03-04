@@ -44,6 +44,90 @@ curl -X GET "http://localhost:3000/api/integrations/google-calendar/events?userI
 
 ---
 
+## Horários disponíveis (para IA)
+
+**GET** `/api/integrations/google-calendar/available-slots`
+
+Retorna slots disponíveis considerando `weeklySchedule` e eventos já agendados no Google Calendar. Apenas horários futuros.
+
+### Quando usar
+
+Use este endpoint quando a IA precisar **mostrar horários disponíveis** para o usuário agendar. Fluxo típico:
+
+1. Usuário pede para agendar → IA chama `available-slots`
+2. IA exibe as opções ao usuário
+3. Usuário escolhe um horário → IA chama `POST /events` para criar o evento
+
+### Janela de dias
+
+Os slots retornados vão de **hoje** (apenas horários futuros) até **daqui a X dias**, onde X = `maxAdvanceTime` da AIConfig (padrão 30). O `minAdvanceTime` define quantas horas à frente começar (ex.: 1 = não mostrar slots na próxima 1 hora).
+
+### Parâmetros de Query
+
+| Parâmetro   | Obrigatório | Descrição                                                                 |
+|------------|-------------|---------------------------------------------------------------------------|
+| `userId`   | Sim*        | ID do usuário dono da integração. *Obrigatório quando usa MASTER_KEY*    |
+| `configId` | Não         | ID da AIConfig. Se omitido, usa a primeira com Google Calendar ativo     |
+| `timezone` | Não         | Timezone para os horários. Default: `America/Sao_Paulo`                   |
+
+### Autenticação
+
+**Opção 1 – MASTER_KEY (recomendado para n8n/webhooks):**
+```http
+Authorization: Bearer {MASTER_KEY}
+```
+Envie `userId` na query: `?userId=xxx`
+
+**Opção 2 – JWT:**
+```http
+Authorization: Bearer {JWT_TOKEN}
+```
+O `userId` é extraído do token. Não precisa enviar na query.
+
+### Exemplo de requisição (MASTER_KEY)
+
+```sh
+curl -X GET "https://seu-dominio.com/api/integrations/google-calendar/available-slots?userId=cmdeoog4a0000yyflt2n7zkxh" \
+  -H "Authorization: Bearer SUA_MASTER_KEY"
+```
+
+### Exemplo com configId e timezone
+
+```sh
+curl -X GET "https://seu-dominio.com/api/integrations/google-calendar/available-slots?userId=xxx&configId=yyy&timezone=America/Sao_Paulo" \
+  -H "Authorization: Bearer SUA_MASTER_KEY"
+```
+
+### Resposta de sucesso (200)
+
+```json
+{
+  "slots": [
+    { "start": "2024-07-25T13:00:00.000Z", "end": "2024-07-25T14:00:00.000Z" },
+    { "start": "2024-07-25T15:00:00.000Z", "end": "2024-07-25T16:00:00.000Z" }
+  ]
+}
+```
+
+### Respostas de erro
+
+| Status | Descrição |
+|--------|-----------|
+| 401 | Token inválido ou MASTER_KEY sem userId na query |
+| 403 | Usuário sem acesso ao Google Calendar (feature flag) |
+| 404 | Integração ou configuração não encontrada |
+| 401 + `requiresReauth: true` | Token do Google expirado – reconectar conta |
+
+### Uso no n8n
+
+1. Nó **HTTP Request**
+2. Method: GET
+3. URL: `{{$env.APP_URL}}/api/integrations/google-calendar/available-slots?userId={{userId}}`
+4. Authentication: Header Auth → `Authorization: Bearer {{$env.MASTER_KEY}}`
+5. O `userId` vem do contexto da conversa (ex.: do payload do webhook)
+
+---
+
 ## Criar evento em uma agenda
 
 **POST** `/api/integrations/google-calendar/events`
