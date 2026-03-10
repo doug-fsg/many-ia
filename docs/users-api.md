@@ -198,6 +198,144 @@ Authorization: Bearer {MASTER_KEY}
 
 ---
 
+## GET `/api/users/[userId]/filtered`
+
+Endpoint otimizado para retornar dados do usuário com payload reduzido. Permite filtrar e incluir apenas os dados necessários, evitando respostas muito grandes.
+
+### Parâmetros de URL
+
+- `userId` (string, obrigatório): ID do usuário
+
+### Query Parameters
+
+| Parâmetro | Tipo | Obrigatório | Descrição |
+|-----------|------|-------------|-----------|
+| `inboxId` | string | Não | Filtra `aiConfigs` pelo ID numérico do inbox. Retorna apenas configurações daquele inbox. |
+| `configId` | string | Não | Filtra `aiConfigs` pelo ID da configuração. Retorna apenas a configuração específica. |
+| `isActive` | boolean | Não | Filtra `aiConfigs` por status ativo. Valores: `true` ou `false`. |
+| `include` | string | Não | Lista separada por vírgula do que incluir na resposta. Valores: `aiConfigs`, `accounts`, `inboxes`, `sessions`, `whatsAppConnections`. **Padrão:** `aiConfigs`. |
+| `aiConfigsDetail` | string | Não | Nível de detalhe dos `aiConfigs`. Valores: `minimal` (apenas campos essenciais) ou `full` (todos os campos). **Padrão:** `full`. |
+
+### Filtros de aiConfigs
+
+Os parâmetros `inboxId`, `configId` e `isActive` podem ser combinados. Exemplo: `?inboxId=123&isActive=true` retorna apenas configurações ativas daquele inbox.
+
+### Campos em aiConfigsDetail=minimal
+
+Quando `aiConfigsDetail=minimal`, cada aiConfig retorna apenas:
+- `id`, `userId`, `isActive`, `nomeAtendenteDigital`
+- `inboxId`, `inboxName`, `googleCalendarEnabled`
+- `createdAt`, `updatedAt`
+
+### Exemplos de Requisição
+
+**Apenas dados básicos do usuário + aiConfigs de um inbox específico (payload mínimo):**
+```bash
+GET /api/users/{userId}/filtered?inboxId=123&aiConfigsDetail=minimal
+Authorization: Bearer {MASTER_KEY}
+```
+
+**aiConfigs de um inbox, com detalhes completos:**
+```bash
+GET /api/users/{userId}/filtered?inboxId=123
+Authorization: Bearer {MASTER_KEY}
+```
+
+**Apenas uma configuração específica:**
+```bash
+GET /api/users/{userId}/filtered?configId={aiConfigId}
+Authorization: Bearer {MASTER_KEY}
+```
+
+**Apenas configurações ativas:**
+```bash
+GET /api/users/{userId}/filtered?isActive=true
+Authorization: Bearer {MASTER_KEY}
+```
+
+**Incluir apenas inboxes (sem aiConfigs):**
+```bash
+GET /api/users/{userId}/filtered?include=inboxes
+Authorization: Bearer {MASTER_KEY}
+```
+
+**Incluir múltiplas relações:**
+```bash
+GET /api/users/{userId}/filtered?include=aiConfigs,inboxes,whatsAppConnections&inboxId=123
+Authorization: Bearer {MASTER_KEY}
+```
+
+**Combinação de filtros:**
+```bash
+GET /api/users/{userId}/filtered?inboxId=123&isActive=true&aiConfigsDetail=minimal
+Authorization: Bearer {MASTER_KEY}
+```
+
+### Resposta de Sucesso (200)
+
+A estrutura da resposta varia conforme os parâmetros `include` e `aiConfigsDetail`. Sempre inclui os campos básicos do usuário (`id`, `name`, `email`, etc.). Quando `include` contém `whatsAppConnections`, inclui também `whatsappSummary`.
+
+Exemplo com `include=aiConfigs` e `aiConfigsDetail=minimal`:
+
+```json
+{
+  "id": "user_id",
+  "name": "Nome do Usuário",
+  "email": "usuario@example.com",
+  "emailVerified": "2024-01-01T00:00:00.000Z",
+  "image": "https://...",
+  "companyName": "Empresa",
+  "stripeCustomerId": "cus_...",
+  "stripePriceId": "price_...",
+  "stripeSubscriptionId": "sub_...",
+  "stripeSubscriptionStatus": "active",
+  "manytalksAccountId": "account_id",
+  "isIntegrationUser": false,
+  "canCreateTemplates": true,
+  "customCreditLimit": 10000,
+  "isSuperAdmin": false,
+  "aiConfigs": [
+    {
+      "id": "config_id",
+      "userId": "user_id",
+      "isActive": true,
+      "nomeAtendenteDigital": "Assistente",
+      "inboxId": 123,
+      "inboxName": "Inbox Principal",
+      "googleCalendarEnabled": true,
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    }
+  ]
+}
+```
+
+### Respostas de Erro
+
+**401 Unauthorized**
+```json
+"Unauthorized"
+```
+
+**404 Not Found**
+```json
+"User not found"
+```
+
+**500 Internal Server Error**
+```json
+"Internal Server Error"
+```
+
+### Notas
+
+- Use este endpoint quando precisar de payloads menores (ex.: listagens, dashboards, webhooks)
+- O endpoint `/api/users/[userId]` retorna sempre todos os dados; use `/filtered` quando quiser controle fino
+- Em `aiConfigsDetail=full`, os `attachments` não incluem o campo `content` (apenas metadados)
+- O campo `embedding` nunca é retornado em `aiConfigs`
+
+---
+
 ## GET `/api/users/[userId]/google-calendar`
 
 Busca informações específicas do Google Calendar de um usuário, incluindo integração e configurações.
