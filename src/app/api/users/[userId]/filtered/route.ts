@@ -38,6 +38,7 @@ const AI_CONFIG_FULL_SELECT = {
       id: true,
       type: true,
       description: true,
+      content: true,
       createdAt: true,
       updatedAt: true,
     },
