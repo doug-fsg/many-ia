@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { google } from 'googleapis';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/services/auth'; // Importação corrigida
 import { oauth2Client } from '@/lib/google-calendar';
@@ -62,6 +61,8 @@ export async function GET(request: NextRequest) {
 
     // Configurar o cliente com os tokens
     oauth2Client.setCredentials(tokens);
+
+    const { google } = await import('googleapis');
 
     // Obter informações do usuário Google
     const oauth2 = google.oauth2({

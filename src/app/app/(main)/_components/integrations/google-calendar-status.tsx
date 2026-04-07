@@ -165,8 +165,8 @@ export function GoogleCalendarStatus() {
         <GoogleCalendarConfigDialog 
           isOpen={isConfigOpen}
           onClose={() => setIsConfigOpen(false)}
-          defaultValues={config}
-          onSuccess={() => console.log('Configurações salvas com sucesso')}
+          defaultValues={config ?? undefined}
+          onSuccess={() => void fetchIntegrationStatus()}
         />
       </div>
     );

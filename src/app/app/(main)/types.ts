@@ -1,5 +1,6 @@
 import { ReturnTypeWithoutPromise } from '@/types/return-type-without-promise'
 import { getUserAIConfigs } from './actions'
+import type { AgendaItem } from '@/lib/google-calendar-agendas'
 
 export type AIConfig = {
   id?: string
@@ -40,6 +41,7 @@ export type AIConfig = {
   aiPrompt?: string
   enableScarcityMode?: boolean
   maxSlotsToShow?: number
+  agendas?: AgendaItem[] | null
 }
 
 export type TemplateStatus = 'PUBLIC' | 'PRIVATE'

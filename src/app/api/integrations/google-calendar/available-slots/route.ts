@@ -5,6 +5,7 @@ import { verifyToken } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getCalendarEvents } from '@/lib/google-calendar';
 import { calculateAvailableSlots, type WeeklySchedule } from '@/lib/available-slots';
+import { getEffectiveAgenda } from '@/lib/google-calendar-agendas';
 
 async function getUserIdFromRequest(request: NextRequest): Promise<string | null> {
   const authHeader = request.headers.get('Authorization');
@@ -52,6 +53,7 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = new URL(request.url);
   const configId = searchParams.get('configId');
+  const agendaId = searchParams.get('agendaId');
   const timezone = searchParams.get('timezone') || 'America/Sao_Paulo';
   const timeMinParam = searchParams.get('timeMin');
   const timeMaxParam = searchParams.get('timeMax');
@@ -65,6 +67,7 @@ export async function GET(request: NextRequest) {
   const aiConfig = await prisma.aIConfig.findFirst({
     where: whereClause,
     select: {
+      agendas: true,
       weeklySchedule: true,
       defaultEventDuration: true,
       minAdvanceTime: true,
@@ -82,15 +85,26 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const weeklySchedule = (aiConfig.weeklySchedule || {}) as WeeklySchedule;
+  const effective = getEffectiveAgenda(aiConfig, agendaId);
+  if (!effective) {
+    return NextResponse.json(
+      {
+        error: agendaId ? 'Agenda não encontrada' : 'Configuração de agenda inválida',
+      },
+      { status: agendaId ? 404 : 400 }
+    );
+  }
+
+  const { agenda } = effective;
+  const weeklySchedule = agenda.weeklySchedule as WeeklySchedule;
   const hasEnabledDays = Object.values(weeklySchedule).some((d) => d?.enabled);
   if (!hasEnabledDays) {
     return NextResponse.json({ slots: [] });
   }
 
   const now = new Date();
-  const minAdvanceHours = aiConfig.minAdvanceTime ?? 0;
-  const maxAdvanceDays = aiConfig.maxAdvanceTime ?? 30;
+  const minAdvanceHours = agenda.minAdvanceTime ?? 0;
+  const maxAdvanceDays = agenda.maxAdvanceTime ?? 30;
 
   const timeMin = timeMinParam
     ? new Date(timeMinParam)
@@ -115,7 +129,7 @@ export async function GET(request: NextRequest) {
   let calendarEvents: Array<{ start?: { dateTime?: string; date?: string }; end?: { dateTime?: string; date?: string } }> = [];
   try {
     calendarEvents = await getCalendarEvents(userId, {
-      calendarId: aiConfig.calendarId || undefined,
+      calendarId: agenda.calendarId || undefined,
       timeMin,
       timeMax,
     });
@@ -141,15 +155,18 @@ export async function GET(request: NextRequest) {
   const slots = await calculateAvailableSlots({
     weeklySchedule,
     calendarEvents,
-    durationMinutes: aiConfig.defaultEventDuration ?? 60,
+    durationMinutes: agenda.defaultEventDuration ?? 60,
     minAdvanceTimeHours: minAdvanceHours,
     maxAdvanceTimeDays: maxAdvanceDays,
     timeMin,
     timeMax,
-    enableScarcityMode: aiConfig.enableScarcityMode ?? false,
-    maxSlotsToShow: aiConfig.maxSlotsToShow ?? 5,
+    enableScarcityMode: agenda.enableScarcityMode ?? false,
+    maxSlotsToShow: agenda.maxSlotsToShow ?? 5,
     timezone,
   });
 
-  return NextResponse.json({ slots });
+  return NextResponse.json({
+    slots,
+    agendaId: effective.agendaItemId ?? null,
+  });
 }

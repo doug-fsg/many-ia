@@ -13,6 +13,8 @@ const nextConfig = {
   // Configuração experimental para pacotes externos do servidor
   experimental: {
     serverComponentsExternalPackages: ['@prisma/client'],
+    // Menos módulos resolvidos no dev/HMR com pacotes "barrel" grandes (ícones, datas).
+    optimizePackageImports: ['lucide-react', 'date-fns', '@radix-ui/react-icons'],
   },
   // Lidar com warnings de build
   webpack: (config, { isServer }) => {

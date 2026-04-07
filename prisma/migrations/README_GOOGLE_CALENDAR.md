@@ -106,6 +106,18 @@ ALTER TABLE "AIConfig" DROP COLUMN IF EXISTS "maxSlotsToShow";
 DROP TABLE IF EXISTS "GoogleCalendarIntegration";
 ```
 
+## Múltiplas agendas por AIConfig (opcional)
+
+Arquivo: `add_agendas_to_aiconfig_production.sql`
+
+Adiciona a coluna JSON opcional `agendas` em `AIConfig` para várias agendas (calendário + horários) no mesmo assistente. Seguro para produção (só adiciona coluna se não existir).
+
+```bash
+psql -h localhost -U seu_usuario -d many_ia -f prisma/migrations/add_agendas_to_aiconfig_production.sql
+```
+
+Depois: `npx prisma generate` e deploy da aplicação.
+
 ## Próximos passos
 
 Após executar a migração:

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { accountHasMultipleAgendaProfiles } from '@/lib/google-calendar-agendas';
 
 export async function GET(
   request: NextRequest,
@@ -62,14 +63,19 @@ export async function GET(
         aiPrompt: true,
         enableScarcityMode: true,
         maxSlotsToShow: true,
+        agendas: true,
         createdAt: true,
         updatedAt: true,
       },
     });
 
+    const multipleAgendaProfilesConfigured = accountHasMultipleAgendaProfiles(aiConfigs);
+
     return NextResponse.json({
       integration: googleCalendarIntegration,
       configurations: aiConfigs,
+      /** `true` quando há mais de um perfil de agenda no total (vários assistentes com agenda ou 2+ no mesmo). */
+      multipleAgendaProfilesConfigured,
     });
   } catch (error) {
     console.error('Error retrieving Google Calendar info:', error);

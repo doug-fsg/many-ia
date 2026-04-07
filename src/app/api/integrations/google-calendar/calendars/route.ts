@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/services/auth';
 import { prisma } from '@/lib/prisma';
-import { google } from 'googleapis';
 import { oauth2Client } from '@/lib/google-calendar';
 
 // Listar calendários
@@ -81,6 +80,7 @@ export async function GET() {
     }
     
     // Buscar lista de calendários
+    const { google } = await import('googleapis');
     const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
     const response = await calendar.calendarList.list();
     
@@ -161,6 +161,7 @@ export async function POST(request: Request) {
     const data = await request.json();
 
     // Criar novo calendário
+    const { google } = await import('googleapis');
     const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
     const response = await calendar.calendars.insert({
       requestBody: {

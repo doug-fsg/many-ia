@@ -1,8 +1,8 @@
-import { google } from 'googleapis';
+import { OAuth2Client } from 'google-auth-library';
 import { prisma } from '@/lib/prisma';
 
-// Configuração do OAuth2
-export const oauth2Client = new google.auth.OAuth2(
+// OAuth2 sem import estático de `googleapis` (pacote muito pesado para compilação dev/HMR).
+export const oauth2Client = new OAuth2Client(
   process.env.GOOGLE_CLIENT_ID!,
   process.env.GOOGLE_CLIENT_SECRET!,
   `${process.env.NEXT_PUBLIC_APP_URL}/api/integrations/google-calendar/callback`
@@ -18,6 +18,8 @@ export const SCOPES = [
 
 // Função para obter um cliente autenticado do Google Calendar
 export async function getGoogleCalendarClient(userId: string) {
+  const { google } = await import('googleapis');
+
   // Buscar a integração do usuário
   const integration = await prisma.googleCalendarIntegration.findUnique({
     where: { userId },
@@ -28,13 +30,13 @@ export async function getGoogleCalendarClient(userId: string) {
   }
 
   // Configurar o cliente OAuth2
-  const oauth2Client = new google.auth.OAuth2(
+  const userOAuth2 = new OAuth2Client(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET
   );
 
   // Configurar as credenciais
-  oauth2Client.setCredentials({
+  userOAuth2.setCredentials({
     access_token: integration.accessToken,
     refresh_token: integration.refreshToken || undefined,
   });
@@ -42,7 +44,7 @@ export async function getGoogleCalendarClient(userId: string) {
   // Verificar se o token expirou e renovar se necessário
   if (integration.expiresAt && new Date() > integration.expiresAt) {
     try {
-      const { credentials } = await oauth2Client.refreshAccessToken();
+      const { credentials } = await userOAuth2.refreshAccessToken();
       
       // Atualizar tokens no banco de dados
       await prisma.googleCalendarIntegration.update({
@@ -55,7 +57,7 @@ export async function getGoogleCalendarClient(userId: string) {
       });
       
       // Atualizar as credenciais do cliente
-      oauth2Client.setCredentials(credentials);
+      userOAuth2.setCredentials(credentials);
     } catch (error: any) {
       // Se o refresh token foi revogado ou expirou, lançar erro específico
       if (error?.response?.data?.error === 'invalid_grant' || 
@@ -73,7 +75,7 @@ export async function getGoogleCalendarClient(userId: string) {
   }
 
   // Retornar o cliente do Google Calendar
-  return google.calendar({ version: 'v3', auth: oauth2Client });
+  return google.calendar({ version: 'v3', auth: userOAuth2 });
 }
 
 // Função para listar eventos do Google Calendar

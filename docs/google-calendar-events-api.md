@@ -68,6 +68,7 @@ Os slots retornados vão de **hoje** (apenas horários futuros) até **daqui a X
 |------------|-------------|---------------------------------------------------------------------------|
 | `userId`   | Sim*        | ID do usuário dono da integração. *Obrigatório quando usa MASTER_KEY*    |
 | `configId` | Não         | ID da AIConfig. Se omitido, usa a primeira com Google Calendar ativo     |
+| `agendaId` | Não         | ID de uma agenda quando a AIConfig usa **múltiplas agendas** (`agendas` no banco). Se omitido, usa a primeira agenda da lista. Se informado e inválido, retorna 404. |
 | `timezone` | Não         | Timezone para os horários. Default: `America/Sao_Paulo`                   |
 | `timeMin`  | Não         | Início da janela (ISO 8601). Quando omitido, usa `minAdvanceTime` da config |
 | `timeMax`  | Não         | Fim da janela (ISO 8601). Quando omitido, usa `maxAdvanceTime` da config   |
@@ -114,7 +115,8 @@ curl -X GET "https://seu-dominio.com/api/integrations/google-calendar/available-
   "slots": [
     { "start": "2024-07-25T13:00:00.000Z", "end": "2024-07-25T14:00:00.000Z" },
     { "start": "2024-07-25T15:00:00.000Z", "end": "2024-07-25T16:00:00.000Z" }
-  ]
+  ],
+  "agendaId": "id-da-agenda-usada-ou-null-no-modo-legado"
 }
 ```
 
@@ -143,8 +145,12 @@ curl -X GET "https://seu-dominio.com/api/integrations/google-calendar/available-
 
 ### Body (JSON)
 - `userId` (obrigatório): ID do usuário dono da integração do Google Calendar
-- `calendarId` (opcional): ID da agenda (default: primary)
+- `calendarId` (opcional): ID da agenda Google (default: primary). Ignorado se `agendaId` + `configId` forem usados (o calendário vem da agenda selecionada).
+- `configId` (opcional): ID da AIConfig — **obrigatório** quando se usa `agendaId`.
+- `agendaId` (opcional): ID de uma agenda da AIConfig com múltiplas agendas. Exige `configId`. O evento é criado no `calendarId` dessa agenda.
 - Demais campos: todos os campos aceitos pela Google Calendar API para eventos (summary, description, start, end, attendees, etc.)
+
+Os parâmetros `configId` e `agendaId` também podem ser enviados na **query string** do POST (útil para integrações que não usam body completo).
 
 ### Exemplo de requisição
 ```sh
@@ -177,6 +183,7 @@ curl -X POST "http://localhost:3000/api/integrations/google-calendar/events" \
 ---
 
 ## Observações
+- **Múltiplas agendas:** quando a AIConfig possui o campo JSON `agendas` preenchido, cada item tem um `id` estável. Use `agendaId` (e `configId`) em `available-slots` e `POST /events` para escolher qual profissional/agenda.
 - O campo `userId` é obrigatório para garantir que a consulta/criação seja feita para o usuário correto.
 - O token JWT precisa ser válido, mas não precisa ser do mesmo usuário do userId consultado.
 - Todos os parâmetros aceitos pela Google Calendar API podem ser usados.

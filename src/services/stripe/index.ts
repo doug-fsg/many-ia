@@ -4,6 +4,12 @@ import { cookies } from 'next/headers'
 import { config } from '@/config'
 import { prisma } from '../database'
 
+const stripeDebugLog = (...args: unknown[]) => {
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(...args)
+  }
+}
+
 if (!process.env.STRIPE_SECRET_KEY) {
   console.error('STRIPE_SECRET_KEY não configurada. O serviço de pagamentos Stripe não funcionará corretamente.')
 }
@@ -242,12 +248,11 @@ export const getUserCurrentPlan = async (userId: string) => {
   })
 
   if (!user) {
-    console.log(`[SERVER] Usuário não encontrado: ${userId}`);
+    stripeDebugLog(`[SERVER] Usuário não encontrado: ${userId}`)
     throw new Error('User not found')
   }
 
-  // Log no servidor
-  console.log(`[SERVER] Plano do usuário ${user.email}:`, {
+  stripeDebugLog(`[SERVER] Plano do usuário ${user.email}:`, {
     stripePriceId: user.stripePriceId,
     isIntegrationUser: user.isIntegrationUser,
     customCreditLimit: user.customCreditLimit
@@ -261,16 +266,18 @@ export const getUserCurrentPlan = async (userId: string) => {
     // 1. Primeiro, tenta usar limite personalizado do usuário
     if (user.customCreditLimit && user.customCreditLimit > 0) {
       creditLimit = user.customCreditLimit;
-      console.log(`[SERVER] Usando limite personalizado: ${creditLimit} para usuário ${user.email}`);
+      stripeDebugLog(`[SERVER] Usando limite personalizado: ${creditLimit} para usuário ${user.email}`)
     } else {
-      console.log(`[SERVER] Usando limite padrão: ${creditLimit} para usuário ${user.email} (customCreditLimit: ${user.customCreditLimit})`);
+      stripeDebugLog(
+        `[SERVER] Usando limite padrão: ${creditLimit} para usuário ${user.email} (customCreditLimit: ${user.customCreditLimit})`,
+      )
     }
   } catch (error) {
     console.error(`[SERVER] Erro ao determinar limite de créditos para ${user.email}, usando padrão:`, error);
     creditLimit = DEFAULT_CREDIT_LIMIT; // Fallback absoluto
   }
 
-  console.log(`[SERVER] Calculando créditos para usuário ${user.email} (limite: ${creditLimit})`);
+  stripeDebugLog(`[SERVER] Calculando créditos para usuário ${user.email} (limite: ${creditLimit})`)
   
   const now = new Date();
   const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -296,7 +303,7 @@ export const getUserCurrentPlan = async (userId: string) => {
   const usagePercentage = creditLimit > 0 ? (currentCredits / creditLimit) * 100 : 0;
   const isOutOfCredits = currentCredits >= creditLimit;
 
-  console.log(`[SERVER] Créditos calculados para usuário ${user.email}:`, {
+  stripeDebugLog(`[SERVER] Créditos calculados para usuário ${user.email}:`, {
     currentCredits,
     creditLimit,
     usagePercentage: Math.round(usagePercentage * 100) / 100, // Arredondar para 2 casas decimais

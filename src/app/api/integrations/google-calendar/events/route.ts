@@ -3,8 +3,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { google } from 'googleapis';
 import { oauth2Client } from '@/lib/google-calendar';
+import { getEffectiveAgenda } from '@/lib/google-calendar-agendas';
 
 // Utilitário para autenticar via Bearer token
 async function getUserIdFromRequest(request: NextRequest) {
@@ -103,6 +103,7 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  const { google } = await import('googleapis');
   const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
   try {
     const response = await calendar.events.list({
@@ -145,20 +146,29 @@ export async function POST(request: NextRequest) {
   // 1) Tenta pegar userId do body, depois da query, depois do token
   let userId: string | null = null;
   let calendarId = 'primary';
+  let agendaIdFromBody: string | null = null;
+  let configIdFromBody: string | null = null;
   let eventData: any = {};
   try {
     const body = await request.json();
     if (body.userId) userId = body.userId;
     if (body.calendarId) calendarId = body.calendarId;
+    if (body.agendaId) agendaIdFromBody = body.agendaId;
+    if (body.configId) configIdFromBody = body.configId;
     eventData = { ...body };
     delete eventData.userId;
     delete eventData.calendarId;
+    delete eventData.agendaId;
+    delete eventData.configId;
   } catch {
     // Se não for JSON válido, ignora
   }
+
+  const searchParams = new URL(request.url).searchParams;
+  if (!agendaIdFromBody) agendaIdFromBody = searchParams.get('agendaId');
+  if (!configIdFromBody) configIdFromBody = searchParams.get('configId');
+
   if (!userId) {
-    // tenta pegar da query string
-    const { searchParams } = new URL(request.url);
     userId = searchParams.get('userId');
     if (searchParams.get('calendarId')) calendarId = searchParams.get('calendarId')!;
   }
@@ -183,6 +193,44 @@ export async function POST(request: NextRequest) {
       { error: 'Acesso ao Google Calendar não disponível para este usuário' },
       { status: 403 }
     );
+  }
+
+  // Resolver agenda (múltiplas agendas no AIConfig)
+  if (agendaIdFromBody) {
+    if (!configIdFromBody) {
+      return NextResponse.json(
+        { error: 'configId é obrigatório quando agendaId é informado' },
+        { status: 400 }
+      );
+    }
+    const aiConfigForAgenda = await prisma.aIConfig.findFirst({
+      where: {
+        id: configIdFromBody,
+        userId,
+        googleCalendarEnabled: true,
+      },
+      select: {
+        agendas: true,
+        calendarId: true,
+        weeklySchedule: true,
+        defaultEventDuration: true,
+        minAdvanceTime: true,
+        maxAdvanceTime: true,
+        enableScarcityMode: true,
+        maxSlotsToShow: true,
+      },
+    });
+    if (!aiConfigForAgenda) {
+      return NextResponse.json(
+        { error: 'Configuração de IA não encontrada ou Google Calendar desativado' },
+        { status: 404 }
+      );
+    }
+    const effective = getEffectiveAgenda(aiConfigForAgenda, agendaIdFromBody);
+    if (!effective) {
+      return NextResponse.json({ error: 'Agenda não encontrada' }, { status: 404 });
+    }
+    calendarId = effective.agenda.calendarId || 'primary';
   }
 
   // busca integração
@@ -234,6 +282,7 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  const { google } = await import('googleapis');
   const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
   try {
     const sendUpdates = eventData.sendUpdates || undefined;

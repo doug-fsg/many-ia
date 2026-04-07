@@ -125,6 +125,8 @@ model AIConfig {
   aiPrompt             String?
   enableScarcityMode   Boolean       @default(false)
   maxSlotsToShow       Int?
+  // Múltiplas agendas (opcional): quando null, usa calendarId/weeklySchedule no nível do AIConfig
+  agendas              Json?
 
   @@index([userId])
 }

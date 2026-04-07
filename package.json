@@ -5,6 +5,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "next dev --turbo",
+    "dev:webpack": "next dev",
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
