@@ -30,8 +30,10 @@ export async function GET(request: Request) {
     }
 
     const apiUrl = `${MANYTALKS_API_BASE_URL}/accounts/${accountId}/inboxes`
-    console.log('📡 URL completa da requisição:', apiUrl)
-    console.log('🔑 Token sendo usado:', apiToken)
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('📡 URL completa da requisição:', apiUrl)
+      console.log('🔑 Token sendo usado:', apiToken)
+    }
 
     const response = await fetch(apiUrl, {
       headers: {
@@ -57,7 +59,9 @@ export async function GET(request: Request) {
     }
 
     const data = await response.json()
-    console.log('✅ Proxy: Dados recebidos com sucesso')
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('✅ Proxy: Dados recebidos com sucesso')
+    }
     return NextResponse.json(data)
   } catch (error) {
     console.error('❌ Proxy: Erro ao processar requisição:', error)

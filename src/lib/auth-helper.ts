@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { cookies } from 'next/headers';
 import { auth } from '@/services/auth';
 import { prisma } from '@/services/database';
@@ -9,7 +10,8 @@ export type AuthUser = {
   image?: string | null;
 };
 
-export async function getAuthenticatedUser(): Promise<AuthUser | null> {
+/** Deduplica sessão/auth no mesmo request (layout + páginas/actions). */
+export const getAuthenticatedUser = cache(async (): Promise<AuthUser | null> => {
   try {
     // Verificar se estamos em ambiente de build/estático
     if (process.env.NODE_ENV === 'production' && typeof window === 'undefined' && !process.env.NEXT_RUNTIME) {
@@ -75,4 +77,4 @@ export async function getAuthenticatedUser(): Promise<AuthUser | null> {
     console.error('Erro ao obter usuário autenticado:', error);
     return null;
   }
-} 
+});

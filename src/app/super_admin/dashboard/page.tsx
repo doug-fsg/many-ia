@@ -560,6 +560,11 @@ export default function SuperAdminDashboard() {
                             }}>
                               Ajustar limite
                             </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => window.location.href = `/super_admin/client/${client.id}?tab=feature-flags`}
+                            >
+                              Gerenciar Feature Flags
+                            </DropdownMenuItem>
                             <DropdownMenuItem className="text-red-600 opacity-50 cursor-not-allowed">
                               Suspender conta
                               <span className="ml-2 text-xs bg-gray-100 px-1 rounded">Em breve</span>

@@ -17,12 +17,55 @@ export async function GET(
   }
 
   try {
+    // Obter parâmetros de query
+    const { searchParams } = new URL(request.url);
+    const configId = searchParams.get('configId');
+    const inboxId = searchParams.get('inboxId');
+
+    // Construir filtro para aiConfigs (se houver filtros)
+    const aiConfigsWhere: any = {};
+    if (configId) {
+      aiConfigsWhere.id = configId;
+    }
+    if (inboxId) {
+      aiConfigsWhere.inboxId = parseInt(inboxId);
+    }
+
     const user = await prisma.user.findUnique({
       where: { id: params.userId },
       include: {
         aiConfigs: {
-          include: {
-            attachments: true,
+          where: Object.keys(aiConfigsWhere).length > 0 ? aiConfigsWhere : undefined,
+          select: {
+            id: true,
+            userId: true,
+            isActive: true,
+            detectarIdioma: true,
+            nomeAtendenteDigital: true,
+            enviarParaAtendente: true,
+            quemEhAtendente: true,
+            oQueAtendenteFaz: true,
+            objetivoAtendente: true,
+            comoAtendenteDeve: true,
+            horarioAtendimento: true,
+            condicoesAtendimento: true,
+            informacoesEmpresa: true,
+            tempoRetornoAtendimento: true,
+            createdAt: true,
+            inboxId: true,
+            inboxName: true,
+            updatedAt: true,
+            googleCalendarEnabled: true,
+            attachments: {
+              select: {
+                id: true,
+                type: true,
+                content: true,
+                description: true,
+                createdAt: true,
+                updatedAt: true,
+              },
+            },
             temasEvitar: true,
           },
         },

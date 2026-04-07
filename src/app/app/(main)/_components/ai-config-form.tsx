@@ -12,7 +12,6 @@ import { Button } from '@/components/ui/button'
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -29,7 +28,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import confetti from 'canvas-confetti'
 import {
   Dialog,
@@ -37,7 +36,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { ExpandIcon, Check, ChevronsUpDown, PlusIcon, MoreHorizontal } from 'lucide-react'
+import {
+  ExpandIcon,
+  Check,
+  ChevronsUpDown,
+  PlusIcon,
+  MoreHorizontal,
+  Calendar,
+  CheckCircle2,
+  CircleDashed,
+  Pencil,
+  AlertTriangle,
+  X,
+} from 'lucide-react'
 import { useSession } from 'next-auth/react'
 import { StepManager } from './step-manager'
 
@@ -69,6 +80,8 @@ import {
 } from "@/components/ui/collapsible"
 import { Badge } from '@/components/ui/badge'
 import { LexicalFullscreenDialog } from './lexical/lexical-fullscreen-dialog'
+import { GoogleCalendarConfigDialog } from './integrations/google-calendar-config-dialog'
+import { useGoogleCalendarAccess } from '@/hooks/use-feature-flags'
 
 type AIConfigFormProps = {
   defaultValue?: AIConfig
@@ -85,7 +98,7 @@ interface TemasEvitar {
 // Corrigir o tipo Attachment para remover o tipo 'link'
 type Attachment = {
   id: string
-  type: 'image' | 'pdf'
+  type: 'image' | 'pdf' | 'audio' | 'video'
   content: string
   description: string
 }
@@ -121,9 +134,13 @@ export function AIConfigForm({
   const [isEssentialInfoOpen, setIsEssentialInfoOpen] = useState(true)
   const [isAttachmentsOpen, setIsAttachmentsOpen] = useState(false)
   const [isMoreOptionsOpen, setIsMoreOptionsOpen] = useState(false)
+  const [isGoogleCalendarOpen, setIsGoogleCalendarOpen] = useState(false)
+  const [googleCalendarDialogDefaults, setGoogleCalendarDialogDefaults] =
+    useState<AIConfigFormData | null>(null)
+  const [isSavingConfig, setIsSavingConfig] = useState(false)
   // Adicionar um estado para forçar a atualização do StepManager
   const [stepManagerKey, setStepManagerKey] = useState(0)
-
+  const { hasAccess: hasGoogleCalendarAccess } = useGoogleCalendarAccess()
 
   const form = useForm<AIConfigFormData>({
     resolver: zodResolver(upsertAIConfigSchema),
@@ -141,16 +158,41 @@ export function AIConfigForm({
       condicoesAtendimento: defaultValue?.condicoesAtendimento ?? '',
       informacoesEmpresa: defaultValue?.informacoesEmpresa ?? '',
       temasEvitar: defaultValue?.temasEvitar?.map((tema: any) => typeof tema === 'string' ? tema : tema.tema) ?? [],
-      attachments: defaultValue?.attachments?.filter(att => att.type === 'image' || att.type === 'pdf').map(att => ({
+      attachments: defaultValue?.attachments?.map(att => ({
         id: att.id || `attachment-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`,
-        type: att.type as 'image' | 'pdf',
+        type: att.type as 'image' | 'pdf' | 'audio' | 'video',
         content: att.content,
         description: att.description
       })) ?? [],
       inboxId: defaultValue?.inboxId,
       inboxName: defaultValue?.inboxName,
+      // Campos para Google Calendar
+      googleCalendarEnabled: defaultValue?.googleCalendarEnabled ?? false,
+      calendarId: defaultValue?.calendarId ?? '',
+      defaultEventDuration: defaultValue?.defaultEventDuration ?? 60,
+      weeklySchedule: defaultValue?.weeklySchedule ?? null,
+      minAdvanceTime: defaultValue?.minAdvanceTime ?? 1,
+      maxAdvanceTime: defaultValue?.maxAdvanceTime ?? 30,
+      defaultReminder: defaultValue?.defaultReminder ?? null,
+      reminderMessage: defaultValue?.reminderMessage ?? '',
+      autoCreateEvents: defaultValue?.autoCreateEvents ?? false,
+      eventType: defaultValue?.eventType ?? 'video_call',
+      responsibleEmails: defaultValue?.responsibleEmails ?? [],
+      aiPrompt: defaultValue?.aiPrompt ?? '',
+      enableScarcityMode: defaultValue?.enableScarcityMode ?? false,
+      maxSlotsToShow: defaultValue?.maxSlotsToShow ?? 5,
+      agendas: defaultValue?.agendas ?? undefined,
     },
   })
+
+  const openGoogleCalendarDialog = useCallback(() => {
+    setGoogleCalendarDialogDefaults(form.getValues())
+    setIsGoogleCalendarOpen(true)
+  }, [form])
+
+  const closeGoogleCalendarDialog = useCallback(() => {
+    setIsGoogleCalendarOpen(false)
+  }, [])
 
   // Não é mais necessário formatar o valor do comoAtendenteDeve pois o StepManager já lida com isso
 
@@ -178,6 +220,22 @@ export function AIConfigForm({
         temasEvitar: defaultValue.temasEvitar ?? [],
         condicoesAtendimento: defaultValue.condicoesAtendimento ?? '',
         tempoRetornoAtendimento: defaultValue.tempoRetornoAtendimento ?? '',
+        // Campos para Google Calendar
+        googleCalendarEnabled: defaultValue.googleCalendarEnabled ?? false,
+        calendarId: defaultValue.calendarId ?? '',
+        defaultEventDuration: defaultValue.defaultEventDuration ?? 60,
+        weeklySchedule: defaultValue.weeklySchedule ?? null,
+        minAdvanceTime: defaultValue.minAdvanceTime ?? 1,
+        maxAdvanceTime: defaultValue.maxAdvanceTime ?? 30,
+        defaultReminder: defaultValue.defaultReminder ?? null,
+        reminderMessage: defaultValue.reminderMessage ?? '',
+        autoCreateEvents: defaultValue.autoCreateEvents ?? false,
+        eventType: defaultValue.eventType ?? 'video_call',
+        responsibleEmails: defaultValue.responsibleEmails ?? [],
+        aiPrompt: defaultValue.aiPrompt ?? '',
+        enableScarcityMode: defaultValue.enableScarcityMode ?? false,
+        maxSlotsToShow: defaultValue.maxSlotsToShow ?? 5,
+        agendas: defaultValue.agendas ?? undefined,
       })
 
       // 🎉 Confete quando a IA preencher o formulário!
@@ -292,10 +350,9 @@ export function AIConfigForm({
     // Processar anexos se existirem
     if (defaultValue?.attachments && defaultValue.attachments.length > 0) {
       const filteredAttachments = defaultValue.attachments
-        .filter(att => att.type === 'image' || att.type === 'pdf')
         .map(att => ({
           id: att.id || `attachment-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`,
-          type: att.type as 'image' | 'pdf',
+          type: att.type as 'image' | 'pdf' | 'audio' | 'video',
           content: att.content,
           description: att.description
         }));
@@ -503,59 +560,90 @@ export function AIConfigForm({
     setAttachments(newAttachments)
   }
 
+  const persistConfig = async (data: AIConfigFormData) => {
+    setIsSavingConfig(true)
+    toast({
+      title: 'Salvando…',
+    })
+    try {
+      const simpleData = {
+        ...data,
+        attachments,
+        temasEvitar: temasEvitar.map((tema) => ({ tema })),
+        id: isEditMode && defaultValue ? defaultValue.id : undefined,
+      }
+      const result = await upsertAIConfig(simpleData)
+      if (result?.error) {
+        toast({
+          title: 'Erro',
+          description: result.error,
+          variant: 'destructive',
+        })
+      } else {
+        toast({
+          title: 'Salvo',
+        })
+        router.refresh()
+        onSuccess?.()
+      }
+    } catch (error) {
+      console.error('Erro na submissão:', error)
+        toast({
+          title: 'Não foi possível salvar',
+          variant: 'destructive',
+        })
+    } finally {
+      setIsSavingConfig(false)
+    }
+  }
+
+  const onSubmit = async (data: AIConfigFormData) => {
+    await persistConfig(data)
+  }
+
   return (
     <Card className="border-none shadow-none">
       <CardContent className="p-6">
         <Form {...form}>
           <form
-            onSubmit={(e) => {
-              e.preventDefault()
-              const formData = form.getValues()
-              const temasFormatados = temasEvitar.map((tema) => ({ tema }))
-
-              upsertAIConfig({
-                ...formData,
-                attachments,
-                temasEvitar: temasFormatados,
-                id: isEditMode && defaultValue ? defaultValue.id : undefined,
+            id="ai-config-form"
+            onSubmit={form.handleSubmit(onSubmit, () => {
+              toast({
+                title: 'Há campos inválidos',
+                variant: 'destructive',
               })
-                .then((result) => {
-                  if (result.error) {
-                    toast({
-                      title: 'Erro',
-                      description: result.error,
-                      variant: 'destructive',
-                    })
-                  } else {
-                    toast({
-                      title: 'Sucesso',
-                      description: 'Configuração salva com sucesso.',
-                    })
-                    router.refresh()
-                    if (onSuccess) onSuccess()
-                  }
-                })
-                .catch((error) => {
-                  console.error('Erro ao salvar:', error)
-                  toast({
-                    title: 'Erro',
-                    description: 'Falha ao salvar a configuração.',
-                    variant: 'destructive',
-                  })
-                })
-            }}
+            })}
             className="space-y-8"
           >
             <div className="space-y-6">
               <div className="group flex items-center justify-between bg-card/50 hover:bg-card rounded-lg p-4 border transition-all duration-200 tutorial-models">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-xl font-semibold tracking-tight">Modelos</h2>
-                    <div className={`h-2 w-2 rounded-full transition-colors duration-200 ${selectedTemplate ? (isCustomized ? "bg-orange-500" : "bg-green-500") : "bg-yellow-500"}`} />
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Comece com um modelo pré-configurado ou personalize do zero
-                  </p>
+                <div className="flex items-center gap-3">
+                  <h2 className="text-xl font-semibold tracking-tight">Modelos</h2>
+                  <span
+                    className="flex items-center"
+                    title={
+                      !selectedTemplate
+                        ? 'Nenhum modelo'
+                        : isCustomized
+                          ? 'Personalizado'
+                          : 'Modelo aplicado'
+                    }
+                  >
+                    {!selectedTemplate ? (
+                      <CircleDashed className="h-4 w-4 text-amber-500" aria-hidden />
+                    ) : isCustomized ? (
+                      <Pencil className="h-4 w-4 text-orange-500" aria-hidden />
+                    ) : (
+                      <CheckCircle2 className="h-4 w-4 text-green-600" aria-hidden />
+                    )}
+                    <span className="sr-only">
+                      {!selectedTemplate
+                        ? 'Nenhum modelo selecionado'
+                        : isCustomized
+                          ? 'Configuração personalizada em relação ao modelo'
+                          : 'Modelo base aplicado'}
+                    </span>
+                  </span>
                 </div>
 
                 <Popover open={open} onOpenChange={setOpen}>
@@ -606,9 +694,12 @@ export function AIConfigForm({
                                 <div className="flex-1">
                                   <span className="font-medium flex items-center gap-2">
                                     {template.label}
-                                    {selectedTemplate === template.value && (
-                                      <div className={`h-2 w-2 rounded-full ${isCustomized ? "bg-orange-500" : "bg-green-500"}`} />
-                                    )}
+                                    {selectedTemplate === template.value &&
+                                      (isCustomized ? (
+                                        <Pencil className="h-3.5 w-3.5 text-orange-500" aria-hidden />
+                                      ) : (
+                                        <CheckCircle2 className="h-3.5 w-3.5 text-green-600" aria-hidden />
+                                      ))}
                                   </span>
                                   <p className="text-sm text-muted-foreground">
                                     {template.description}
@@ -629,9 +720,9 @@ export function AIConfigForm({
 
               <div className="flex items-center">
                 <div className="flex-grow border-t border-border"></div>
-                <p className="mx-4 text-sm text-muted-foreground">
-                  ou configure manualmente
-                </p>
+                <span className="mx-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  ou
+                </span>
                 <div className="flex-grow border-t border-border"></div>
               </div>
 
@@ -642,9 +733,6 @@ export function AIConfigForm({
           <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
             <div className="space-y-0.5">
               <FormLabel className="text-base">Ativo</FormLabel>
-              <FormDescription>
-                Ative ou desative esta configuração de IA.
-              </FormDescription>
             </div>
             <FormControl>
               <Switch checked={field.value} onCheckedChange={field.onChange} />
@@ -742,9 +830,6 @@ export function AIConfigForm({
                   </SelectItem>
                 </SelectContent>
               </Select>
-              <FormDescription>
-                Define em quanto tempo a IA deve retomar o atendimento após intervenção humana
-              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -762,9 +847,6 @@ export function AIConfigForm({
                   <FormLabel className="text-base">
                     Enviar para Atendente
                   </FormLabel>
-                  <FormDescription>
-                    Defina se o atendimento deve ser enviado para o atendente.
-                  </FormDescription>
                 </div>
                 <FormControl>
                   <Switch
@@ -787,9 +869,6 @@ export function AIConfigForm({
                           placeholder="Separe as condições por vírgula"
                         />
                       </FormControl>
-                      <FormDescription>
-                        Informe condições específicas para o atendimento.
-                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -806,16 +885,25 @@ export function AIConfigForm({
                 className="space-y-4 rounded-lg border p-4 tutorial-essential">
                 <CollapsibleTrigger asChild>
                   <div className="flex justify-between items-center p-4 cursor-pointer border-b border-transparent group-hover:border-border">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h2 className="text-xl font-semibold tracking-tight">Informações Essenciais</h2>
-                        <ChevronsUpDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-hover:text-foreground" />
-        </div>
-                      <p className="text-sm text-muted-foreground">Configure as informações básicas do atendente digital</p>
-                    </div>
                     <div className="flex items-center gap-2">
-                      <div className={`h-2 w-2 rounded-full transition-colors duration-200 ${form.watch("quemEhAtendente") ? "bg-green-500" : "bg-yellow-500"}`} />
+                      <h2 className="text-xl font-semibold tracking-tight">Informações essenciais</h2>
+                      <ChevronsUpDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-hover:text-foreground" />
                     </div>
+                    <span
+                      className="flex items-center"
+                      title={form.watch('quemEhAtendente') ? 'Preenchido' : 'Pendente'}
+                    >
+                      {form.watch('quemEhAtendente') ? (
+                        <CheckCircle2 className="h-4 w-4 text-green-600" aria-hidden />
+                      ) : (
+                        <CircleDashed className="h-4 w-4 text-amber-500" aria-hidden />
+                      )}
+                      <span className="sr-only">
+                        {form.watch('quemEhAtendente')
+                          ? 'Primeiro bloco obrigatório preenchido'
+                          : 'Aguardando descrição de quem é o atendente'}
+                      </span>
+                    </span>
                   </div>
                 </CollapsibleTrigger>
 
@@ -833,8 +921,9 @@ export function AIConfigForm({
                     variant="outline"
                     size="sm"
                     onClick={() => handleExpandField('quemEhAtendente')}
+                    aria-label="Abrir editor expandido: quem é o atendente"
                   >
-                    <ExpandIcon className="h-4 w-4" />
+                    <ExpandIcon className="h-4 w-4" aria-hidden />
                   </Button>
                 </div>
                 <FormControl>
@@ -864,8 +953,9 @@ export function AIConfigForm({
                     variant="outline"
                     size="sm"
                     onClick={() => handleExpandField('oQueAtendenteFaz')}
+                    aria-label="Abrir editor expandido: o que o atendente faz"
                   >
-                    <ExpandIcon className="h-4 w-4" />
+                    <ExpandIcon className="h-4 w-4" aria-hidden />
                   </Button>
                 </div>
                 <FormControl>
@@ -895,8 +985,9 @@ export function AIConfigForm({
                     variant="outline"
                     size="sm"
                     onClick={() => handleExpandField('objetivoAtendente')}
+                    aria-label="Abrir editor expandido: objetivo do atendente"
                   >
-                    <ExpandIcon className="h-4 w-4" />
+                    <ExpandIcon className="h-4 w-4" aria-hidden />
                   </Button>
                 </div>
                 <FormControl>
@@ -926,8 +1017,9 @@ export function AIConfigForm({
                     variant="outline"
                     size="sm"
                     onClick={() => handleExpandField('comoAtendenteDeve')}
+                    aria-label="Abrir editor expandido: como o atendente deve responder"
                   >
-                    <ExpandIcon className="h-4 w-4" />
+                    <ExpandIcon className="h-4 w-4" aria-hidden />
                   </Button>
                 </div>
                 <FormControl>
@@ -957,8 +1049,9 @@ export function AIConfigForm({
                   variant="outline"
                   size="sm"
                   onClick={() => handleExpandField('informacoesEmpresa')}
+                  aria-label="Abrir editor expandido: informações da empresa"
                 >
-                  <ExpandIcon className="h-4 w-4" />
+                  <ExpandIcon className="h-4 w-4" aria-hidden />
                 </Button>
               </div>
               <FormControl>
@@ -970,9 +1063,6 @@ export function AIConfigForm({
                   multiline={true}
                 />
               </FormControl>
-              <FormDescription>
-                            Forneça informações relevantes sobre a empresa, produtos ou serviços.
-              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -985,7 +1075,7 @@ export function AIConfigForm({
                 <CollapsibleTrigger className="group w-full">
                   <div className="flex w-full items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <h2 className="text-xl font-semibold tracking-tight">Biblioteca de Anexos</h2>
+                      <h2 className="text-xl font-semibold tracking-tight">Anexos</h2>
                       <Badge variant={attachments.length > 0 ? "success" : "secondary"} className="ml-2">
                         {attachments.length} {attachments.length === 1 ? 'anexo' : 'anexos'}
                       </Badge>
@@ -1003,21 +1093,78 @@ export function AIConfigForm({
                 </CollapsibleContent>
               </Collapsible>
 
+              {hasGoogleCalendarAccess && (
+                <Collapsible id="secao-integracoes" className="rounded-lg border p-4 scroll-mt-24">
+                  <CollapsibleTrigger asChild>
+                    <div className="group flex w-full cursor-pointer items-center justify-between rounded-md transition-colors duration-200 hover:bg-muted/40">
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-xl font-semibold tracking-tight">Integrações</h2>
+                        <ChevronsUpDown className="h-4 w-4 text-muted-foreground transition-colors duration-200 group-hover:text-foreground" />
+                      </div>
+                    </div>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pt-4 space-y-4">
+                    <div className="flex flex-col gap-4 rounded-lg border border-border/80 bg-card/50 p-4 transition-colors duration-200 hover:bg-card sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                          <Calendar className="h-5 w-5" aria-hidden="true" />
+                        </div>
+                        <div>
+                          <h3 className="flex flex-wrap items-center gap-2 font-medium">
+                            Google Calendar
+                            {(form.watch('googleCalendarEnabled') ||
+                              (Array.isArray(form.watch('agendas')) && (form.watch('agendas')?.length ?? 0) > 0)) && (
+                              <Badge className="bg-primary text-primary-foreground text-xs font-medium">Ativo</Badge>
+                            )}
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            {form.watch('googleCalendarEnabled') ||
+                            (Array.isArray(form.watch('agendas')) && (form.watch('agendas')?.length ?? 0) > 0)
+                              ? 'Sincronizado'
+                              : 'Opcional'}
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="shrink-0 transition-colors duration-200"
+                        onClick={openGoogleCalendarDialog}
+                        aria-label="Abrir configuração do Google Calendar"
+                      >
+                        Configurar
+                      </Button>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
+
               <Collapsible
                 open={isMoreOptionsOpen}
                 onOpenChange={setIsMoreOptionsOpen}
                 className="space-y-4 rounded-lg border p-4">
                 <CollapsibleTrigger asChild>
                   <div className="flex justify-between items-center p-4 cursor-pointer border-b border-transparent group-hover:border-border">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h2 className="text-xl font-semibold tracking-tight">Mais opções</h2>
-                        <ChevronsUpDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-hover:text-foreground" />
-                      </div>
-                      <p className="text-sm text-muted-foreground">Configurações adicionais para o atendente</p>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-xl font-semibold tracking-tight">Mais opções</h2>
+                      <ChevronsUpDown className="h-4 w-4 text-muted-foreground transition-transform duration-200 group-hover:text-foreground" />
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className={`h-2 w-2 rounded-full transition-colors duration-200 ${temasEvitar.length > 0 ? "bg-green-500" : "bg-yellow-500"}`} />
+                      {temasEvitar.length > 0 ? (
+                        <Badge
+                          variant="default"
+                          className="min-w-8 justify-center font-normal tabular-nums"
+                          title={`${temasEvitar.length} tema(s) bloqueado(s)`}
+                        >
+                          <span className="sr-only">Temas bloqueados: </span>
+                          {temasEvitar.length}
+                        </Badge>
+                      ) : (
+                        <span title="Nenhum tema bloqueado">
+                          <CircleDashed className="h-4 w-4 text-muted-foreground" aria-hidden />
+                          <span className="sr-only">Nenhum tema bloqueado</span>
+                        </span>
+                      )}
                     </div>
                   </div>
                 </CollapsibleTrigger>
@@ -1029,10 +1176,7 @@ export function AIConfigForm({
                     render={({ field }) => (
                       <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 mb-6">
                         <div className="space-y-0.5">
-                          <FormLabel className="text-base">Detectar Idioma</FormLabel>
-                          <FormDescription>
-                            A IA detectará automaticamente o idioma do cliente antes de responder
-                          </FormDescription>
+                          <FormLabel className="text-base">Detectar idioma</FormLabel>
                         </div>
                         <FormControl>
                           <Switch
@@ -1043,8 +1187,8 @@ export function AIConfigForm({
                       </FormItem>
                     )}
                   />
-                  <div>
-                    <h3 className="text-sm font-medium mb-3">Temas a Evitar</h3>
+                  <div className="tutorial-temas space-y-3">
+                    <h3 className="text-sm font-medium">Temas a evitar</h3>
                     <div className="flex gap-2">
                       <Input
                         placeholder="Digite um tema a evitar"
@@ -1072,10 +1216,11 @@ export function AIConfigForm({
                             type="button"
                             variant="ghost"
                             size="sm"
-                            className="h-4 w-4 p-0 hover:bg-destructive hover:text-destructive-foreground rounded-full"
+                            className="h-6 w-6 p-0 hover:bg-destructive hover:text-destructive-foreground rounded-full"
                             onClick={() => removerTema(index)}
+                            aria-label={`Remover tema: ${tema}`}
                           >
-                            ×
+                            <X className="h-3.5 w-3.5" aria-hidden />
                           </Button>
                         </div>
                       ))}
@@ -1085,42 +1230,55 @@ export function AIConfigForm({
               </Collapsible>
                 </div>
 
-            <div className="flex items-center justify-between">
-              <p className="text-[11px] text-muted-foreground/60">
-                A IA pode cometer erros. Considere realizar testes antes de ativar para seus clientes.
+            <div className="sticky bottom-0 z-10 -mx-6 mt-8 flex flex-col gap-4 border-t bg-background/95 px-6 py-4 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] backdrop-blur-sm supports-[backdrop-filter]:bg-background/80 sm:flex-row sm:items-center sm:justify-between">
+              <p className="flex items-center gap-2 text-xs text-muted-foreground" title="Recomendado validar respostas antes de uso em produção">
+                <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" aria-hidden />
+                <span>Teste antes de ativar.</span>
               </p>
-              <div className="flex gap-4">
+              <div className="flex flex-wrap justify-end gap-3">
                 <Button
                   type="button"
                   variant="outline"
+                  disabled={isSavingConfig}
                   onClick={() => router.back()}
                 >
                   Cancelar
                 </Button>
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   className="tutorial-submit"
-                  disabled={form.formState.isSubmitting}
+                  disabled={isSavingConfig}
                 >
-                  {form.formState.isSubmitting
-                    ? 'Salvando...'
-                    : 'Salvar Alterações'}
+                  {isSavingConfig ? 'Salvando...' : 'Salvar alterações'}
                 </Button>
               </div>
             </div>
           </form>
         </Form>
-      </CardContent>
 
-      {expandedField && (
-        <LexicalFullscreenDialog
-          isOpen={isDialogOpen}
-          onClose={handleCloseExpanded}
-          value={expandedContent}
-          onChange={setExpandedContent}
-          attachments={attachments}
+        {expandedField && (
+          <LexicalFullscreenDialog
+            isOpen={isDialogOpen}
+            onClose={handleCloseExpanded}
+            value={expandedContent}
+            onChange={setExpandedContent}
+            attachments={attachments}
+          />
+        )}
+
+        <GoogleCalendarConfigDialog
+          isOpen={isGoogleCalendarOpen}
+          onClose={closeGoogleCalendarDialog}
+          defaultValues={googleCalendarDialogDefaults ?? undefined}
+          onSuccess={(data) => {
+            Object.keys(data).forEach(key => {
+              if (data[key] !== undefined) {
+                form.setValue(key as any, data[key]);
+              }
+            });
+          }}
         />
-      )}
+      </CardContent>
     </Card>
   )
 }

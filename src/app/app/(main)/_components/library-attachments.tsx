@@ -19,13 +19,13 @@ import {
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { ImageIcon, FileTextIcon, PlusIcon, XIcon } from 'lucide-react'
+import { ImageIcon, FileTextIcon, PlusIcon, XIcon, MusicIcon, VideoIcon } from 'lucide-react'
 import { toast } from '@/components/ui/use-toast'
 import { Dropzone } from '@/components/ui/dropzone'
 
 interface Attachment {
   id: string
-  type: 'image' | 'pdf'
+  type: 'image' | 'pdf' | 'audio' | 'video'
   content: string
   description: string // Será usado como atalho (#exemplo)
 }
@@ -38,7 +38,7 @@ interface LibraryAttachmentsProps {
 }
 
 export function LibraryAttachments({ attachments, onUpdate, onRemove, onAdd }: LibraryAttachmentsProps) {
-  const [selectedType, setSelectedType] = useState<'all' | 'image' | 'pdf'>('all')
+  const [selectedType, setSelectedType] = useState<'all' | 'image' | 'pdf' | 'audio' | 'video'>('all')
   const [searchTerm, setSearchTerm] = useState('')
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
 
@@ -86,7 +86,7 @@ export function LibraryAttachments({ attachments, onUpdate, onRemove, onAdd }: L
     }
   }
 
-  const handleFileUpload = async (file: File, id: string, type: 'image' | 'pdf') => {
+  const handleFileUpload = async (file: File, id: string, type: 'image' | 'pdf' | 'audio' | 'video') => {
     const formData = new FormData()
     formData.append('file', file)
     try {
@@ -111,13 +111,13 @@ export function LibraryAttachments({ attachments, onUpdate, onRemove, onAdd }: L
       console.error('Erro no upload:', error)
       toast({
         title: 'Erro de Upload',
-        description: `Não foi possível fazer upload do ${type === 'image' ? 'imagem' : 'PDF'}.`,
+        description: `Não foi possível fazer upload do ${type === 'image' ? 'imagem' : type === 'pdf' ? 'PDF' : type === 'audio' ? 'áudio' : 'vídeo'}.`,
         variant: 'destructive'
       })
     }
   }
 
-  const handleDrop = async (id: string, type: 'image' | 'pdf', acceptedFiles: File[]) => {
+  const handleDrop = async (id: string, type: 'image' | 'pdf' | 'audio' | 'video', acceptedFiles: File[]) => {
     const file = acceptedFiles[0]
     if (file) {
       const index = attachments.findIndex(att => att.id === id)
@@ -140,6 +140,10 @@ export function LibraryAttachments({ attachments, onUpdate, onRemove, onAdd }: L
         return <ImageIcon className="w-8 h-8 text-muted-foreground" />
       case 'pdf':
         return <FileTextIcon className="w-8 h-8 text-muted-foreground" />
+      case 'audio':
+        return <MusicIcon className="w-8 h-8 text-muted-foreground" />
+      case 'video':
+        return <VideoIcon className="w-8 h-8 text-muted-foreground" />
       default:
         return null
     }
@@ -201,6 +205,8 @@ export function LibraryAttachments({ attachments, onUpdate, onRemove, onAdd }: L
                 <SelectItem key="all" value="all">Todos os tipos</SelectItem>
                 <SelectItem key="image" value="image">Imagens</SelectItem>
                 <SelectItem key="pdf" value="pdf">PDFs</SelectItem>
+                <SelectItem key="audio" value="audio">Áudios</SelectItem>
+                <SelectItem key="video" value="video">Vídeos</SelectItem>
               </SelectContent>
             </Select>
             <Button 
@@ -232,7 +238,7 @@ export function LibraryAttachments({ attachments, onUpdate, onRemove, onAdd }: L
                   <CardContent className="p-4">
                     <div className="grid grid-cols-[120px,1fr] gap-6 items-start">
                       {/* Preview */}
-                      <div className="w-[120px] h-[120px] rounded-lg border flex items-center justify-center bg-secondary/10">
+                      <div className="w-[120px] h-[120px] rounded-lg border flex items-center justify-center bg-secondary/10 overflow-hidden">
                         {attachment.type === 'image' && attachment.content ? (
                           <img
                             key={`img-${attachment.id}`}
@@ -240,6 +246,22 @@ export function LibraryAttachments({ attachments, onUpdate, onRemove, onAdd }: L
                             alt={attachment.description}
                             className="w-full h-full object-cover rounded-lg"
                           />
+                        ) : attachment.type === 'video' && attachment.content ? (
+                          <video
+                            key={`video-${attachment.id}`}
+                            src={`/api/files/${attachment.content}`}
+                            className="w-full h-full object-cover rounded-lg"
+                            controls
+                            muted
+                          />
+                        ) : attachment.type === 'audio' && attachment.content ? (
+                          <div key={`audio-${attachment.id}`} className="w-full h-full flex items-center justify-center p-2">
+                            <audio
+                              src={`/api/files/${attachment.content}`}
+                              controls
+                              className="w-full"
+                            />
+                          </div>
                         ) : (
                           <div key={`icon-${attachment.id}`} className="flex items-center justify-center">
                             {getIcon(attachment.type)}
@@ -262,6 +284,8 @@ export function LibraryAttachments({ attachments, onUpdate, onRemove, onAdd }: L
                             <SelectContent>
                               <SelectItem key={`image-${attachment.id}`} value="image">Imagem</SelectItem>
                               <SelectItem key={`pdf-${attachment.id}`} value="pdf">PDF</SelectItem>
+                              <SelectItem key={`audio-${attachment.id}`} value="audio">Áudio</SelectItem>
+                              <SelectItem key={`video-${attachment.id}`} value="video">Vídeo</SelectItem>
                             </SelectContent>
                           </Select>
                           <div className="flex-1">
@@ -320,8 +344,10 @@ export function LibraryAttachments({ attachments, onUpdate, onRemove, onAdd }: L
                             <Dropzone
                               key={`dropzone-${attachment.id}`}
                               accept={{
-                                'image/*': attachment.type === 'image' ? ['.jpg', '.jpeg', '.png', '.gif'] : [],
-                                'application/pdf': attachment.type === 'pdf' ? ['.pdf'] : []
+                                'image/*': attachment.type === 'image' ? ['.jpg', '.jpeg', '.png', '.gif', '.webp'] : [],
+                                'application/pdf': attachment.type === 'pdf' ? ['.pdf'] : [],
+                                'audio/*': attachment.type === 'audio' ? ['.mp3', '.wav', '.ogg', '.m4a', '.aac'] : [],
+                                'video/*': attachment.type === 'video' ? ['.mp4', '.webm', '.ogg', '.mov', '.avi'] : []
                               }}
                               onDrop={(files) => handleDrop(attachment.id, attachment.type, files)}
                               className="min-h-[100px]"

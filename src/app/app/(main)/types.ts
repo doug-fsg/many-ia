@@ -1,9 +1,11 @@
 import { ReturnTypeWithoutPromise } from '@/types/return-type-without-promise'
 import { getUserAIConfigs } from './actions'
+import type { AgendaItem } from '@/lib/google-calendar-agendas'
 
 export type AIConfig = {
   id?: string
   isActive: boolean
+  detectarIdioma?: boolean
   nomeAtendenteDigital: string
   enviarParaAtendente: boolean
   quemEhAtendente: string
@@ -20,10 +22,26 @@ export type AIConfig = {
   temasEvitar?: Array<{ tema: string }>
   attachments?: Array<{
     id?: string
-    type: 'image' | 'pdf'
+    type: 'image' | 'pdf' | 'audio' | 'video'
     content: string
     description: string
   }>
+  // Campos para Google Calendar
+  googleCalendarEnabled?: boolean
+  calendarId?: string
+  defaultEventDuration?: number
+  weeklySchedule?: any
+  minAdvanceTime?: number
+  maxAdvanceTime?: number
+  defaultReminder?: number
+  reminderMessage?: string
+  autoCreateEvents?: boolean
+  eventType?: string
+  responsibleEmails?: string[]
+  aiPrompt?: string
+  enableScarcityMode?: boolean
+  maxSlotsToShow?: number
+  agendas?: AgendaItem[] | null
 }
 
 export type TemplateStatus = 'PUBLIC' | 'PRIVATE'

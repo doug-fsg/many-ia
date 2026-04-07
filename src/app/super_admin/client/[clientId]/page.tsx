@@ -23,6 +23,7 @@ import {
 } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
+import { FeatureFlagsManager } from './_components/feature-flags-manager'
 
 interface ClientDetails {
   id: string
@@ -355,6 +356,7 @@ export default function ClientDetailPage() {
           <TabsList>
             <TabsTrigger value="interactions">Interações Recentes</TabsTrigger>
             <TabsTrigger value="history">Histórico Mensal</TabsTrigger>
+            <TabsTrigger value="feature-flags">Feature Flags</TabsTrigger>
           </TabsList>
 
           <TabsContent value="interactions">
@@ -537,6 +539,10 @@ export default function ClientDetailPage() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="feature-flags">
+            <FeatureFlagsManager clientId={params.clientId as string} />
           </TabsContent>
         </Tabs>
       </div>

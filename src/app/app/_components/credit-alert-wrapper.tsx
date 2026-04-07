@@ -5,11 +5,16 @@ import { prisma } from '@/services/database'
 // Cache simples para evitar webhooks duplicados (resetado a cada restart da aplicação)
 const webhookCache = new Map<string, number>()
 
+const debugLog = (...args: unknown[]) => {
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(...args)
+  }
+}
+
 // Função para enviar webhook de alerta de créditos
 async function sendCreditWebhook(userId: string, userEmail: string, percentage: number, creditsUsed: number, totalCredits: number) {
   const webhookUrl = process.env.WEBHOOK
   if (!webhookUrl) {
-    console.log('[WEBHOOK] URL não configurada, pulando envio')
     return
   }
 
@@ -24,8 +29,8 @@ async function sendCreditWebhook(userId: string, userEmail: string, percentage: 
       timestamp: new Date().toISOString()
     }
 
-    console.log(`[WEBHOOK] Enviando alerta de ${percentage}% para ${userEmail}`)
-    
+    debugLog(`[WEBHOOK] Enviando alerta de ${percentage}% para ${userEmail}`)
+
     await fetch(webhookUrl, {
       method: 'POST',
       headers: {
@@ -34,7 +39,7 @@ async function sendCreditWebhook(userId: string, userEmail: string, percentage: 
       body: JSON.stringify(payload)
     })
     
-    console.log(`[WEBHOOK] Alerta de ${percentage}% enviado com sucesso`)
+    debugLog(`[WEBHOOK] Alerta de ${percentage}% enviado com sucesso`)
   } catch (error) {
     console.error(`[WEBHOOK] Erro ao enviar alerta de ${percentage}%:`, error)
   }
@@ -47,7 +52,7 @@ export async function CreditAlertWrapper({ userId }: { userId: string }) {
     const creditsUsed = plan.quota.credits?.current || 0
     const totalCredits = plan.quota.credits?.available
     
-    console.log(`[CREDIT-ALERT] Verificação para usuário ${userId}:`, {
+    debugLog(`[CREDIT-ALERT] Verificação para usuário ${userId}:`, {
       creditsUsed,
       totalCredits,
       isOutOfCredits: creditsUsed >= totalCredits
@@ -55,7 +60,7 @@ export async function CreditAlertWrapper({ userId }: { userId: string }) {
     
     // Se não conseguir obter o limite de créditos, não mostrar alerta
     if (!totalCredits) {
-      console.log(`[CREDIT-ALERT] Sem limite definido para usuário ${userId}`);
+      debugLog(`[CREDIT-ALERT] Sem limite definido para usuário ${userId}`);
       return null
     }
     
@@ -72,7 +77,7 @@ export async function CreditAlertWrapper({ userId }: { userId: string }) {
     })
 
     if (!user) {
-      console.log(`[CREDIT-ALERT] Usuário ${userId} não encontrado`);
+      debugLog(`[CREDIT-ALERT] Usuário ${userId} não encontrado`);
       return null
     }
 
@@ -80,17 +85,17 @@ export async function CreditAlertWrapper({ userId }: { userId: string }) {
     const webhookThresholds = [70, 80, 90, 100]
     let highestThresholdReached = 0
     
-    console.log(`[WEBHOOK-DEBUG] Usuário ${user.email}: ${usagePercentage.toFixed(2)}% de uso`);
+    debugLog(`[WEBHOOK-DEBUG] Usuário ${user.email}: ${usagePercentage.toFixed(2)}% de uso`);
     
     // Encontrar o maior threshold atingido
     for (const threshold of webhookThresholds) {
       if (usagePercentage >= threshold) {
         highestThresholdReached = threshold
-        console.log(`[WEBHOOK-DEBUG] Threshold ${threshold}% atingido`);
+        debugLog(`[WEBHOOK-DEBUG] Threshold ${threshold}% atingido`);
       }
     }
     
-    console.log(`[WEBHOOK-DEBUG] Maior threshold: ${highestThresholdReached}%`);
+    debugLog(`[WEBHOOK-DEBUG] Maior threshold: ${highestThresholdReached}%`);
     
     // Enviar webhook para o maior threshold atingido
     if (highestThresholdReached > 0) {
@@ -99,26 +104,34 @@ export async function CreditAlertWrapper({ userId }: { userId: string }) {
       const now = Date.now()
       const timeSinceLastSent = (now - lastSent) / (1000 * 60 * 60) // em horas
       
-      console.log(`[WEBHOOK-DEBUG] Cache key: ${cacheKey}, última vez enviado: ${timeSinceLastSent.toFixed(1)}h atrás`);
+      debugLog(`[WEBHOOK-DEBUG] Cache key: ${cacheKey}, última vez enviado: ${timeSinceLastSent.toFixed(1)}h atrás`);
       
-      // Enviar apenas se não foi enviado nas últimas 24 horas
+      // Enviar apenas se não foi enviado nas últimas 24 horas (não bloqueia a resposta HTTP)
       if (now - lastSent > 24 * 60 * 60 * 1000) {
-        console.log(`[WEBHOOK-DEBUG] Enviando webhook de ${highestThresholdReached}%`);
-        await sendCreditWebhook(userId, user.email, highestThresholdReached, creditsUsed, totalCredits)
+        debugLog(`[WEBHOOK-DEBUG] Enviando webhook de ${highestThresholdReached}%`);
         webhookCache.set(cacheKey, now)
+        void sendCreditWebhook(
+          userId,
+          user.email,
+          highestThresholdReached,
+          creditsUsed,
+          totalCredits,
+        ).catch(() => {
+          webhookCache.delete(cacheKey)
+        })
       } else {
-        console.log(`[WEBHOOK-DEBUG] Webhook de ${highestThresholdReached}% bloqueado pelo cache (${timeSinceLastSent.toFixed(1)}h < 24h)`);
+        debugLog(`[WEBHOOK-DEBUG] Webhook de ${highestThresholdReached}% bloqueado pelo cache (${timeSinceLastSent.toFixed(1)}h < 24h)`);
       }
     } else {
-      console.log(`[WEBHOOK-DEBUG] Nenhum threshold atingido para ${usagePercentage.toFixed(2)}%`);
+      debugLog(`[WEBHOOK-DEBUG] Nenhum threshold atingido para ${usagePercentage.toFixed(2)}%`);
     }
 
     // Se créditos excedidos, desativar todas as configurações automaticamente
     if (isOutOfCredits) {
-      console.log(`[CREDIT-ALERT] LIMITE EXCEDIDO para usuário ${userId}. Desativando configurações...`);
+      debugLog(`[CREDIT-ALERT] LIMITE EXCEDIDO para usuário ${userId}. Desativando configurações...`);
       const { deactivateUserAIConfigs } = await import('@/lib/subscription-helper')
       const result = await deactivateUserAIConfigs(userId)
-      console.log(`[CREDIT-ALERT] Resultado da desativação:`, result);
+      debugLog(`[CREDIT-ALERT] Resultado da desativação:`, result);
     }
 
     // Verifica fatura vencida (usando user já carregado)

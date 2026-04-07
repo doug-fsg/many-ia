@@ -44,9 +44,7 @@ export default function NovaConfiguracaoPage() {
     <DashboardPage>
       <DashboardPageHeader className="tutorial-header">
         <div className="flex items-center justify-between">
-          <DashboardPageHeaderTitle>
-            Nova Configuração de IA
-          </DashboardPageHeaderTitle>
+          <DashboardPageHeaderTitle>Nova configuração</DashboardPageHeaderTitle>
           <ConfigTutorial />
         </div>
       </DashboardPageHeader>

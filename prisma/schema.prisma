@@ -50,10 +50,10 @@ model User {
   canCreateTemplates        Boolean                    @default(false)
   customCreditLimit         Int?
   isSuperAdmin              Boolean                    @default(false)
+  featureFlags              Json?                      @default("{}")
   aiConfigs                 AIConfig[]
   accounts                  Account[]
   affiliate                 Affiliate?
-
   inboxes                   Inbox[]
   interactions              Interaction[]
   referralsReceived         Referral[]                 @relation("ReferredUser")
@@ -61,6 +61,7 @@ model User {
   templates                 Template[]
   sharedTemplates           TemplateSharing[]
   whatsAppConnections       WhatsAppConnection[]
+  googleCalendarIntegration GoogleCalendarIntegration?
 
   @@index([customCreditLimit])
 }
@@ -109,6 +110,24 @@ model AIConfig {
   temasEvitar             TemasEvitar[]
   whatsappConnections     WhatsAppConnection[]
 
+  // Campos para Google Calendar
+  googleCalendarEnabled Boolean       @default(false)
+  calendarId           String?       // ID do calendário selecionado
+  defaultEventDuration Int?
+  weeklySchedule       Json?         // { "1": { "enabled": true, "start": "09:00", "end": "18:00", "hasBreak": true, "breakStart": "12:00", "breakEnd": "14:00" }, ... }
+  minAdvanceTime       Int?
+  maxAdvanceTime       Int?
+  defaultReminder      Int?
+  reminderMessage      String?
+  autoCreateEvents     Boolean       @default(false)
+  eventType            String?       @default("video_call") // video_call ou presencial
+  responsibleEmails    String[]      @default([])
+  aiPrompt             String?
+  enableScarcityMode   Boolean       @default(false)
+  maxSlotsToShow       Int?
+  // Múltiplas agendas (opcional): quando null, usa calendarId/weeklySchedule no nível do AIConfig
+  agendas              Json?
+
   @@index([userId])
 }
 
@@ -117,10 +136,10 @@ model Attachment {
   type        String
   content     String
   description String
-  aiConfigId  String
+  aiConfigId  String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  aiConfig    AIConfig @relation(fields: [aiConfigId], references: [id], onDelete: Cascade)
+  aiConfig    AIConfig? @relation(fields: [aiConfigId], references: [id], onDelete: Cascade)
 
   @@index([aiConfigId])
 }
@@ -240,4 +259,15 @@ model Referral {
   @@index([referredUserId])
 }
 
-
+model GoogleCalendarIntegration {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  accessToken   String
+  refreshToken  String?
+  expiresAt     DateTime
+  email         String?
+  calendarId    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

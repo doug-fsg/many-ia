@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Loader2, SendIcon, ChevronDown, FileIcon, FileTextIcon, Film } from 'lucide-react'
+import { Loader2, SendIcon, ChevronDown, FileIcon, FileTextIcon, Film, MusicIcon } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import { cn } from '@/lib/utils'
 
@@ -206,7 +206,12 @@ export function ChatTest({ agentId, agentName, accountId, inboxId, isTemplate = 
 
   // Função para verificar se uma URL é um vídeo
   const isVideoUrl = (url: string) => {
-    return /\.(mp4|webm|ogg|mov)($|\?)/.test(url.toLowerCase());
+    return /\.(mp4|webm|ogg|mov|avi)($|\?)/.test(url.toLowerCase());
+  }
+
+  // Função para verificar se uma URL é um áudio
+  const isAudioUrl = (url: string) => {
+    return /\.(mp3|wav|ogg|m4a|aac)($|\?)/.test(url.toLowerCase());
   }
 
   // Componente personalizado para renderizar links
@@ -253,6 +258,25 @@ export function ChatTest({ agentId, agentName, accountId, inboxId, isTemplate = 
       );
     }
     
+    // Se for uma URL de áudio
+    if (isAudioUrl(href)) {
+      return (
+        <div className="my-2 max-w-full">
+          <audio 
+            src={href} 
+            controls 
+            className="w-full"
+            onLoadedData={scrollToBottom}
+          >
+            Seu navegador não suporta a tag de áudio.
+          </audio>
+          {typeof children === 'string' && children !== href && (
+            <p className="text-xs text-center mt-1 text-muted-foreground">{children}</p>
+          )}
+        </div>
+      );
+    }
+    
     // Para outros tipos de arquivos
     const fileName = typeof children === 'string' ? children : href.split('/').pop() || 'Arquivo';
     const extension = href.split('.').pop()?.toLowerCase() || '';
@@ -261,8 +285,10 @@ export function ChatTest({ agentId, agentName, accountId, inboxId, isTemplate = 
     let FileTypeIcon = FileIcon;
     if (['pdf', 'doc', 'docx', 'txt', 'rtf'].includes(extension)) {
       FileTypeIcon = FileTextIcon;
-    } else if (['mp4', 'avi', 'mov', 'wmv'].includes(extension)) {
+    } else if (['mp4', 'avi', 'mov', 'wmv', 'webm'].includes(extension)) {
       FileTypeIcon = Film;
+    } else if (['mp3', 'wav', 'ogg', 'm4a', 'aac'].includes(extension)) {
+      FileTypeIcon = MusicIcon;
     }
     
     return (

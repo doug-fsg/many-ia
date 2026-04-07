@@ -1,0 +1,128 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { auth } from '@/services/auth'; // Importação corrigida
+import { oauth2Client } from '@/lib/google-calendar';
+
+const LOG_PREFIX = '[GoogleCalendar]';
+
+export async function GET(request: NextRequest) {
+  const url = new URL(request.url);
+  const code = url.searchParams.get('code');
+  const googleError = url.searchParams.get('error');
+
+  console.log(LOG_PREFIX, 'Callback recebido', { hasCode: !!code, googleError: googleError ?? null });
+
+  try {
+    // Google pode retornar error na URL (ex: access_denied, redirect_uri_mismatch)
+    if (googleError) {
+      const errorDetail = url.searchParams.get('error_description') ?? googleError;
+      console.log(LOG_PREFIX, 'Erro do Google na URL:', googleError, errorDetail);
+      const redirectUrl = new URL('/app/settings/integrations', process.env.NEXT_PUBLIC_APP_URL);
+      redirectUrl.searchParams.set('error', 'google-calendar');
+      redirectUrl.searchParams.set('detail', googleError);
+      return NextResponse.redirect(redirectUrl);
+    }
+
+    if (!code) {
+      console.log(LOG_PREFIX, 'Código de autorização ausente');
+      const redirectUrl = new URL('/app/settings/integrations', process.env.NEXT_PUBLIC_APP_URL);
+      redirectUrl.searchParams.set('error', 'google-calendar');
+      return NextResponse.redirect(redirectUrl);
+    }
+
+    // Obter a sessão do usuário atual
+    const session = await auth(); // Método de autenticação corrigido
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: 'Usuário não autenticado' },
+        { status: 401 }
+      );
+    }
+
+    // Verificar Feature Flag
+    const { hasGoogleCalendarAccess } = await import('@/lib/feature-flags');
+    const hasAccess = await hasGoogleCalendarAccess(session.user.id);
+    if (!hasAccess) {
+      const redirectUrl = new URL('/app/settings/integrations', process.env.NEXT_PUBLIC_APP_URL);
+      redirectUrl.searchParams.set('error', 'feature-not-available');
+      return NextResponse.redirect(redirectUrl);
+    }
+
+    // Trocar o código por tokens
+    const { tokens } = await oauth2Client.getToken(code);
+    
+    // Verificar se os tokens foram recebidos
+    if (!tokens.access_token) {
+      return NextResponse.json(
+        { error: 'Falha ao obter tokens de acesso' },
+        { status: 500 }
+      );
+    }
+
+    // Configurar o cliente com os tokens
+    oauth2Client.setCredentials(tokens);
+
+    const { google } = await import('googleapis');
+
+    // Obter informações do usuário Google
+    const oauth2 = google.oauth2({
+      auth: oauth2Client,
+      version: 'v2',
+    });
+    const userInfo = await oauth2.userinfo.get();
+
+    // Salvar ou atualizar a integração no banco de dados
+    const integration = await prisma.googleCalendarIntegration.upsert({
+      where: {
+        userId: session.user.id,
+      },
+      update: {
+        accessToken: tokens.access_token,
+        refreshToken: tokens.refresh_token || undefined,
+        expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : undefined,
+        email: userInfo.data.email || undefined,
+      },
+      create: {
+        userId: session.user.id,
+        accessToken: tokens.access_token,
+        refreshToken: tokens.refresh_token,
+        expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : new Date(),
+        email: userInfo.data.email,
+      },
+    });
+
+    // Obter lista de calendários do usuário
+    const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+    const calendarList = await calendar.calendarList.list();
+
+    // Salvar o ID do calendário principal (se existir)
+    if (calendarList.data.items && calendarList.data.items.length > 0) {
+      const primaryCalendar = calendarList.data.items.find(
+        (cal) => cal.primary === true
+      );
+
+      if (primaryCalendar && primaryCalendar.id) {
+        await prisma.googleCalendarIntegration.update({
+          where: { id: integration.id },
+          data: { calendarId: primaryCalendar.id },
+        });
+      }
+    }
+
+    const redirectUrl = new URL('/app/settings/integrations', process.env.NEXT_PUBLIC_APP_URL);
+    redirectUrl.searchParams.set('success', 'google-calendar');
+
+    // Redirecionar para a página de configurações com mensagem de sucesso
+    return NextResponse.redirect(redirectUrl);
+  } catch (error) {
+    const err = error as Error & { response?: { data?: unknown }; code?: string };
+    const msg = err?.message ?? String(error);
+    const extra = err?.code ?? (err?.response as { data?: unknown })?.data ?? '';
+    console.error(LOG_PREFIX, 'Callback erro:', msg, extra ? `| extra: ${String(extra)}` : '');
+
+    const redirectUrl = new URL('/app/settings/integrations', process.env.NEXT_PUBLIC_APP_URL);
+    redirectUrl.searchParams.set('error', 'google-calendar');
+
+    return NextResponse.redirect(redirectUrl);
+  }
+} 
